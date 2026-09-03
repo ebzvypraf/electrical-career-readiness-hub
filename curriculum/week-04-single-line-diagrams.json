@@ -1,0 +1,65 @@
+{
+  "week": 4,
+  "title": "Single-Line Diagrams: Reading and Producing",
+  "phase": "Foundations",
+  "estimatedHours": 5,
+  "skillTargets": ["Electrical drafting & documentation", "Electrical design ownership", "Power distribution design"],
+  "learn": {
+    "objective": "Read and produce clear electrical single-line diagrams (SLDs) while maintaining traceability between equipment, protection, conductors and downstream loads.",
+    "concepts": [
+      "Purpose and information hierarchy of an SLD",
+      "Equipment tags and source-to-load traceability",
+      "Protection, isolation and switching representation",
+      "Cable/conductor identification and basic schedule interfaces",
+      "Revision control and coordination with layouts, schedules and specifications"
+    ],
+    "seniorReasoning": "A senior designer treats an SLD as a controlled representation of the electrical system, not merely a collection of symbols. Every major element should have a reason, an identifiable relationship to other documents, and enough information for review and coordination."
+  },
+  "apply": {
+    "scenario": "Develop a fictional SLD for a small pump-station distribution system supplied from a main LV switchboard through a motor control section to two pumps and auxiliary loads.",
+    "tasks": [
+      "Establish the source-to-load hierarchy and identify the major equipment tags.",
+      "Represent incomer, protective devices, feeders, motor starters/VSD interfaces and outgoing loads using a consistent symbol and annotation strategy.",
+      "Create a simple cable/feeder identification scheme and identify which information should come from a cable schedule rather than being duplicated on the SLD.",
+      "Cross-check the SLD against a fictional equipment list and identify at least three discrepancies or missing inputs.",
+      "Prepare a short issue-readiness checklist covering consistency, references, tags, revisions and coordination interfaces."
+    ],
+    "deliverable": "A sanitized SLD exercise plus a discrepancy/assumption register and issue-readiness checklist."
+  },
+  "check": {
+    "questions": [
+      {
+        "prompt": "An equipment tag appears on the SLD but not in the equipment list. What is the strongest senior response?",
+        "answer": "Treat it as a coordination discrepancy, trace the source of the tag and confirm the intended equipment before issuing the drawing rather than silently creating or deleting information."
+      },
+      {
+        "prompt": "Why should a cable schedule not simply be copied in full onto every SLD?",
+        "answer": "The SLD should communicate system relationships and key design information while detailed cable data remains controlled in its schedule; unnecessary duplication increases inconsistency risk."
+      },
+      {
+        "prompt": "A protective device rating changes on the design input. What should be checked beyond changing the number on the SLD?",
+        "answer": "Check affected feeder/cable information, equipment interfaces, schedules, downstream loads, coordination assumptions and revision impacts before issue."
+      },
+      {
+        "prompt": "What distinguishes a senior SLD review from a symbol-by-symbol visual check?",
+        "answer": "It verifies system logic, source-to-load traceability, interfaces, identifiers, design inputs, document consistency and issue readiness."
+      }
+    ]
+  },
+  "evidence": {
+    "prompt": "Capture a sanitized SLD exercise and supporting discrepancy/QA record demonstrating that you can communicate system relationships and identify coordination issues before issue.",
+    "criteria": [
+      "Source-to-load hierarchy is clear",
+      "Equipment and feeder identifiers are traceable",
+      "Discrepancies and assumptions are recorded",
+      "Cross-document coordination is demonstrated",
+      "Issue-readiness checks are documented"
+    ]
+  },
+  "integration": {
+    "home": "Use this module as a next-best-action when the learner reaches Week 4.",
+    "skills": ["Electrical drafting & documentation", "Electrical design ownership", "Power distribution design"],
+    "journal": "Prompt reflection on system traceability, discrepancies found and decisions escalated.",
+    "portfolio": "Store the sanitized SLD plus discrepancy/QA record as evidence of system-documentation capability."
+  }
+}
