@@ -8,12 +8,16 @@
 export const STAGES = ['learn', 'apply', 'check', 'evidence'];
 export const STAGE_LABELS = { learn: 'Learn', apply: 'Apply', check: 'Check', evidence: 'Evidence' };
 
+/* Root-safe URLs: this module lives under /curriculum but the production
+ * Course UI will import it from /index.html. Keep content paths absolute to
+ * the deployed application root so both contexts resolve the same payloads.
+ */
 export const CURRICULUM_URLS = {
-  1: './learning-content-v1.json',
-  2: './week-02-microstation-connect.json',
-  3: './week-03-electrical-documentation.json',
-  4: './week-04-single-line-diagrams.json',
-  5: './week-05-cable-schedules.json'
+  1: '/curriculum/learning-content-v1.json',
+  2: '/curriculum/week-02-microstation-connect.json',
+  3: '/curriculum/week-03-electrical-documentation.json',
+  4: '/curriculum/week-04-single-line-diagrams.json',
+  5: '/curriculum/week-05-cable-schedules.json'
 };
 
 export function emptyProgress() {
@@ -54,6 +58,14 @@ export function nextStage(progressByWeek, weekIds) {
   return null;
 }
 
+export function isStageUnlocked(progressByWeek, weekId, stage) {
+  const p = progressByWeek?.[weekId] || emptyProgress();
+  const index = STAGES.indexOf(stage);
+  if (index < 0) return false;
+  if (index === 0) return true;
+  return STAGES.slice(0, index).every(previous => Boolean(p[previous]));
+}
+
 export function canCompleteStage(stage, context = {}) {
   if (stage === 'learn') return true;
   if (stage === 'apply') return Boolean(context.applicationNotes?.trim());
@@ -88,6 +100,9 @@ export function createLearningState(weekIds = Object.keys(CURRICULUM_URLS)) {
 export function applyStageCompletion(progressByWeek, weekId, stage, context = {}) {
   if (!STAGES.includes(stage)) throw new Error(`Unknown learning stage: ${stage}`);
   const current = progressByWeek?.[weekId] || emptyProgress();
+  if (!isStageUnlocked(progressByWeek, weekId, stage)) {
+    return { ok: false, progress: { ...current }, reason: `Stage locked: complete the previous stage first` };
+  }
   if (!canCompleteStage(stage, context)) {
     return { ok: false, progress: { ...current }, reason: `Stage gate not satisfied: ${STAGE_LABELS[stage]}` };
   }
