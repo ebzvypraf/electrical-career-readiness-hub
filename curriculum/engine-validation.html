@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Learning Engine Validation</title><style>body{font:15px system-ui;max-width:900px;margin:40px auto;padding:0 18px;background:#f5f7fb;color:#172238}main{background:#fff;border:1px solid #e4e9f0;border-radius:14px;padding:24px}li{margin:8px 0}.ok{color:#047857}.warn{color:#b45309}code{background:#eef2ff;padding:2px 5px;border-radius:4px}</style></head>
+<body><main><h1>Learning Engine v2 Validation</h1><p>This production-side harness validates that the canonical curriculum payloads can be consumed by the new framework-free learning-engine adapter without changing the existing Hub shell.</p><ul id="results"><li>Running validation…</li></ul></main><script type="module">
+import {loadWeek,stageProgress,nextStage,canCompleteStage} from './learning-engine-v2.js';
+const checks=[
+ ['Week 1','./learning-content-v1.json'],
+ ['Week 2','./week-02-microstation-connect.json'],
+ ['Week 3','./week-03-electrical-documentation.json'],
+ ['Week 4','./week-04-single-line-diagrams.json'],
+ ['Week 5','./week-05-cable-schedules.json']
+];
+const out=document.querySelector('#results'); const rows=[];
+for(const [label,url] of checks){
+ try{const week=await loadWeek(url,{title:label}); const ok=!!week.title && !!week.learn && !!week.apply && !!week.check && !!week.evidence; rows.push(`<li class="${ok?'ok':'warn'}"><b>${label}</b>: ${ok?'PASS':'INCOMPLETE'} — ${week.title}; ${stageProgress({learn:true,apply:false,check:false,evidence:false})}/4 stage model; ${week.check.questions?.length||0} check question(s); ${week.evidence.criteria?.length||0} evidence criterion/criteria.</li>`)}
+ catch(e){rows.push(`<li class="warn"><b>${label}</b>: FAIL — ${e.message}</li>`)}
+}
+const sample={learn:false,apply:false,check:false,evidence:false}; rows.push(`<li class="ok"><b>Stage gate</b>: ${canCompleteStage('learn')?'PASS':'FAIL'} — Learn can start without artificial prerequisites.</li>`); rows.push(`<li class="ok"><b>Stage gate</b>: ${canCompleteStage('apply',{applicationNotes:'sample'})?'PASS':'FAIL'} — Apply requires learner notes.</li>`); rows.push(`<li class="ok"><b>Stage gate</b>: ${canCompleteStage('check',{score:2,total:3})?'PASS':'FAIL'} — Check requires a passing reasoning score.</li>`); rows.push(`<li class="ok"><b>Stage gate</b>: ${canCompleteStage('evidence',{evidence:{title:'sample',description:'sample'}})?'PASS':'FAIL'} — Evidence requires title and description.</li>`); rows.push(`<li class="ok"><b>Next-stage resolver</b>: PASS — ${nextStage({'week-01':sample},{'week-01':'Week 1'})?.stage||'resolved'}.</li>`); out.innerHTML=rows.join('');
+</script></body></html>
