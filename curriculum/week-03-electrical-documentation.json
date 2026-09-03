@@ -1,0 +1,102 @@
+{
+  "week": 3,
+  "title": "Electrical Documentation Standards & Drawing Ownership",
+  "phase": "Core CAD & Documentation",
+  "objective": "Develop senior-level judgment for producing clear, consistent and reviewable electrical drawings from design intent through controlled issue.",
+  "learn": {
+    "heading": "What senior designers should understand",
+    "bullets": [
+      "A drawing is a controlled technical deliverable, not merely a graphic representation of the design.",
+      "Distinguish design intent, drafting conventions, project standards and client-specific requirements before editing a drawing.",
+      "Use consistent sheet composition, tagging, notes, linework, symbols, references and revision information so a reviewer can interpret the design quickly.",
+      "Trace interfaces between electrical drawings and other disciplines rather than assuming missing information is harmless.",
+      "Perform a deliberate self-check before submitting work for checking: content, coordination, drafting quality, references, revision status and output."
+    ],
+    "senior_reasoning": [
+      "How would you decide whether an inconsistency is a drafting issue, a design issue, or a project-standard issue?",
+      "What evidence would you gather before changing an established drawing convention?",
+      "How can a small documentation error create a larger construction, procurement or commissioning risk?"
+    ]
+  },
+  "apply": {
+    "scenario": "You are asked to update a fictional electrical general arrangement and single-line drawing following several redline comments. Some comments are straightforward drafting corrections, while others require you to identify missing design information before making a change.",
+    "tasks": [
+      "Classify each redline as drafting correction, design clarification, coordination issue or information gap.",
+      "Update the straightforward drafting items using consistent project conventions.",
+      "Create a clarification list for comments that should not be resolved by assumption.",
+      "Perform a self-check covering drawing content, tags, notes, references, revision information and plotted readability.",
+      "Write a short handover note explaining what was changed and what remains outstanding."
+    ],
+    "deliverable": "A sanitized redline response sheet or screenshot set plus a redline disposition table and self-check record."
+  },
+  "check": {
+    "passing_score": 80,
+    "questions": [
+      {
+        "q": "A redline says to relocate an electrical item, but the destination conflicts with a structural opening shown on a reference. What should you do first?",
+        "a": [
+          "Move the item anyway because the redline is an instruction.",
+          "Delete the structural reference.",
+          "Check the coordination/design information and raise a clarification if the conflict cannot be resolved from approved information.",
+          "Move the item to any visually convenient location."
+        ],
+        "correct": 2,
+        "why": "Senior ownership means recognizing when a drafting action could change or conflict with design intent and resolving the information gap before proceeding."
+      },
+      {
+        "q": "Which approach best demonstrates drawing ownership before issue?",
+        "a": [
+          "Rely on the checker to find all problems.",
+          "Confirm technical content, coordination, drafting consistency, revision status and output quality against the applicable requirements.",
+          "Only inspect the areas mentioned in the latest redline.",
+          "Only confirm that the PDF was generated."
+        ],
+        "correct": 1,
+        "why": "A self-check should cover the complete deliverable, not only the last visible change."
+      },
+      {
+        "q": "A note appears ambiguous but changing it would require inventing a technical value. What is the correct response?",
+        "a": [
+          "Choose a reasonable value from memory.",
+          "Copy a value from an unrelated project.",
+          "Identify the information gap and seek the approved design input before finalizing the note.",
+          "Remove the note permanently."
+        ],
+        "correct": 2,
+        "why": "Drafting responsibility does not authorize inventing engineering information."
+      },
+      {
+        "q": "Why should redline disposition be recorded?",
+        "a": [
+          "To create more paperwork.",
+          "To provide traceability of what was changed, clarified, deferred or rejected and support checking.",
+          "To replace the drawing revision process.",
+          "To avoid communicating with other disciplines."
+        ],
+        "correct": 1,
+        "why": "A clear disposition record supports traceability, review and controlled communication."
+      }
+    ]
+  },
+  "evidence": {
+    "prompt": "Capture a sanitized redline disposition/self-check package demonstrating how you handled corrections, clarifications and coordination risks.",
+    "criteria": [
+      "Redlines are classified consistently.",
+      "Assumptions are avoided where approved information is missing.",
+      "Changes and outstanding clarifications are traceable.",
+      "A complete self-check is documented before issue."
+    ],
+    "portfolio_category": "Electrical Documentation / QA",
+    "competencies": [
+      "Drawing ownership",
+      "Redline interpretation",
+      "Electrical documentation quality",
+      "Coordination judgment",
+      "QA/self-check discipline"
+    ]
+  },
+  "journal_prompt": "Which redline or documentation decision required the most judgment, and what information did you use to decide whether to change the drawing or request clarification?",
+  "estimated_hours": 2.5,
+  "prerequisites": ["week-01", "week-02"],
+  "status": "ready-for-integration"
+}
