@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "2.0",
+  "purpose": "Canonical runtime contract for the 24-week Learn -> Apply -> Check -> Evidence learning engine.",
+  "completionRule": {
+    "learn": "Learner reviews the lesson objective, core concepts, and senior takeaway.",
+    "apply": "Learner records application notes covering decisions, assumptions, output, and verification approach.",
+    "check": "Learner submits every knowledge-check question; a passing score is required before the stage can be marked complete.",
+    "evidence": "Learner records identifiable, sanitized evidence with contribution, reasoning, and reviewability; saving evidence also creates the Portfolio record."
+  },
+  "integrationEvents": [
+    {"event":"stage.completed","updates":["course.progress","home.nextAction"]},
+    {"event":"check.submitted","updates":["course.checkScore"]},
+    {"event":"journal.saved","updates":["home.weeklyHours","home.streak","mission.reflection"]},
+    {"event":"evidence.saved","updates":["portfolio.evidence","home.evidenceCount","skills.signals"]}
+  ],
+  "skillSignalRule": "Evidence should update only the skills explicitly listed in the module skillSignals map; no global skill inflation from generic completion.",
+  "weeks": [
+    {
+      "week": 1,
+      "title": "AutoCAD workspace, standards & layer discipline",
+      "source": "embedded lesson",
+      "skillSignals": {"AutoCAD": 1, "Electrical drafting & documentation": 1},
+      "portfolioTarget": "AutoCAD template & reusable blocks"
+    },
+    {
+      "week": 2,
+      "title": "MicroStation CONNECT fundamentals & level structures",
+      "source": "curriculum/week-02-microstation-connect.json",
+      "skillSignals": {"MicroStation CONNECT": 1, "Electrical drafting & documentation": 1},
+      "portfolioTarget": "MicroStation level and drafting setup evidence"
+    },
+    {
+      "week": 3,
+      "title": "Electrical symbol libraries & drawing conventions",
+      "source": "curriculum/week-03-electrical-documentation.json",
+      "skillSignals": {"Electrical drafting & documentation": 1, "QA / design checking": 1},
+      "portfolioTarget": "Electrical documentation standards evidence"
+    },
+    {
+      "week": 4,
+      "title": "Single line diagrams: reading and producing",
+      "source": "curriculum/week-04-single-line-diagrams.json",
+      "skillSignals": {"Electrical design ownership": 1, "Power distribution design": 1, "Electrical drafting & documentation": 1},
+      "portfolioTarget": "Three SLD exercises"
+    }
+  ],
+  "runtimeState": {
+    "perWeek": ["learn","apply","check","evidence"],
+    "activityKeys": ["notes","checks","evidence"],
+    "evidenceToPortfolio": true,
+    "journalIndependentOfStageCompletion": true
+  },
+  "uiContract": {
+    "course": "Selecting a stage must render the week-specific curriculum payload, not the generic fallback when a payload exists.",
+    "home": "Next Best Action must resolve to the first incomplete stage across the 24-week sequence.",
+    "skills": "Show evidence-backed skill signals separately from manually adjusted skill ratings.",
+    "journal": "A saved reflection remains a journal record and contributes to weekly hours/streak independently of course completion.",
+    "portfolio": "Every saved guided evidence record is shown as a portfolio item with week, title, description, and reference."
+  }
+}
