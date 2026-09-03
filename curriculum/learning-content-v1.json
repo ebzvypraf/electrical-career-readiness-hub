@@ -1,0 +1,98 @@
+{
+  "version": "1.0.0",
+  "purpose": "Structured curriculum payload for the Career Readiness Hub Learn-Apply-Check-Evidence engine.",
+  "integration": {
+    "stageOrder": ["learn", "apply", "check", "evidence"],
+    "completionRule": "A module is complete when all four stages are completed and evidence is recorded.",
+    "homeSignals": ["overallProgress", "nextBestAction", "studyMomentum", "prioritySkillGaps"],
+    "skillSignals": ["demonstratedCapability", "knowledgeCheck", "evidenceQuality"],
+    "journalSignals": ["studyHours", "reflection", "nextAction"],
+    "portfolioSignals": ["evidenceArtifact", "competency", "reflection", "reviewStatus"]
+  },
+  "modules": [
+    {
+      "week": 1,
+      "title": "AutoCAD Workspace, Standards & Layer Discipline",
+      "phase": "Foundations",
+      "estimatedHours": 4,
+      "skillTargets": ["AutoCAD", "Electrical drafting & documentation"],
+      "learn": {
+        "objective": "Build a repeatable AutoCAD setup that produces clean, reviewable electrical drawings.",
+        "concepts": ["Layer discipline", "Templates and reusable blocks", "Drawing units and sheet setup", "Inputs, assumptions and approval boundaries"],
+        "seniorReasoning": "A senior drafter creates a controlled environment that another designer can understand and safely modify."
+      },
+      "apply": {
+        "scenario": "Prepare the drafting setup for a fictional small pump-station electrical floor plan.",
+        "tasks": ["Create a layer plan for equipment, power/cabling, text, dimensions and references.", "Define three reusable blocks.", "Write five pre-drafting checks.", "Record two assumptions requiring design-lead confirmation."],
+        "deliverable": "Sanitized setup sheet or screenshot set with layer structure, sample blocks and pre-drafting checklist."
+      },
+      "check": {
+        "questions": [
+          {"prompt": "Two designers use different layer conventions on one package. What is the strongest response?", "answer": "Agree a package standard, update the controlled template/standards and check affected sheets for consistency."},
+          {"prompt": "What should be confirmed before creating a reusable block?", "answer": "Project standard, insertion behaviour, attributes and intended reuse across the package."},
+          {"prompt": "What demonstrates senior ownership before drafting starts?", "answer": "Identify inputs, interfaces, assumptions and approval boundaries that could change the drawing."}
+        ]
+      },
+      "evidence": {
+        "prompt": "Capture one sanitized artefact or written record proving you can establish a controlled drafting setup and explain the decisions behind it.",
+        "criteria": ["Identifiable and sanitized", "Decision explained", "Inputs/assumptions/interfaces stated", "Reviewable by another designer"]
+      }
+    },
+    {
+      "week": 2,
+      "title": "MicroStation CONNECT Fundamentals & Level Structures",
+      "phase": "Foundations",
+      "estimatedHours": 4,
+      "skillTargets": ["MicroStation CONNECT", "Electrical drafting & documentation"],
+      "learn": {
+        "objective": "Use MicroStation CONNECT with disciplined level structures, references, annotation and production controls.",
+        "concepts": ["Levels and level standards", "References and nesting", "Element attributes", "Text and annotation", "Models, sheets and production workflow"],
+        "seniorReasoning": "The goal is not merely knowing commands; it is being able to structure a DGN so the package remains understandable, coordinated and maintainable."
+      },
+      "apply": {
+        "scenario": "Set up a fictional electrical switchroom drawing in MicroStation CONNECT using a controlled level and reference strategy.",
+        "tasks": ["Define a level naming structure for equipment, power, containment, text, dimensions and references.", "Attach a fictional architectural reference and describe its update implications.", "Create representative electrical annotation and verify element attributes.", "Document three checks before issue."],
+        "deliverable": "Sanitized DGN screenshots or a written production record showing level structure, references, annotation and QA checks."
+      },
+      "check": {
+        "questions": [
+          {"prompt": "A reference file changes after you have started drafting. What should a senior designer consider first?", "answer": "Assess the reference revision/change, identify affected geometry and interfaces, then coordinate the impact before blindly updating the drawing."},
+          {"prompt": "Why is a controlled level structure important?", "answer": "It makes graphics predictable, supports review/filtering and reduces coordination and editing errors."},
+          {"prompt": "What is a stronger senior practice than simply checking whether the sheet looks correct?", "answer": "Check model structure, references, attributes, annotation, standards and issue information as well as appearance."}
+        ]
+      },
+      "evidence": {
+        "prompt": "Capture a sanitized MicroStation production example demonstrating controlled levels, references, annotation and a documented QA check.",
+        "criteria": ["Level strategy is clear", "Reference handling is explained", "Annotation is consistent", "QA check is documented"]
+      }
+    },
+    {
+      "week": 3,
+      "title": "Electrical Documentation Standards & Drawing Ownership",
+      "phase": "Foundations",
+      "estimatedHours": 4,
+      "skillTargets": ["Electrical drafting & documentation", "QA / design checking", "Electrical design ownership"],
+      "learn": {
+        "objective": "Move from drawing production to controlled ownership of an electrical drawing through review, coordination and issue.",
+        "concepts": ["Drawing purpose and information hierarchy", "Revision and redline control", "Design inputs and interfaces", "QA/self-check", "Issue readiness"],
+        "seniorReasoning": "Ownership means understanding what the drawing is communicating, what inputs it depends on, what has changed and what must be checked before issue."
+      },
+      "apply": {
+        "scenario": "Review a fictional electrical drawing package containing a redline, a changed equipment location and an interface with mechanical services.",
+        "tasks": ["Classify each redline as drafting correction, design decision, coordination issue or clarification.", "Identify missing inputs before incorporating the change.", "Update a revision/disposition record.", "Perform a structured self-check before issue."],
+        "deliverable": "Sanitized redline disposition table plus a drawing QA checklist and short issue-readiness statement."
+      },
+      "check": {
+        "questions": [
+          {"prompt": "A redline changes equipment location but the upstream cable route may be affected. What is the strongest response?", "answer": "Do not treat it as an isolated drafting edit; identify the affected interfaces and verify the electrical consequences before issue."},
+          {"prompt": "When should a drafter escalate rather than make an assumption?", "answer": "When the change affects design intent, safety, compliance, interfaces or an approval boundary that has not been defined."},
+          {"prompt": "What makes a QA check senior-level?", "answer": "It checks both drawing correctness and whether the information, interfaces, revision status and design assumptions are ready for issue."}
+        ]
+      },
+      "evidence": {
+        "prompt": "Capture a sanitized redline/disposition exercise and QA record demonstrating controlled drawing ownership.",
+        "criteria": ["Changes are classified", "Interfaces/inputs identified", "Disposition is traceable", "QA and issue readiness are demonstrated"]
+      }
+    }
+  ]
+}
