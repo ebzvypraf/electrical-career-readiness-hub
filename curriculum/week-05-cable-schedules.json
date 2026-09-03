@@ -1,0 +1,91 @@
+{
+  "week": 5,
+  "title": "Cable Schedules & Termination Drawings",
+  "phase": "Foundations",
+  "estimatedHours": 6,
+  "objective": "Develop the ability to create and review cable schedules and termination information as controlled design records, with traceability from source equipment through destination, cable identification, termination and drawing references.",
+  "learn": {
+    "heading": "What senior designers should understand",
+    "bullets": [
+      "A cable schedule is a controlled coordination record: every cable should be traceable to its source, destination, function and associated drawings.",
+      "Cable identifiers, core information, sizes, types, lengths and termination details must be consistent with the design basis and related documents.",
+      "Do not invent missing data. Distinguish confirmed information, design assumptions and information requiring clarification.",
+      "Termination drawings should make the physical and functional interface clear enough for drafting, checking, installation and commissioning teams to understand the intended connection.",
+      "Cross-check schedules against SLDs, equipment lists, panel schedules and I/O or instrumentation information before issue."
+    ],
+    "takeaway": "Senior ownership means maintaining traceability across documents and identifying discrepancies before they become construction or commissioning problems."
+  },
+  "apply": {
+    "scenario": "You are given a fictional pump-station package containing a motor control panel, two pumps, local isolators and several control interfaces. The source information is incomplete and contains two intentional tag mismatches.",
+    "tasks": [
+      "Create a small cable schedule with at least eight fictional cables covering power, control and indication circuits.",
+      "For each cable, identify source, destination, cable tag, service, core requirement and related drawing/reference.",
+      "Flag the two intentional tag mismatches and document what source information should be checked before correction.",
+      "Create a termination checklist covering cable identification, core numbering, gland/termination information and drawing cross-references.",
+      "Record at least three assumptions or missing inputs and classify each as acceptable for drafting, requiring clarification, or blocking issue."
+    ],
+    "deliverable": "A sanitized cable schedule plus termination/checking checklist and a short discrepancy register. Spreadsheet, table or drawing extract is acceptable."
+  },
+  "check": {
+    "questions": [
+      {
+        "q": "A cable tag in the equipment list conflicts with the SLD. What is the strongest senior response?",
+        "a": [
+          "Choose whichever tag is easier to draft and continue.",
+          "Record the discrepancy, trace both sources, identify the controlled source or obtain clarification before issuing the affected information.",
+          "Delete the cable from the schedule until somebody notices it."
+        ],
+        "correct": 1,
+        "why": "A discrepancy should be traceable and resolved against the appropriate controlled source rather than silently corrected."
+      },
+      {
+        "q": "Which combination gives the strongest cable traceability?",
+        "a": [
+          "Cable tag only.",
+          "Source, destination, cable tag, service and linked drawing/reference information.",
+          "Cable colour and approximate length only."
+        ],
+        "correct": 1,
+        "why": "Traceability requires enough information to connect the cable record to the physical and functional design."
+      },
+      {
+        "q": "An important termination detail is missing from the supplied information. What should you do?",
+        "a": [
+          "Invent a likely value so the schedule looks complete.",
+          "Leave it undocumented because termination is outside drafting.",
+          "Identify the missing input, state its impact and obtain the required information before the affected deliverable is issued."
+        ],
+        "correct": 2,
+        "why": "Senior work makes uncertainty visible and manages the interface instead of hiding it."
+      },
+      {
+        "q": "Which QA check is most valuable before issuing a cable schedule?",
+        "a": [
+          "Check only that every row has a cable number.",
+          "Cross-check schedule records against SLDs, equipment/panel information and related termination or I/O documentation.",
+          "Sort the rows alphabetically and assume the schedule is correct."
+        ],
+        "correct": 1,
+        "why": "Cross-document consistency catches errors that a format-only check cannot detect."
+      }
+    ],
+    "passRule": "A learner should be able to explain the reasoning behind each selected answer, not merely obtain a score."
+  },
+  "evidence": {
+    "prompt": "Capture a sanitized cable schedule, termination checklist or discrepancy register that demonstrates controlled documentation and traceability.",
+    "criteria": [
+      "The artefact is identifiable and sanitized.",
+      "Source-to-destination traceability is clear.",
+      "Assumptions and missing inputs are visible.",
+      "At least one cross-document QA check is documented.",
+      "The learner explains what their evidence proves and how it was checked."
+    ],
+    "portfolioCategory": "Electrical drafting & documentation"
+  },
+  "integration": {
+    "home": "After completion, recommend Week 6 as the next best action and show cable documentation as a recent learning milestone.",
+    "skills": ["Electrical drafting & documentation", "Electrical design ownership", "QA / design checking"],
+    "journal": "Prompt reflection on traceability, discrepancy handling and confidence in controlling incomplete information.",
+    "portfolio": "Allow the evidence record to appear as a cable documentation competency item."
+  }
+}
