@@ -13,6 +13,8 @@ import {
 
 export const LEARNING_STATE_KEY = 'ecrh-canonical-learning-state-v1';
 export const LEARNING_CONTEXT_KEY = 'ecrh-canonical-learning-context-v1';
+export const LEARNING_JOURNAL_KEY = 'ecrh-canonical-journal-v1';
+export const LEARNING_PORTFOLIO_KEY = 'ecrh-canonical-portfolio-v1';
 
 function readJson(storage, key, fallback) {
   try {
@@ -52,18 +54,22 @@ export function createLearningStateStore({
   const weekIds = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
   const savedProgress = readJson(storage, LEARNING_STATE_KEY, {});
   const savedContext = readJson(storage, LEARNING_CONTEXT_KEY, {});
+  const savedJournal = readJson(storage, LEARNING_JOURNAL_KEY, null);
+  const savedPortfolio = readJson(storage, LEARNING_PORTFOLIO_KEY, null);
   let progressByWeek = mergeLearningProgress(savedProgress, {}, weekIds);
   let contextByWeek = savedContext || {};
-  let journals = Array.isArray(journalEntries) ? journalEntries : [];
-  let portfolio = Array.isArray(portfolioEntries) ? portfolioEntries : [];
+  let journals = Array.isArray(savedJournal) ? savedJournal : (Array.isArray(journalEntries) ? journalEntries : []);
+  let portfolio = Array.isArray(savedPortfolio) ? savedPortfolio : (Array.isArray(portfolioEntries) ? portfolioEntries : []);
   const listeners = new Set();
 
   const snapshot = () => buildHubSignals(catalog, progressByWeek, contextByWeek, journals, portfolio);
-  const state = () => ({ progressByWeek, contextByWeek, hubSignals: snapshot() });
+  const state = () => ({ progressByWeek, contextByWeek, journalEntries: journals, portfolioEntries: portfolio, hubSignals: snapshot() });
   const publish = () => {
     const next = state();
     writeJson(storage, LEARNING_STATE_KEY, progressByWeek);
     writeJson(storage, LEARNING_CONTEXT_KEY, contextByWeek);
+    writeJson(storage, LEARNING_JOURNAL_KEY, journals);
+    writeJson(storage, LEARNING_PORTFOLIO_KEY, portfolio);
     listeners.forEach(listener => listener(next));
     return next;
   };
@@ -89,11 +95,39 @@ export function createLearningStateStore({
       portfolio = Object.values(legacyState.evidence || {});
       return publish();
     },
-    setJournalEntries(entries) {
+    addJournalEntry(entry = {}) {
+      const normalized = {
+        id: entry.id || `journal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        date: String(entry.date || new Date().toISOString().slice(0, 10)),
+        hours: Number(entry.hours) || 0,
+        study: String(entry.study || '').trim(),
+        learn: String(entry.learn || '').trim(),
+        hard: String(entry.hard || '').trim(),
+        next: String(entry.next || '').trim()
+      };
+      if (!normalized.study && !normalized.learn && !normalized.hard && !normalized.next && normalized.hours <= 0) {
+        return { ok: false, reason: 'Journal entry is empty' };
+      }
+      journals = [...journals, normalized];
+      return { ok: true, entry: normalized, state: publish() };
+    },
+    replaceJournalEntries(entries) {
       journals = Array.isArray(entries) ? entries : [];
       return publish();
     },
-    setPortfolioEntries(entries) {
+    addPortfolioEntry(entry = {}) {
+      const normalized = {
+        id: entry.id || `portfolio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        week: entry.week == null ? null : Number(entry.week),
+        title: String(entry.title || '').trim(),
+        description: String(entry.description || '').trim(),
+        date: String(entry.date || new Date().toISOString())
+      };
+      if (!normalized.title || !normalized.description) return { ok: false, reason: 'Portfolio evidence needs a title and description' };
+      portfolio = [...portfolio.filter(item => !(normalized.week != null && Number(item?.week) === normalized.week)), normalized];
+      return { ok: true, entry: normalized, state: publish() };
+    },
+    replacePortfolioEntries(entries) {
       portfolio = Array.isArray(entries) ? entries : [];
       return publish();
     },
@@ -116,6 +150,8 @@ export function createLearningStateStore({
     resetProgress() {
       progressByWeek = createLearningState(weekIds);
       contextByWeek = {};
+      journals = [];
+      portfolio = [];
       return publish();
     }
   };
