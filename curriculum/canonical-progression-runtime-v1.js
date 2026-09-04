@@ -1,11 +1,12 @@
 /*
- * Electrical Career Readiness Hub — canonical progression runtime v3.
+ * Electrical Career Readiness Hub — canonical progression runtime v4.
  * Bridges the existing production shell to the canonical 24-week catalog and
  * authoritative Learn → Apply → Check → Evidence transaction.
  */
 import { loadCanonicalCatalog, loadAssessmentCatalog } from './canonical-catalog-v1.js';
 import { commitStageCompletion } from './learning-engine-v2.js';
 import { scoreQuestionSet, canCompleteCheck } from './assessment-engine-v1.js';
+import { createLearningStateStore } from './learning-state-store-v1.js';
 
 const STATE_KEY = 'ecrh-v35';
 const STAGES = ['learn', 'apply', 'check', 'evidence'];
@@ -15,6 +16,9 @@ let originalComplete = null;
 let installed = false;
 let rendering = false;
 let lastModalKey = '';
+let store = null;
+let publishingToLegacy = false;
+let syncingFromLegacy = false;
 
 const esc = value => String(value ?? '').replace(/[&<>\"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;' }[char]));
 function readState() { try { return JSON.parse(localStorage.getItem(STATE_KEY) || 'null') || {}; } catch (_) { return {}; } }
@@ -23,6 +27,20 @@ function progressFromState(state) { const weeks = Array.isArray(state.weeks) ? s
 function contextForWeek(state, index) { return { applicationNotes: String(state.notes?.[index] || ''), assessmentResult: state.checks?.[index] ? { ...state.checks[index], completionReady: Boolean(state.checks[index].completionReady ?? state.checks[index].passed) } : null, evidence: state.evidence?.[index] || null }; }
 function questionsFor(weekNumber) { const authored = assessments[String(weekNumber)]; return Array.isArray(authored) && authored.length ? authored : (Array.isArray(catalog[String(weekNumber)]?.check?.questions) ? catalog[String(weekNumber)].check.questions : []); }
 function stageFromModal() { const node = document.querySelector('#modalCard .k'); const match = node?.textContent?.match(/Week\s+(\d+)\s+•\s+(Learn|Apply|Check|Evidence)/i); return match ? { week: Number(match[1]), stage: match[2].toLowerCase() } : null; }
+function syncLegacyFromCanonical(next) {
+  if (!next?.progressByWeek || publishingToLegacy) return;
+  publishingToLegacy = true;
+  try {
+    const state = readState();
+    state.weeks = Array.from({ length: 24 }, (_, i) => ({ ...(state.weeks?.[i] || {}), ...(next.progressByWeek[String(i + 1)] || {}) }));
+    writeState(state);
+  } finally { publishingToLegacy = false; }
+}
+function syncCanonicalFromLegacy() {
+  if (!store || syncingFromLegacy || publishingToLegacy) return;
+  syncingFromLegacy = true;
+  try { store.syncLegacyState(readState()); } finally { syncingFromLegacy = false; }
+}
 function renderModal(force = false) {
   if (rendering) return;
   const target = stageFromModal(); if (!target || !catalog[String(target.week)]) return;
@@ -47,9 +65,9 @@ function renderModal(force = false) {
     card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px"><div><div class="k">Week ${target.week} • ${target.stage.charAt(0).toUpperCase() + target.stage.slice(1)}</div><h2>${esc(week.title)}</h2><span class="pill">${esc(week.phase)}</span></div><button class="btn" id="canonical-close">Close</button></div>${body}<div class="mission" style="margin-top:12px"><b>Stage gate</b><p class="muted">${completed ? 'Completed.' : 'Complete the required work honestly before marking this stage complete.'}</p></div><button class="btn primary" id="canonical-complete">${completed ? 'Completed — review' : 'Mark stage complete'}</button>`;
     document.getElementById('canonical-close').onclick = () => window.ECRH?.close?.();
     document.getElementById('canonical-complete').onclick = () => window.ECRH?.complete?.(index, STAGES.indexOf(target.stage));
-    if (target.stage === 'apply') document.getElementById('canonical-save-note').onclick = () => { const next = readState(); next.notes = next.notes || {}; next.notes[index] = document.getElementById('canonical-note').value.trim(); writeState(next); renderModal(true); };
+    if (target.stage === 'apply') document.getElementById('canonical-save-note').onclick = () => { const next = readState(); next.notes = next.notes || {}; next.notes[index] = document.getElementById('canonical-note').value.trim(); writeState(next); syncCanonicalFromLegacy(); renderModal(true); };
     if (target.stage === 'check') document.getElementById('canonical-score').onclick = () => scoreCheck(target.week);
-    if (target.stage === 'evidence') document.getElementById('canonical-save-evidence').onclick = () => { const title = document.getElementById('canonical-et').value.trim(), description = document.getElementById('canonical-ed').value.trim(); if (!title || !description) { alert('Add an evidence title and description first.'); return; } const next = readState(); next.evidence = next.evidence || {}; next.evidence[index] = { title, description, date: new Date().toISOString() }; writeState(next); renderModal(true); };
+    if (target.stage === 'evidence') document.getElementById('canonical-save-evidence').onclick = () => { const title = document.getElementById('canonical-et').value.trim(), description = document.getElementById('canonical-ed').value.trim(); if (!title || !description) { alert('Add an evidence title and description first.'); return; } const next = readState(); next.evidence = next.evidence || {}; next.evidence[index] = { title, description, date: new Date().toISOString() }; writeState(next); syncCanonicalFromLegacy(); renderModal(true); };
   } finally { rendering = false; }
 }
 function scoreCheck(weekNumber) {
@@ -57,18 +75,19 @@ function scoreCheck(weekNumber) {
   questions.forEach((q, index) => { const choice = document.querySelector(`input[name="canonical-q${index}"]:checked`), answer = document.getElementById(`canonical-answer-${index}`); responses[q.id || `q${index + 1}`] = choice ? choice.value : (answer ? answer.value : ''); });
   const result = scoreQuestionSet(questions, responses), state = readState(); state.checks = state.checks || {};
   state.checks[weekNumber - 1] = { ...result, passed: Boolean(canCompleteCheck(result)), completionReady: Boolean(canCompleteCheck(result)), date: new Date().toISOString() };
-  writeState(state); renderModal(true);
+  writeState(state); syncCanonicalFromLegacy(); renderModal(true);
 }
 function installCompletionBridge() {
   if (installed || !window.ECRH) return; installed = true; originalComplete = window.ECRH.complete;
   window.ECRH.complete = function canonicalComplete(index, stageIndex) {
     const weekId = String(Number(index) + 1), stage = STAGES[Number(stageIndex)];
     if (!catalog[weekId] || !stage) return originalComplete?.(index, stageIndex);
-    const state = readState(), contextByWeek = Object.fromEntries(Array.from({ length: 24 }, (_, i) => [String(i + 1), contextForWeek(state, i)]));
-    const result = commitStageCompletion({ catalog, progressByWeek: progressFromState(state), weekId, stage, context: contextForWeek(state, index), contextByWeek, journalEntries: Array.isArray(state.journal) ? state.journal : [], portfolioEntries: Object.values(state.evidence || {}) });
+    const context = contextForWeek(readState(), index);
+    const result = store?.completeStage({ weekId, stage, context }) || commitStageCompletion({ catalog, progressByWeek: progressFromState(readState()), weekId, stage, context, contextByWeek: Object.fromEntries(Array.from({ length: 24 }, (_, i) => [String(i + 1), contextForWeek(readState(), i)])) });
     if (!result.ok) { alert(result.reason); return; }
-    state.weeks = Array.from({ length: 24 }, (_, i) => ({ ...(state.weeks?.[i] || {}), ...(result.progressByWeek?.[String(i + 1)] || {}) }));
-    writeState(state); window.ECRH.close?.(); window.location.reload();
+    if (result.state?.progressByWeek) syncLegacyFromCanonical(result.state);
+    else { const state = readState(); state.weeks = Array.from({ length: 24 }, (_, i) => ({ ...(state.weeks?.[i] || {}), ...(result.progressByWeek?.[String(i + 1)] || {}) })); writeState(state); }
+    window.ECRH.close?.(); render();
   };
 }
 function installObserver() {
@@ -76,7 +95,16 @@ function installObserver() {
   observer.observe(document.body, { childList: true, subtree: true });
 }
 async function boot() {
-  try { [catalog, assessments] = await Promise.all([loadCanonicalCatalog(), loadAssessmentCatalog()]); installCompletionBridge(); window.ECRHCanonical = { ready: true, catalog, assessments, commitStageCompletion, scoreCheck }; installObserver(); if (document.getElementById('modal')?.classList.contains('show')) renderModal(true); }
-  catch (error) { console.warn('Canonical progression runtime unavailable:', error); }
+  try {
+    [catalog, assessments] = await Promise.all([loadCanonicalCatalog(), loadAssessmentCatalog()]);
+    store = createLearningStateStore({ catalog });
+    store.syncLegacyState(readState());
+    store.subscribe(next => { if (!syncingFromLegacy) syncLegacyFromCanonical(next); });
+    window.addEventListener('storage', event => { if (event.key === STATE_KEY && !publishingToLegacy) syncCanonicalFromLegacy(); });
+    installCompletionBridge();
+    window.ECRHCanonical = { ready: true, catalog, assessments, store, commitStageCompletion, scoreCheck };
+    installObserver();
+    if (document.getElementById('modal')?.classList.contains('show')) renderModal(true);
+  } catch (error) { console.warn('Canonical progression runtime unavailable:', error); }
 }
 boot();
