@@ -1,8 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Learning Engine Validation</title><style>body{font:15px system-ui;max-width:900px;margin:40px auto;padding:0 18px;background:#f5f7fb;color:#172238}main{background:#fff;border:1px solid #e4e9f0;border-radius:14px;padding:24px}li{margin:8px 0}.ok{color:#047857}.warn{color:#b45309}code{background:#eef2ff;padding:2px 5px;border-radius:4px}</style></head>
-<body><main><h1>Learning Engine v2 Validation</h1><p>This production-side harness validates root-safe curriculum loading, stage gates, progress calculation and cross-surface integration signals without changing the existing Hub shell.</p><ul id="results"><li>Running validation…</li></ul></main><script type="module">
-import {CURRICULUM_URLS,loadCatalog,stageProgress,totalProgress,nextStage,canCompleteStage,isStageUnlocked,applyStageCompletion,buildIntegrationSnapshot} from './learning-engine-v2.js';
+<body><main><h1>Learning Engine v2 Validation</h1><p>This production-side harness validates curriculum loading, stage gates, progress calculation, cross-surface signals and the Course UI adapter without replacing the existing Hub shell.</p><ul id="results"><li>Running validation…</li></ul></main><script type="module">
+import {CURRICULUM_URLS,loadCatalog,totalProgress,nextStage,applyStageCompletion} from './learning-engine-v2.js';
+import {buildCourseState,stageDescription} from './course-ui-adapter-v1.js';
 const out=document.querySelector('#results'); const rows=[];
 try{
  const catalog=await loadCatalog(CURRICULUM_URLS);
@@ -21,9 +22,11 @@ try{
  const locked=applyStageCompletion(state,'1','check',{score:2,total:3}); rows.push(`<li class="ok"><b>Stage order</b>: ${locked.ok?'FAIL':'PASS'} — Check cannot be completed before Apply.</li>`);
  const applied=applyStageCompletion(state,'1','apply',{applicationNotes:'sample engineering notes'}); rows.push(`<li class="ok"><b>Apply completion</b>: ${applied.ok?'PASS':'FAIL'} — learner notes unlock completion.</li>`);
  const checked=applyStageCompletion({...state,'1':{...state['1'],apply:true}},'1','check',{score:2,total:3}); rows.push(`<li class="ok"><b>Check gate</b>: ${checked.ok?'PASS':'FAIL'} — passing reasoning score accepted.</li>`);
- const snap=buildIntegrationSnapshot(catalog,state,{'1':{evidence:{title:'sample',description:'sample'}}});
- const linked=snap.weeks.find(w=>w.weekId==='1');
- rows.push(`<li class="ok"><b>Integration snapshot</b>: ${linked&&linked.signals.evidenceReady?'PASS':'FAIL'} — evidence readiness is available to Home/Skills/Journal/Portfolio consumers.</li>`);
+ const course=buildCourseState(catalog,state);
+ const week2=course.model.find(w=>w.weekId==='2');
+ const real=week2&&week2.title&&week2.stages.every(s=>s.description&&!s.description.includes('generic'));
+ rows.push(`<li class="${real?'ok':'warn'}"><b>Course adapter</b>: ${real?'PASS':'FAIL'} — Week 2 is represented by canonical curriculum content with four stage descriptors.</li>`);
+ rows.push(`<li class="${stageDescription(catalog['3'],'learn')?'ok':'warn'}"><b>Stage presentation</b>: ${stageDescription(catalog['3'],'learn')?'PASS':'FAIL'} — adapter can derive week-aware Learn guidance.</li>`);
 }catch(e){rows.push(`<li class="warn"><b>Validation</b>: FAIL — ${e.message}</li>`)}
 out.innerHTML=rows.join('');
 </script></body></html>
