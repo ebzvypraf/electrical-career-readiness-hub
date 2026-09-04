@@ -1,0 +1,48 @@
+{
+  "week": 7,
+  "title": "Owning a Drawing Package End to End",
+  "phase": "Design Ownership",
+  "estimatedHours": 6,
+  "objective": "Move from task execution to controlled ownership of a small electrical drawing package from brief through coordination, checking, revision and issue.",
+  "learn": {
+    "heading": "What senior designers should understand",
+    "bullets": [
+      "Package ownership begins with inputs, scope, deliverables, interfaces and approval boundaries.",
+      "A drawing register and revision strategy make package status visible.",
+      "Design decisions should be traceable to inputs, calculations, standards or approved engineering direction.",
+      "Coordination and checking are planned activities, not a final formatting step.",
+      "A senior designer knows when to decide, when to verify and when to escalate."
+    ],
+    "takeaway": "Ownership is demonstrated by controlling the workflow and interfaces, not simply by producing drawings quickly."
+  },
+  "apply": {
+    "scenario": "You are responsible for a fictional six-sheet LV pump-station electrical package containing an SLD, panel GA, cable schedule, earthing layout, equipment layout and notes sheet.",
+    "tasks": [
+      "Create a drawing register showing sheet purpose, status, revision and dependencies.",
+      "Build an input/interface register covering civil, mechanical, vendor and electrical inputs.",
+      "Define a practical checking sequence before issue.",
+      "Identify five package risks and assign an action or escalation route to each.",
+      "Write an issue-readiness checklist that another designer could execute."
+    ],
+    "deliverable": "A sanitized drawing register, interface/risk register and issue-readiness checklist."
+  },
+  "check": {
+    "questions": [
+      {"q":"What best demonstrates package ownership?","a":["Completing the largest number of sheets personally.","Controlling scope, inputs, interfaces, revisions, checks and issue readiness.","Avoiding coordination meetings."],"correct":1,"why":"Ownership is about controlled delivery and coordination."},
+      {"q":"An upstream vendor drawing changes after your package check. What should you do?","a":["Ignore it if your sheets were already checked.","Assess affected interfaces, update the change/revision trail and repeat relevant checks.","Delete the vendor reference."],"correct":1,"why":"Changes must be assessed for downstream impact."},
+      {"q":"What should a risk register do?","a":["List problems without owners.","Make risks, impacts, actions, owners and escalation visible.","Replace all technical checks."],"correct":1,"why":"A useful risk register drives controlled action and escalation."}
+    ],
+    "passRule": "Select the strongest response and be able to explain the ownership principle behind it."
+  },
+  "evidence": {
+    "prompt": "Capture a sanitized package register, interface register or issue-readiness checklist demonstrating end-to-end ownership.",
+    "criteria": ["Package scope is identifiable.","Interfaces and risks are visible.","Revision/checking controls are defined.","Approval boundaries are explicit."],
+    "portfolioCategory": "Electrical design ownership"
+  },
+  "integration": {
+    "home": "Recommend Week 8 and show package ownership as the latest milestone.",
+    "skills": ["Electrical design ownership", "Electrical drafting & documentation", "QA / design checking"],
+    "journal": "Reflect on which parts of package ownership you can perform independently and which still require engineering direction.",
+    "portfolio": "Add the package-control artefact as evidence of end-to-end ownership."
+  }
+}
