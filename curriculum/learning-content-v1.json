@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "purpose": "Structured curriculum payload for the Career Readiness Hub Learn-Apply-Check-Evidence engine.",
   "integration": {
     "stageOrder": ["learn", "apply", "check", "evidence"],
@@ -16,83 +16,109 @@
       "phase": "Foundations",
       "estimatedHours": 4,
       "skillTargets": ["AutoCAD", "Electrical drafting & documentation"],
-      "learn": {
-        "objective": "Build a repeatable AutoCAD setup that produces clean, reviewable electrical drawings.",
-        "concepts": ["Layer discipline", "Templates and reusable blocks", "Drawing units and sheet setup", "Inputs, assumptions and approval boundaries"],
-        "seniorReasoning": "A senior drafter creates a controlled environment that another designer can understand and safely modify."
-      },
-      "apply": {
-        "scenario": "Prepare the drafting setup for a fictional small pump-station electrical floor plan.",
-        "tasks": ["Create a layer plan for equipment, power/cabling, text, dimensions and references.", "Define three reusable blocks.", "Write five pre-drafting checks.", "Record two assumptions requiring design-lead confirmation."],
-        "deliverable": "Sanitized setup sheet or screenshot set with layer structure, sample blocks and pre-drafting checklist."
-      },
-      "check": {
-        "questions": [
-          {"prompt": "Two designers use different layer conventions on one package. What is the strongest response?", "answer": "Agree a package standard, update the controlled template/standards and check affected sheets for consistency."},
-          {"prompt": "What should be confirmed before creating a reusable block?", "answer": "Project standard, insertion behaviour, attributes and intended reuse across the package."},
-          {"prompt": "What demonstrates senior ownership before drafting starts?", "answer": "Identify inputs, interfaces, assumptions and approval boundaries that could change the drawing."}
-        ]
-      },
-      "evidence": {
-        "prompt": "Capture one sanitized artefact or written record proving you can establish a controlled drafting setup and explain the decisions behind it.",
-        "criteria": ["Identifiable and sanitized", "Decision explained", "Inputs/assumptions/interfaces stated", "Reviewable by another designer"]
-      }
+      "learn": {"objective": "Build a repeatable AutoCAD setup that produces clean, reviewable electrical drawings.","concepts": ["Layer discipline","Templates and reusable blocks","Drawing units and sheet setup","Inputs, assumptions and approval boundaries"],"seniorReasoning": "A senior drafter creates a controlled environment that another designer can understand and safely modify."},
+      "apply": {"scenario": "Prepare the drafting setup for a fictional small pump-station electrical floor plan.","tasks": ["Create a layer plan for equipment, power/cabling, text, dimensions and references.","Define three reusable blocks.","Write five pre-drafting checks.","Record two assumptions requiring design-lead confirmation."],"deliverable": "Sanitized setup sheet or screenshot set with layer structure, sample blocks and pre-drafting checklist."},
+      "check": {"questions": [{"prompt": "Two designers use different layer conventions on one package. What is the strongest response?","answer": "Agree a package standard, update the controlled template/standards and check affected sheets for consistency."},{"prompt": "What should be confirmed before creating a reusable block?","answer": "Project standard, insertion behaviour, attributes and intended reuse across the package."},{"prompt": "What demonstrates senior ownership before drafting starts?","answer": "Identify inputs, interfaces, assumptions and approval boundaries that could change the drawing."}]},
+      "evidence": {"prompt": "Capture one sanitized artefact or written record proving you can establish a controlled drafting setup and explain the decisions behind it.","criteria": ["Identifiable and sanitized","Decision explained","Inputs/assumptions/interfaces stated","Reviewable by another designer"]}
     },
     {
       "week": 2,
       "title": "MicroStation CONNECT Fundamentals & Level Structures",
       "phase": "Foundations",
       "estimatedHours": 4,
-      "skillTargets": ["MicroStation CONNECT", "Electrical drafting & documentation"],
-      "learn": {
-        "objective": "Use MicroStation CONNECT with disciplined level structures, references, annotation and production controls.",
-        "concepts": ["Levels and level standards", "References and nesting", "Element attributes", "Text and annotation", "Models, sheets and production workflow"],
-        "seniorReasoning": "The goal is not merely knowing commands; it is being able to structure a DGN so the package remains understandable, coordinated and maintainable."
-      },
-      "apply": {
-        "scenario": "Set up a fictional electrical switchroom drawing in MicroStation CONNECT using a controlled level and reference strategy.",
-        "tasks": ["Define a level naming structure for equipment, power, containment, text, dimensions and references.", "Attach a fictional architectural reference and describe its update implications.", "Create representative electrical annotation and verify element attributes.", "Document three checks before issue."],
-        "deliverable": "Sanitized DGN screenshots or a written production record showing level structure, references, annotation and QA checks."
-      },
-      "check": {
-        "questions": [
-          {"prompt": "A reference file changes after you have started drafting. What should a senior designer consider first?", "answer": "Assess the reference revision/change, identify affected geometry and interfaces, then coordinate the impact before blindly updating the drawing."},
-          {"prompt": "Why is a controlled level structure important?", "answer": "It makes graphics predictable, supports review/filtering and reduces coordination and editing errors."},
-          {"prompt": "What is a stronger senior practice than simply checking whether the sheet looks correct?", "answer": "Check model structure, references, attributes, annotation, standards and issue information as well as appearance."}
-        ]
-      },
-      "evidence": {
-        "prompt": "Capture a sanitized MicroStation production example demonstrating controlled levels, references, annotation and a documented QA check.",
-        "criteria": ["Level strategy is clear", "Reference handling is explained", "Annotation is consistent", "QA check is documented"]
-      }
+      "skillTargets": ["MicroStation CONNECT","Electrical drafting & documentation"],
+      "learn": {"objective": "Use MicroStation CONNECT with disciplined level structures, references, annotation and production controls.","concepts": ["Levels and level standards","References and nesting","Element attributes","Text and annotation","Models, sheets and production workflow"],"seniorReasoning": "The goal is not merely knowing commands; it is being able to structure a DGN so the package remains understandable, coordinated and maintainable."},
+      "apply": {"scenario": "Set up a fictional electrical switchroom drawing in MicroStation CONNECT using a controlled level and reference strategy.","tasks": ["Define a level naming structure for equipment, power, containment, text, dimensions and references.","Attach a fictional architectural reference and describe its update implications.","Create representative electrical annotation and verify element attributes.","Document three checks before issue."],"deliverable": "Sanitized DGN screenshots or a written production record showing level structure, references, annotation and QA checks."},
+      "check": {"questions": [{"prompt": "A reference file changes after you have started drafting. What should a senior designer consider first?","answer": "Assess the reference revision/change, identify affected geometry and interfaces, then coordinate the impact before blindly updating the drawing."},{"prompt": "Why is a controlled level structure important?","answer": "It makes graphics predictable, supports review/filtering and reduces coordination and editing errors."},{"prompt": "What is stronger than checking only whether a sheet looks correct?","answer": "Check model structure, references, attributes, annotation, standards and issue information as well as appearance."}]},
+      "evidence": {"prompt": "Capture a sanitized MicroStation production example demonstrating controlled levels, references, annotation and a documented QA check.","criteria": ["Level strategy is clear","Reference handling is explained","Annotation is consistent","QA check is documented"]}
     },
     {
       "week": 3,
       "title": "Electrical Documentation Standards & Drawing Ownership",
       "phase": "Foundations",
       "estimatedHours": 4,
-      "skillTargets": ["Electrical drafting & documentation", "QA / design checking", "Electrical design ownership"],
-      "learn": {
-        "objective": "Move from drawing production to controlled ownership of an electrical drawing through review, coordination and issue.",
-        "concepts": ["Drawing purpose and information hierarchy", "Revision and redline control", "Design inputs and interfaces", "QA/self-check", "Issue readiness"],
-        "seniorReasoning": "Ownership means understanding what the drawing is communicating, what inputs it depends on, what has changed and what must be checked before issue."
-      },
-      "apply": {
-        "scenario": "Review a fictional electrical drawing package containing a redline, a changed equipment location and an interface with mechanical services.",
-        "tasks": ["Classify each redline as drafting correction, design decision, coordination issue or clarification.", "Identify missing inputs before incorporating the change.", "Update a revision/disposition record.", "Perform a structured self-check before issue."],
-        "deliverable": "Sanitized redline disposition table plus a drawing QA checklist and short issue-readiness statement."
-      },
-      "check": {
-        "questions": [
-          {"prompt": "A redline changes equipment location but the upstream cable route may be affected. What is the strongest response?", "answer": "Do not treat it as an isolated drafting edit; identify the affected interfaces and verify the electrical consequences before issue."},
-          {"prompt": "When should a drafter escalate rather than make an assumption?", "answer": "When the change affects design intent, safety, compliance, interfaces or an approval boundary that has not been defined."},
-          {"prompt": "What makes a QA check senior-level?", "answer": "It checks both drawing correctness and whether the information, interfaces, revision status and design assumptions are ready for issue."}
-        ]
-      },
-      "evidence": {
-        "prompt": "Capture a sanitized redline/disposition exercise and QA record demonstrating controlled drawing ownership.",
-        "criteria": ["Changes are classified", "Interfaces/inputs identified", "Disposition is traceable", "QA and issue readiness are demonstrated"]
-      }
+      "skillTargets": ["Electrical drafting & documentation","QA / design checking","Electrical design ownership"],
+      "learn": {"objective": "Move from drawing production to controlled ownership of an electrical drawing through review, coordination and issue.","concepts": ["Drawing purpose and information hierarchy","Revision and redline control","Design inputs and interfaces","QA/self-check","Issue readiness"],"seniorReasoning": "Ownership means understanding what the drawing communicates, what inputs it depends on, what changed and what must be checked before issue."},
+      "apply": {"scenario": "Review a fictional electrical drawing package containing a redline, a changed equipment location and an interface with mechanical services.","tasks": ["Classify each redline as drafting correction, design decision, coordination issue or clarification.","Identify missing inputs before incorporating the change.","Update a revision/disposition record.","Perform a structured self-check before issue."],"deliverable": "Sanitized redline disposition table plus a drawing QA checklist and short issue-readiness statement."},
+      "check": {"questions": [{"prompt": "A redline changes equipment location but the upstream cable route may be affected. What is the strongest response?","answer": "Do not treat it as an isolated drafting edit; identify affected interfaces and verify electrical consequences before issue."},{"prompt": "When should a drafter escalate rather than make an assumption?","answer": "When the change affects design intent, safety, compliance, interfaces or an approval boundary that has not been defined."},{"prompt": "What makes a QA check senior-level?","answer": "It checks drawing correctness plus information, interfaces, revision status and design assumptions before issue."}]},
+      "evidence": {"prompt": "Capture a sanitized redline/disposition exercise and QA record demonstrating controlled drawing ownership.","criteria": ["Changes are classified","Interfaces/inputs identified","Disposition is traceable","QA and issue readiness demonstrated"]}
+    },
+    {
+      "week": 4,
+      "title": "Single-Line Diagrams: Reading and Producing",
+      "phase": "Foundations",
+      "estimatedHours": 5,
+      "skillTargets": ["Electrical drafting & documentation","Electrical design ownership","Power distribution design"],
+      "learn": {"objective": "Read and produce clear electrical single-line diagrams while maintaining traceability between equipment, protection, conductors and downstream loads.","concepts": ["SLD information hierarchy","Source-to-load traceability","Protection, isolation and switching representation","Cable and feeder identification","Cross-document coordination"],"seniorReasoning": "An SLD is a controlled representation of the electrical system. Major elements need a reason, an identifiable relationship to other documents and enough information for review."},
+      "apply": {"scenario": "Develop a fictional SLD for a small pump-station distribution system supplied from an LV switchboard through a motor-control section to two pumps and auxiliary loads.","tasks": ["Establish source-to-load hierarchy and equipment tags.","Represent incomer, protection, feeders, motor starters/VSD interfaces and outgoing loads.","Create a feeder identification scheme and avoid duplicating controlled schedule data.","Cross-check against a fictional equipment list and identify three discrepancies.","Prepare an issue-readiness checklist."],"deliverable": "Sanitized SLD exercise plus discrepancy/assumption register and issue-readiness checklist."},
+      "check": {"questions": [{"prompt": "An equipment tag appears on the SLD but not in the equipment list. What is the strongest response?","answer": "Treat it as a coordination discrepancy, trace the source and confirm the intended equipment before issuing rather than silently creating or deleting information."},{"prompt": "Why should detailed cable schedule data not simply be copied in full onto every SLD?","answer": "The SLD should communicate system relationships and key design information while detailed cable data remains controlled in its schedule; duplication increases inconsistency risk."},{"prompt": "A protective device rating changes. What should be checked beyond changing the number on the SLD?","answer": "Check affected feeder/cable information, equipment interfaces, schedules, downstream loads, coordination assumptions and revision impacts."}]},
+      "evidence": {"prompt": "Capture a sanitized SLD exercise and supporting discrepancy/QA record demonstrating system-documentation capability.","criteria": ["Source-to-load hierarchy is clear","Equipment and feeder identifiers are traceable","Discrepancies and assumptions are recorded","Cross-document coordination is demonstrated","Issue-readiness checks documented"]}
+    },
+    {
+      "week": 5,
+      "title": "Cable Schedules & Termination Drawings",
+      "phase": "Foundations",
+      "estimatedHours": 6,
+      "skillTargets": ["Electrical drafting & documentation","Electrical design ownership","QA / design checking"],
+      "learn": {"objective": "Create and review cable schedules and termination information as controlled design records with traceability from source equipment through destination and termination.","concepts": ["Source/destination traceability","Cable identifiers and core information","Confirmed data versus assumptions","Termination interfaces","Cross-checking schedules"],"seniorReasoning": "Senior ownership means maintaining traceability across documents and identifying discrepancies before they become construction or commissioning problems."},
+      "apply": {"scenario": "Build a fictional pump-station cable package with a motor-control panel, two pumps, local isolators and control interfaces; include two intentional tag mismatches and incomplete inputs.","tasks": ["Create at least eight fictional power, control and indication cables.","Record source, destination, tag, service, core requirement and reference.","Flag tag mismatches and identify controlled sources to verify.","Create a termination checklist.","Classify at least three assumptions or missing inputs as acceptable, clarification or blocking."],"deliverable": "Sanitized cable schedule plus termination/checking checklist and discrepancy register."},
+      "check": {"questions": [{"prompt": "A cable tag conflicts between the equipment list and SLD. What is the strongest response?","answer": "Record the discrepancy, trace both sources, identify the controlled source or obtain clarification before issuing the affected information."},{"prompt": "Which combination gives the strongest cable traceability?","answer": "Source, destination, cable tag, service and linked drawing/reference information."},{"prompt": "An important termination detail is missing. What should you do?","answer": "Identify the missing input, state its impact and obtain the required information before the affected deliverable is issued."}]},
+      "evidence": {"prompt": "Capture a sanitized cable schedule, termination checklist or discrepancy register demonstrating controlled documentation and traceability.","criteria": ["Artefact is identifiable and sanitized","Source-to-destination traceability is clear","Assumptions and missing inputs are visible","A cross-document QA check is documented","Learner explains what the evidence proves"]}
+    },
+    {
+      "week": 6,
+      "title": "AS/NZS 3000 Wiring Rules — Structure and Application",
+      "phase": "Foundations",
+      "estimatedHours": 6,
+      "skillTargets": ["AS/NZS application","Electrical design ownership","Electrical drafting & documentation"],
+      "learn": {"objective": "Build a disciplined workflow for locating, interpreting and applying AS/NZS 3000 requirements without treating standards as a substitute for engineering judgement.","concepts": ["Standard structure and navigation","Definitions and scope","Protection and wiring-method concepts","Documentation of assumptions","Verification and escalation"],"seniorReasoning": "A senior designer records the requirement being applied, checks scope and project context, and escalates interpretations that exceed the role or available design basis."},
+      "apply": {"scenario": "Review a fictional LV pump-station arrangement and identify where standards checks are required before drawing issue.","tasks": ["Create a standards lookup log with clause/topic, design question and outcome.","Identify protection, segregation, wiring-method and accessibility checks relevant to the scenario.","Separate confirmed requirements from items requiring engineer interpretation.","Record three design-basis questions that would block issue if unanswered."],"deliverable": "Sanitized standards application checklist and lookup log."},
+      "check": {"questions": [{"prompt": "You find a clause that appears relevant but the project scope is unclear. What is the strongest response?","answer": "Confirm the clause scope and project applicability before applying it, and escalate any interpretation that affects design intent or compliance."},{"prompt": "What makes a standards reference useful in a drawing review?","answer": "It links the requirement to a specific design decision, check or documented assumption rather than merely listing a standard number."},{"prompt": "When should standards research be escalated?","answer": "When the requirement is ambiguous, affects safety/compliance, or requires engineering judgement beyond the defined responsibility."}]},
+      "evidence": {"prompt": "Capture a sanitized standards lookup/checklist demonstrating disciplined AS/NZS application and escalation awareness.","criteria": ["Questions are traceable to checks","Scope/applicability considered","Assumptions and escalations visible","Evidence is reviewable"]}
+    },
+    {
+      "week": 7,
+      "title": "Owning a Drawing Package End to End",
+      "phase": "Design Ownership",
+      "estimatedHours": 6,
+      "skillTargets": ["Electrical design ownership","QA / design checking","Electrical drafting & documentation"],
+      "learn": {"objective": "Control an electrical drawing package from inputs and coordination through checking, revision and issue.","concepts": ["Package planning","Input register","Interface control","Revision management","Issue gates"],"seniorReasoning": "Ownership is demonstrated by controlling the information flow, not merely completing individual drawings."},
+      "apply": {"scenario": "Plan a fictional five-drawing electrical package with architectural, mechanical and vendor interfaces and one late design change.","tasks": ["Create an input and interface register.","Map dependencies between drawings, schedules and references.","Create a revision/change-impact record.","Run a package-level QA review and identify blockers.","Write an issue recommendation with open actions."],"deliverable": "Package control sheet, interface register, change-impact record and QA checklist."},
+      "check": {"questions": [{"prompt": "A late vendor change affects two drawings and a cable schedule. What is the strongest response?","answer": "Trace the change across all affected deliverables, update controlled records, coordinate dependencies and re-check before issue."},{"prompt": "What is the purpose of an input register?","answer": "To make required information, status, ownership and missing inputs visible so package progress is controlled."},{"prompt": "When should a package be held from issue?","answer": "When unresolved changes or missing inputs can affect design intent, safety, compliance, coordination or traceability."}]},
+      "evidence": {"prompt": "Capture a sanitized package-control exercise showing end-to-end drawing ownership.","criteria": ["Inputs and interfaces controlled","Dependencies traceable","Changes assessed","Issue gate demonstrated"]}
+    },
+    {
+      "week": 8,
+      "title": "Power Distribution Board Layouts",
+      "phase": "Design Ownership",
+      "estimatedHours": 6,
+      "skillTargets": ["Power distribution design","Electrical design ownership","Electrical drafting & documentation"],
+      "learn": {"objective": "Develop a controlled workflow for arranging a power distribution board while considering equipment, access, containment, cable entry and documentation interfaces.","concepts": ["Board arrangement logic","Equipment clearances and access","Cable entry and containment","Heat and segregation considerations","GA-to-SLD/schedule coordination"],"seniorReasoning": "A good layout is not just visually tidy; it must support installation, maintenance, cable routing and coordinated documentation."},
+      "apply": {"scenario": "Lay out a fictional LV distribution board serving pumps, small power and control auxiliaries.","tasks": ["Establish incomer and outgoing arrangement logic.","Reserve space for devices, terminals and cable entry.","Identify maintainability and access considerations.","Cross-check board tags and outgoing circuits against an SLD.","Record layout assumptions requiring vendor or engineer confirmation."],"deliverable": "Sanitized board GA sketch plus layout checklist and discrepancy register."},
+      "check": {"questions": [{"prompt": "A board layout fits all devices but leaves poor cable-entry access. What is the strongest response?","answer": "Treat cable entry and maintainability as design constraints, revise the arrangement and coordinate the impact rather than accepting a merely fitting layout."},{"prompt": "Why should a board GA be cross-checked against the SLD?","answer": "To confirm device identities, circuit relationships, ratings/labels and outgoing references remain consistent across documents."},{"prompt": "What should be recorded when vendor dimensions are unavailable?","answer": "The assumption, its basis, its impact and the confirmation required before the layout becomes issue-ready."}]},
+      "evidence": {"prompt": "Capture a sanitized distribution-board layout and coordination record demonstrating practical layout ownership.","criteria": ["Arrangement logic explained","Access/cable-entry considerations shown","Cross-document checks documented","Assumptions visible"]}
+    },
+    {
+      "week": 9,
+      "title": "Cable Sizing & Voltage Drop Workflow",
+      "phase": "Design Ownership",
+      "estimatedHours": 6,
+      "skillTargets": ["Calculations & sizing","Electrical design ownership","AS/NZS application"],
+      "learn": {"objective": "Understand and document the cable-sizing workflow, inputs and checks needed before relying on a cable selection.","concepts": ["Design current and load inputs","Installation method","Current-carrying capacity","Voltage drop","Protection and coordination interfaces","Assumptions and calculation records"],"seniorReasoning": "The senior skill is controlling the calculation inputs and knowing when a result requires engineering review, not guessing a cable size."},
+      "apply": {"scenario": "Review a fictional three-phase motor feeder and prepare a calculation-input sheet and high-level sizing check.","tasks": ["Record load, supply, route, installation and environmental inputs.","Identify the relevant capacity and voltage-drop checks.","Document assumptions and missing inputs.","Compare a proposed cable selection against the required checks.","Write a concise engineering-review handover."],"deliverable": "Sanitized calculation-input sheet, high-level check and review handover."},
+      "check": {"questions": [{"prompt": "A proposed cable passes a simple voltage-drop check but installation details are unknown. What is the strongest response?","answer": "Do not treat the result as final; confirm installation method and other capacity/derating inputs before accepting the selection."},{"prompt": "Why is the calculation input record important?","answer": "It makes the basis, assumptions and missing information traceable so another engineer can verify the result."},{"prompt": "When should cable sizing be escalated?","answer": "When critical inputs are missing, the result affects compliance/safety, or engineering judgement is required for the selection."}]},
+      "evidence": {"prompt": "Capture a sanitized cable-sizing workflow record demonstrating controlled inputs, checks and engineering handover.","criteria": ["Inputs are explicit","Assumptions visible","Checks are traceable","Review boundary is clear"]}
+    },
+    {
+      "week": 10,
+      "title": "Protection & Discrimination Basics",
+      "phase": "Design Ownership",
+      "estimatedHours": 6,
+      "skillTargets": ["Power distribution design","Calculations & sizing","Electrical design ownership"],
+      "learn": {"objective": "Understand the purpose of protection coordination and how a designer should recognize discrimination, protection and fault-level interfaces.","concepts": ["Protection functions","Upstream/downstream relationships","Discrimination/selectivity concept","Fault-level inputs","Device settings and documentation"],"seniorReasoning": "The senior designer recognizes protection dependencies and avoids presenting a coordination outcome without the required engineering basis."},
+      "apply": {"scenario": "Review a fictional LV feeder with upstream and downstream protective devices and identify coordination questions before drawing issue.","tasks": ["Map upstream/downstream device relationships.","Identify required fault-level and device data.","Record which coordination questions need calculation or engineer confirmation.","Check protection references on an SLD and equipment schedule.","Prepare a protection-review action list."],"deliverable": "Sanitized protection coordination review sheet and action list."},
+      "check": {"questions": [{"prompt": "A downstream breaker rating changes. What is the strongest senior response?","answer": "Assess the upstream/downstream relationship and coordination impact using the required engineering data before accepting the change."},{"prompt": "Why is fault-level information important to protection review?","answer": "Protection device capability and coordination depend on the available fault conditions and selected device characteristics."},{"prompt": "What should a drafter avoid claiming without the engineering basis?","answer": "A definitive discrimination or protection-coordination result when the required calculations, device data or settings have not been verified."}]},
+      "evidence": {"prompt": "Capture a sanitized protection review showing device relationships, required inputs and engineering-review boundaries.","criteria": ["Device relationships mapped","Required inputs identified","Coordination questions documented","Engineering boundary respected"]}
     }
   ]
 }
