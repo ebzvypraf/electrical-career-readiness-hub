@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "purpose": "Authored multiple-choice assessments for Weeks 1-3 so the Foundations modules use deterministic Check scoring.",
+  "grading": "Each question has one module-authored correctIndex. A week passes only when every authored question is answered correctly.",
+  "weeks": [
+    {
+      "week": 1,
+      "questions": [
+        {"id":"w01q1","prompt":"Two designers use different layer conventions on one package. What is the strongest response?","options":["Let each designer keep their preferred convention.","Agree a package standard, update the controlled template/standards and check affected sheets for consistency.","Move all geometry to one layer without checking the package standard."],"correctIndex":1},
+        {"id":"w01q2","prompt":"What should be confirmed before creating a reusable electrical drafting block?","options":["Only the block's visual appearance.","Project standard, insertion behaviour, attributes and intended reuse across the package.","Whether the block can be copied into any future project without review."],"correctIndex":1},
+        {"id":"w01q3","prompt":"What demonstrates senior ownership before drafting starts?","options":["Start drawing immediately and resolve missing information later.","Identify inputs, interfaces, assumptions and approval boundaries that could change the drawing.","Use the previous project as the design basis without checking its applicability."],"correctIndex":1}
+      ]
+    },
+    {
+      "week": 2,
+      "questions": [
+        {"id":"w02q1","prompt":"A reference file changes after drafting has started. What should a senior designer consider first?","options":["Reload it and accept every geometry change automatically.","Assess the reference revision/change, identify affected geometry and interfaces, then coordinate the impact before updating blindly.","Ignore the revision because references are outside the drawing."],"correctIndex":1},
+        {"id":"w02q2","prompt":"Why is a controlled MicroStation level structure important?","options":["It makes every drawing use the same colours regardless of project requirements.","It makes graphics predictable, supports review/filtering and reduces coordination and editing errors.","It removes the need for references and model checks."],"correctIndex":1},
+        {"id":"w02q3","prompt":"What is stronger than checking only whether a MicroStation sheet looks correct?","options":["Check model structure, references, attributes, annotation, standards and issue information as well as appearance.","Check only the title block and plot preview.","Check that the drawing opens without an error."],"correctIndex":0}
+      ]
+    },
+    {
+      "week": 3,
+      "questions": [
+        {"id":"w03q1","prompt":"A redline changes equipment location but the upstream cable route may be affected. What is the strongest response?","options":["Treat it as an isolated drafting edit.","Do not treat it as isolated; identify affected interfaces and verify electrical consequences before issue.","Apply the redline and leave coordination to construction."],"correctIndex":1},
+        {"id":"w03q2","prompt":"When should a drafter escalate rather than make an assumption?","options":["Whenever a drawing contains a revision cloud.","When the change affects design intent, safety, compliance, interfaces or an approval boundary that has not been defined.","Only when another drafter asks for help."],"correctIndex":1},
+        {"id":"w03q3","prompt":"What makes a QA check senior-level?","options":["It checks only linework, spelling and visual appearance.","It checks drawing correctness plus information, interfaces, revision status and design assumptions before issue.","It confirms that the file name is correct and then closes the review."],"correctIndex":1}
+      ]
+    }
+  ]
+}
