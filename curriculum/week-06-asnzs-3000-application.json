@@ -1,0 +1,48 @@
+{
+  "week": 6,
+  "title": "AS/NZS 3000 Wiring Rules — Structure & Application",
+  "phase": "Foundations",
+  "estimatedHours": 6,
+  "objective": "Build a practical method for locating, interpreting and documenting relevant AS/NZS 3000 requirements without treating standards as a collection of isolated clauses.",
+  "learn": {
+    "heading": "What senior designers should understand",
+    "bullets": [
+      "Start with the design question and installation context before searching the standard.",
+      "Distinguish mandatory requirements, project specifications, engineering judgement and items requiring verification.",
+      "Use clause references as traceable design evidence rather than copying requirements without context.",
+      "Record the edition and source used so a reviewer can reproduce the design decision.",
+      "Escalate interpretation questions when the requirement affects safety, compliance or an approval boundary."
+    ],
+    "takeaway": "Senior standards use is traceable: the designer can explain what requirement applies, why it applies and where the decision is recorded."
+  },
+  "apply": {
+    "scenario": "A fictional LV pump-station package requires equipment connections, isolation, cable routes and a small distribution board. Several design notes have been written without clause references.",
+    "tasks": [
+      "Create a standards compliance matrix with at least eight design topics relevant to the package.",
+      "For each topic, record the requirement/question, source reference, design response and verification status.",
+      "Identify two items where the project specification may add requirements beyond the base standard.",
+      "Flag one interpretation that should be reviewed by the responsible electrical engineer before issue.",
+      "Write a short rule for how standards references will be maintained through revisions."
+    ],
+    "deliverable": "A sanitized standards compliance matrix with traceable references, design responses and open questions."
+  },
+  "check": {
+    "questions": [
+      {"q":"What is the strongest way to use a standards clause in a design record?","a":["Copy the clause into every drawing note.","Reference the applicable requirement, explain the design response and retain enough context for review.","Mention the standard name without a reference."],"correct":1,"why":"Traceability connects the requirement to the actual engineering decision."},
+      {"q":"A clause appears relevant but the installation context is uncertain. What should happen first?","a":["Apply the clause immediately.","Clarify the installation context and verify the applicable requirement before relying on it.","Ignore the clause."],"correct":1,"why":"Standards application depends on scope and installation conditions."},
+      {"q":"A project specification conflicts with a generic drafting convention. What is the safest approach?","a":["Always follow the drafting convention.","Record the conflict, determine the governing requirement and obtain clarification where necessary.","Choose the easier option."],"correct":1,"why":"Conflicts must be resolved against controlled project requirements."}
+    ],
+    "passRule": "Explain why the selected answer is appropriate and identify what evidence would support the decision."
+  },
+  "evidence": {
+    "prompt": "Capture a sanitized standards compliance matrix or design note showing how you traced requirements into design decisions.",
+    "criteria": ["Requirements are identifiable and traceable.","Design responses are explicit.","Open questions and assumptions are visible.","References are reviewable and version-aware."],
+    "portfolioCategory": "AS/NZS application"
+  },
+  "integration": {
+    "home": "Recommend Week 7 after completion and show standards application as a learning milestone.",
+    "skills": ["AS/NZS application", "Electrical design ownership", "QA / design checking"],
+    "journal": "Reflect on how you distinguish a standard requirement from a project-specific requirement and when you escalate interpretation.",
+    "portfolio": "Add the standards compliance matrix as evidence of controlled standards application."
+  }
+}
