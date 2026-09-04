@@ -1,9 +1,8 @@
 /*
- * Electrical Career Readiness Hub — canonical 24-week catalog loader v1
+ * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.
  * Merges the maintained base curriculum and extension modules into one
  * runtime catalog without duplicating lesson definitions in the UI.
  */
-import { normalizeWeek } from './learning-engine-v2.js';
 
 export const CANONICAL_SOURCES = [
   '/curriculum/learning-content-v1.json',
@@ -18,6 +17,29 @@ async function fetchJson(url) {
   const response = await fetch(url, { cache: 'no-store' });
   if (!response.ok) throw new Error(`Canonical curriculum load failed: ${response.status} ${url}`);
   return response.json();
+}
+
+function normalizeWeek(content, fallback = {}) {
+  const c = content || {}, integration = c.integration || {};
+  return {
+    id: c.id || fallback.id,
+    week: c.week ?? fallback.week,
+    title: c.title || fallback.title || 'Untitled week',
+    phase: c.phase || fallback.phase || '',
+    estimatedHours: c.estimatedHours ?? fallback.estimatedHours ?? 6,
+    objective: c.objective || c.learn?.objective || '',
+    learn: c.learn || { heading: 'Core learning', bullets: [], takeaway: '' },
+    apply: c.apply || { scenario: '', tasks: [], deliverable: '' },
+    check: c.check || { questions: [], passRule: '' },
+    evidence: c.evidence || { prompt: '', criteria: [], portfolioCategory: '' },
+    skills: c.skills || c.skillTargets || integration.skills || [],
+    integration: {
+      ...integration,
+      homeAction: integration.homeAction || integration.home || '',
+      journalPrompt: integration.journalPrompt || integration.journal || '',
+      portfolioPrompt: integration.portfolioPrompt || integration.portfolio || ''
+    }
+  };
 }
 
 export async function loadCanonicalCatalog(sources = CANONICAL_SOURCES) {
