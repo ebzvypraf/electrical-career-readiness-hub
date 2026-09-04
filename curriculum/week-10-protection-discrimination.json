@@ -1,0 +1,48 @@
+{
+  "week": 10,
+  "title": "Protection & Discrimination Basics",
+  "phase": "Design Ownership",
+  "estimatedHours": 6,
+  "objective": "Develop practical awareness of protection coordination, discrimination/selectivity and the information needed to review protective-device decisions without overstepping engineering approval boundaries.",
+  "learn": {
+    "heading": "What senior designers should understand",
+    "bullets": [
+      "Protection decisions depend on system topology, fault levels, equipment ratings, load characteristics and the required coordination philosophy.",
+      "Discrimination/selectivity aims to limit unnecessary upstream operation when a downstream fault occurs.",
+      "Device settings and ratings are controlled engineering information and must not be guessed from appearance or habit.",
+      "SLDs, schedules and equipment data must remain consistent with the approved protection design.",
+      "When detailed short-circuit or coordination analysis is required, document the interface and obtain the responsible engineer's result."
+    ],
+    "takeaway": "Senior drafting/design readiness includes understanding what protection coordination is trying to achieve and how to document it safely and traceably."
+  },
+  "apply": {
+    "scenario": "A fictional LV distribution system has an incomer breaker, a motor feeder and two final circuits. The project requires a basic coordination review record, but detailed fault calculations are supplied separately by an engineer.",
+    "tasks": [
+      "Draw a simplified protection hierarchy showing upstream and downstream devices.",
+      "Create a coordination input checklist covering device type, rating, settings, fault level and downstream equipment requirements.",
+      "Review a fictional set of device data and flag one obvious inconsistency between a schedule and the SLD.",
+      "Write three questions you would send to the responsible engineer before finalising protection information.",
+      "Define what evidence should be retained with the drawing package."
+    ],
+    "deliverable": "A sanitized protection hierarchy and coordination review checklist with identified interfaces and discrepancies."
+  },
+  "check": {
+    "questions": [
+      {"q":"What is the basic purpose of discrimination/selectivity?","a":["Make every breaker trip at the same time.","Prefer the appropriate downstream protective device to operate for a downstream fault where the coordination design permits.","Eliminate the need for fault studies."],"correct":1,"why":"Selectivity is intended to limit unnecessary upstream interruption."},
+      {"q":"A protective-device setting is missing from the approved information. What should you do?","a":["Choose a typical setting.","Flag the missing controlled input and obtain the approved setting before documenting it as final.","Copy a setting from another project."],"correct":1,"why":"Protection settings are engineering-controlled data."},
+      {"q":"A drawing and schedule show different breaker ratings. What is the strongest response?","a":["Pick the larger value silently.","Record the discrepancy, trace the controlled source and correct the affected records after verification.","Leave both values because the engineer will notice eventually."],"correct":1,"why":"Cross-document discrepancies must be visible and resolved against controlled information."}
+    ],
+    "passRule": "Explain the coordination intent and identify the information that must come from approved engineering analysis."
+  },
+  "evidence": {
+    "prompt": "Capture a sanitized protection hierarchy, coordination checklist or discrepancy review showing your understanding of protection design boundaries.",
+    "criteria": ["Protection hierarchy is clear.","Controlled inputs are identified.","Discrepancies are traceable.","Engineering approval boundaries are respected."],
+    "portfolioCategory": "Power distribution design"
+  },
+  "integration": {
+    "home": "Recommend Week 11 after completion and show protection coordination awareness as the latest milestone.",
+    "skills": ["Power distribution design", "Calculations & sizing", "QA / design checking"],
+    "journal": "Reflect on what protection decisions you can confidently document and what requires specialist engineering analysis.",
+    "portfolio": "Add the protection review artefact as evidence of coordinated electrical design awareness."
+  }
+}
