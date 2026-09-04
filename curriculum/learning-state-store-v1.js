@@ -31,6 +31,18 @@ function writeJson(storage, key, value) {
   }
 }
 
+function contextFromLegacyState(state) {
+  const weeks = Array.isArray(state?.weeks) ? state.weeks : [];
+  const notes = state?.notes || {};
+  const checks = state?.checks || {};
+  const evidence = state?.evidence || {};
+  return Object.fromEntries(weeks.map((_, index) => [String(index + 1), {
+    applicationNotes: String(notes[index] || ''),
+    assessmentResult: checks[index] ? { ...checks[index], completionReady: Boolean(checks[index].completionReady ?? checks[index].passed) } : null,
+    evidence: evidence[index] || null
+  }]));
+}
+
 export function createLearningStateStore({
   catalog = {},
   storage = typeof window !== 'undefined' ? window.localStorage : null,
@@ -66,6 +78,15 @@ export function createLearningStateStore({
     },
     replaceProgress(incoming) {
       progressByWeek = mergeLearningProgress(progressByWeek, incoming, weekIds);
+      return publish();
+    },
+    syncLegacyState(legacyState = {}) {
+      const incomingWeeks = Array.isArray(legacyState.weeks) ? legacyState.weeks : [];
+      progressByWeek = mergeLearningProgress(progressByWeek, Object.fromEntries(incomingWeeks.map((week, index) => [String(index + 1), week])), weekIds);
+      const incomingContext = contextFromLegacyState(legacyState);
+      contextByWeek = { ...contextByWeek, ...incomingContext };
+      journals = Array.isArray(legacyState.journal) ? legacyState.journal : journals;
+      portfolio = Object.values(legacyState.evidence || {});
       return publish();
     },
     setJournalEntries(entries) {
