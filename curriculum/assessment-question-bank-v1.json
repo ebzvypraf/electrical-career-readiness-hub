@@ -1,0 +1,65 @@
+{
+  "version": "1.0.0",
+  "purpose": "Authored multiple-choice assessment options for the production Learn → Apply → Check → Evidence flow.",
+  "grading": "Each question uses one module-authored correctIndex. Choice scoring is deterministic; unanswered or incorrect choices do not pass.",
+  "weeks": [
+    {
+      "week": 4,
+      "questions": [
+        {"id":"w04q1","prompt":"An equipment tag appears on the SLD but not in the equipment list. What is the strongest senior response?","options":["Treat it as a coordination discrepancy, trace the source and confirm the intended equipment before issue.","Create a new equipment entry so the SLD and list match.","Delete the SLD tag until the equipment list is updated by someone else."],"correctIndex":0},
+        {"id":"w04q2","prompt":"Why should detailed cable-schedule data not simply be copied in full onto every SLD?","options":["The SLD should communicate system relationships and key information while detailed cable data remains controlled in its schedule.","Cable schedules are not relevant to electrical design.","Repeating all cable data always improves document quality."],"correctIndex":0},
+        {"id":"w04q3","prompt":"A protective-device rating changes on the design input. What should be checked beyond changing the number on the SLD?","options":["Only the SLD title block.","Affected feeder/cable information, equipment interfaces, schedules, downstream loads, coordination assumptions and revision impacts.","Nothing else if the drawing still looks correct."],"correctIndex":1},
+        {"id":"w04q4","prompt":"What distinguishes a senior SLD review from a symbol-by-symbol visual check?","options":["Checking only line weights and symbol appearance.","Verifying system logic, source-to-load traceability, interfaces, identifiers, design inputs, document consistency and issue readiness.","Checking that every symbol has a different colour."],"correctIndex":1}
+      ]
+    },
+    {
+      "week": 5,
+      "questions": [
+        {"id":"w05q1","prompt":"A cable tag in the equipment list conflicts with the SLD. What is the strongest senior response?","options":["Choose whichever tag is easier to draft and continue.","Record the discrepancy, trace both sources, identify the controlled source or obtain clarification before issue.","Delete the cable from the schedule until somebody notices it."],"correctIndex":1},
+        {"id":"w05q2","prompt":"Which combination gives the strongest cable traceability?","options":["Cable tag only.","Source, destination, cable tag, service and linked drawing/reference information.","Cable colour and approximate length only."],"correctIndex":1},
+        {"id":"w05q3","prompt":"An important termination detail is missing from the supplied information. What should you do?","options":["Invent a likely value so the schedule looks complete.","Leave it undocumented because termination is outside drafting.","Identify the missing input, state its impact and obtain the required information before issue."],"correctIndex":2},
+        {"id":"w05q4","prompt":"Which QA check is most valuable before issuing a cable schedule?","options":["Check only that every row has a cable number.","Cross-check schedule records against SLDs, equipment/panel information and related termination or I/O documentation.","Sort the rows alphabetically and assume the schedule is correct."],"correctIndex":1}
+      ]
+    },
+    {
+      "week": 6,
+      "questions": [
+        {"id":"w06q1","prompt":"What is the strongest way to use a standards clause in a design record?","options":["Copy the clause into every drawing note.","Reference the applicable requirement, explain the design response and retain enough context for review.","Mention the standard name without a reference."],"correctIndex":1},
+        {"id":"w06q2","prompt":"A clause appears relevant but the installation context is uncertain. What should happen first?","options":["Apply the clause immediately.","Clarify the installation context and verify the applicable requirement before relying on it.","Ignore the clause."],"correctIndex":1},
+        {"id":"w06q3","prompt":"A project specification conflicts with a generic drafting convention. What is the safest approach?","options":["Always follow the drafting convention.","Record the conflict, determine the governing requirement and obtain clarification where necessary.","Choose the easier option."],"correctIndex":1}
+      ]
+    },
+    {
+      "week": 7,
+      "questions": [
+        {"id":"w07q1","prompt":"What best demonstrates package ownership?","options":["Completing the largest number of sheets personally.","Controlling scope, inputs, interfaces, revisions, checks and issue readiness.","Avoiding coordination meetings."],"correctIndex":1},
+        {"id":"w07q2","prompt":"An upstream vendor drawing changes after your package check. What should you do?","options":["Ignore it if your sheets were already checked.","Assess affected interfaces, update the change/revision trail and repeat relevant checks.","Delete the vendor reference."],"correctIndex":1},
+        {"id":"w07q3","prompt":"What should a risk register do?","options":["List problems without owners.","Make risks, impacts, actions, owners and escalation visible.","Replace all technical checks."],"correctIndex":1}
+      ]
+    },
+    {
+      "week": 8,
+      "questions": [
+        {"id":"w08q1","prompt":"What should drive a preliminary board layout?","options":["Only the visual symmetry of the enclosure.","Circuit function, protection, equipment data, cable entry, access and applicable design requirements.","The previous project's dimensions."],"correctIndex":1},
+        {"id":"w08q2","prompt":"Vendor dimensions are missing for a critical component. What is the best response?","options":["Assume a standard size and issue the GA.","Show a controlled assumption if appropriate, flag the dependency and verify before final issue.","Remove the component from the drawing."],"correctIndex":1},
+        {"id":"w08q3","prompt":"Why are cross-references important on a board GA?","options":["They make the drawing look more detailed.","They connect physical items to functional and documentary records for checking and coordination.","They eliminate the need for an SLD."],"correctIndex":1}
+      ]
+    },
+    {
+      "week": 9,
+      "questions": [
+        {"id":"w09q1","prompt":"What should be established before selecting a cable size?","options":["Only the conductor colour.","The design inputs, installation conditions, load and applicable protection/voltage-drop requirements.","The preferred cable size from a previous job."],"correctIndex":1},
+        {"id":"w09q2","prompt":"A missing installation condition could materially change ampacity. What should happen?","options":["Ignore it and select the most common cable.","Flag the dependency, establish the required input and avoid treating the provisional result as final.","Remove the ampacity check."],"correctIndex":1},
+        {"id":"w09q3","prompt":"Which statement best describes the drafting boundary?","options":["Drafting can approve any calculation if the drawing looks correct.","The drawing should accurately document the approved design result while calculation assumptions and approval responsibility remain traceable.","Calculations are never relevant to drawings."],"correctIndex":1}
+      ]
+    },
+    {
+      "week": 10,
+      "questions": [
+        {"id":"w10q1","prompt":"What is the basic purpose of discrimination/selectivity?","options":["Make every breaker trip at the same time.","Prefer the appropriate downstream protective device to operate for a downstream fault where the coordination design permits.","Eliminate the need for fault studies."],"correctIndex":1},
+        {"id":"w10q2","prompt":"A protective-device setting is missing from the approved information. What should you do?","options":["Choose a typical setting.","Flag the missing controlled input and obtain the approved setting before documenting it as final.","Copy a setting from another project."],"correctIndex":1},
+        {"id":"w10q3","prompt":"A drawing and schedule show different breaker ratings. What is the strongest response?","options":["Pick the larger value silently.","Record the discrepancy, trace the controlled source and correct the affected records after verification.","Leave both values because the engineer will notice eventually."],"correctIndex":1}
+      ]
+    }
+  ]
+}
