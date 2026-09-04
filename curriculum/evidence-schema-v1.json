@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "purpose": "Canonical schema for Evidence -> Portfolio -> Skills -> Home/Journal signals.",
+  "requiredEvidenceFields": ["title", "description"],
+  "reviewStatuses": ["draft", "needs-review", "demonstrated"],
+  "qualityRule": "Evidence is demonstrated only when required fields are present and every authored rubric criterion is explicitly satisfied.",
+  "portfolioFields": ["week", "title", "description", "competency", "reflection", "reviewStatus", "evidenceQuality", "capturedAt"],
+  "skillSignals": ["skill", "demonstratedCapability", "evidenceQuality", "week"],
+  "homeSignals": ["week", "evidenceReady", "evidenceQuality"],
+  "journalSignals": ["week", "reflection", "nextAction"],
+  "rubric": {
+    "criterionFormat": {"id": "string", "label": "string"},
+    "evidenceCriterionFieldPrefix": "criterion_"
+  }
+}
