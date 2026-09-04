@@ -1,0 +1,146 @@
+{
+  "version": "1.0.0",
+  "purpose": "Canonical Learn-Apply-Check-Evidence curriculum modules for Weeks 11-15 of the Electrical Career Readiness Hub.",
+  "modules": [
+    {
+      "week": 11,
+      "title": "Earthing and Bonding Design",
+      "phase": "Design Ownership",
+      "estimatedHours": 6,
+      "skillTargets": ["Earthing and bonding", "AS/NZS application", "Electrical design ownership", "QA / design checking"],
+      "learn": {
+        "objective": "Understand how an electrical designer documents an earthing and bonding arrangement while distinguishing drafting representation from engineering decisions that require verification.",
+        "concepts": ["Protective earthing and bonding intent", "Main earthing/bonding relationships", "Equipment and metallic-service interfaces", "Conductor identification and documentation", "Verification, assumptions and escalation"],
+        "seniorReasoning": "Senior work makes the safety intent and interfaces visible, traces the design basis and does not invent conductor sizes or fault-duty assumptions that have not been established."
+      },
+      "apply": {
+        "scenario": "Review a fictional industrial switchroom containing a main switchboard, MCC, metallic cable ladder, structural steel and incoming utility services.",
+        "tasks": ["Sketch the required earthing and bonding relationships without inventing unprovided conductor sizes.", "Identify metallic items that require consideration for bonding.", "Create an earthing design-basis/assumption register.", "Identify which inputs must come from the electrical engineer or project design basis.", "Perform a drawing QA check for continuity, labels and cross-document references."],
+        "deliverable": "Sanitized earthing/bonding sketch plus assumption register and QA checklist."
+      },
+      "check": {
+        "questions": [
+          {"prompt": "A drawing requires an earthing conductor size but the fault-duty/design basis is not provided. What is the strongest response?", "options": ["Choose a typical size and issue the drawing.", "Record the missing design input and escalate before finalizing the size.", "Remove the earthing connection from the drawing."], "correctIndex": 1, "answer": "Record the missing design input and escalate before finalizing the size."},
+          {"prompt": "What is the strongest reason to show bonding interfaces clearly?", "options": ["To make the drawing look complete.", "To make safety-related continuity and interfaces traceable for review and installation.", "To avoid needing any design basis."], "correctIndex": 1, "answer": "To make safety-related continuity and interfaces traceable for review and installation."},
+          {"prompt": "Which item should remain explicit in a senior-level assumption register?", "options": ["Unverified fault level or design input affecting the earthing design.", "The fact that the drawing has a title block.", "A preferred lineweight setting."], "correctIndex": 0, "answer": "Unverified fault level or design input affecting the earthing design."}
+        ]
+      },
+      "evidence": {
+        "prompt": "Capture a sanitized earthing/bonding design exercise showing safety interfaces, design assumptions and verification points.",
+        "criteria": ["Earthing/bonding intent is clear", "Safety interfaces are identified", "Unverified design inputs are escalated", "Drawing QA is documented", "Learner explains what the evidence proves"]
+      }
+    },
+    {
+      "week": 12,
+      "title": "Mechanical and Civil Coordination for Electrical Design",
+      "phase": "Design Ownership",
+      "estimatedHours": 5,
+      "skillTargets": ["Multidisciplinary coordination", "Electrical design ownership", "Electrical drafting & documentation"],
+      "learn": {
+        "objective": "Coordinate electrical layouts with mechanical and civil requirements while controlling interfaces, clashes, access and information ownership.",
+        "concepts": ["Interface registers", "Equipment and access zones", "Cable routes and containment interfaces", "Penetrations and builder's work", "Clash/discrepancy management"],
+        "seniorReasoning": "Senior coordination identifies the interface before it becomes a field problem and records who owns the decision when disciplines disagree."
+      },
+      "apply": {
+        "scenario": "Coordinate a fictional pump-room electrical layout with mechanical pipework, a ventilation duct and a civil slab penetration plan.",
+        "tasks": ["Create an interface register covering equipment, access, cable routes and penetrations.", "Identify three spatial conflicts and classify their severity.", "Propose coordination actions without changing another discipline's design unilaterally.", "Record outstanding decisions and owners.", "Update a drawing issue-readiness checklist."],
+        "deliverable": "Sanitized multidisciplinary coordination register, marked-up plan and action list."
+      },
+      "check": {
+        "questions": [
+          {"prompt": "A cable ladder conflicts with a mechanical duct. What should happen first?", "options": ["Move the duct or ladder immediately without coordination.", "Record the clash, identify affected interfaces and coordinate the responsible disciplines.", "Delete the ladder from the electrical drawing."], "correctIndex": 1, "answer": "Record the clash, identify affected interfaces and coordinate the responsible disciplines."},
+          {"prompt": "Why should access zones be considered during coordination?", "options": ["They affect maintainability and can make an otherwise geometrically possible layout unusable.", "They are only relevant to civil drawings.", "They are cosmetic preferences."], "correctIndex": 0, "answer": "They affect maintainability and can make an otherwise geometrically possible layout unusable."},
+          {"prompt": "What makes a coordination action traceable?", "options": ["A verbal agreement with no record.", "An identified issue, affected interface, action, owner and status.", "A screenshot with no annotations."], "correctIndex": 1, "answer": "An identified issue, affected interface, action, owner and status."}
+        ]
+      },
+      "evidence": {
+        "prompt": "Capture a sanitized multidisciplinary coordination exercise demonstrating clash identification, ownership and resolution tracking.",
+        "criteria": ["Interfaces are identifiable", "Conflicts are classified", "Actions and owners are traceable", "Access/installation impact is considered", "Issue status is documented"]
+      }
+    },
+    {
+      "week": 13,
+      "title": "OpenBuildings and 3D Electrical Model Coordination",
+      "phase": "Advanced Technical",
+      "estimatedHours": 6,
+      "skillTargets": ["OpenBuildings Designer", "3D / BIM coordination", "Electrical design ownership"],
+      "learn": {
+        "objective": "Use a disciplined 3D coordination workflow to represent electrical equipment and containment while maintaining model structure and drawing traceability.",
+        "concepts": ["Model versus sheet information", "Spatial coordination", "References and federated models", "Electrical equipment/containment representation", "Model QA and issue tracking"],
+        "seniorReasoning": "A senior BIM-aware designer treats the model as coordinated project information, not merely a 3D picture, and understands what must remain authoritative in schedules and drawings."
+      },
+      "apply": {
+        "scenario": "Coordinate a fictional switchroom model containing switchboards, cable ladders, access zones and architectural/structural references.",
+        "tasks": ["Define model elements and naming/level conventions.", "Place representative electrical equipment and containment.", "Check access and spatial interfaces.", "Record three clashes or coordination questions.", "Document which information is controlled by the model versus the drawing/schedule."],
+        "deliverable": "Sanitized 3D coordination screenshots or model review record with issue register."
+      },
+      "check": {
+        "questions": [
+          {"prompt": "A 3D model looks correct but the equipment schedule has a different tag. What is the strongest response?", "options": ["Assume the model is correct.", "Treat it as a data discrepancy and reconcile the controlled source before issue.", "Delete the schedule entry."], "correctIndex": 1, "answer": "Treat it as a data discrepancy and reconcile the controlled source before issue."},
+          {"prompt": "What is a key difference between a 3D visual check and a coordination check?", "options": ["Coordination also considers information ownership, interfaces, access and downstream documentation.", "There is no difference.", "A coordination check only examines colours."], "correctIndex": 0, "answer": "Coordination also considers information ownership, interfaces, access and downstream documentation."},
+          {"prompt": "Why should federated references be controlled?", "options": ["To make file names longer.", "Because model revision/status affects the coordination context and can invalidate checks.", "References never affect coordination."], "correctIndex": 1, "answer": "Because model revision/status affects the coordination context and can invalidate checks."}
+        ]
+      },
+      "evidence": {
+        "prompt": "Capture a sanitized 3D coordination review demonstrating model structure, spatial checking and traceability to project documentation.",
+        "criteria": ["Model structure is explained", "Spatial coordination is demonstrated", "Information ownership is clear", "Issues are recorded", "Model/document traceability is shown"]
+      }
+    },
+    {
+      "week": 14,
+      "title": "Navisworks Clash Detection and Coordination Workflow",
+      "phase": "Advanced Technical",
+      "estimatedHours": 5,
+      "skillTargets": ["Navisworks Manage", "3D / BIM coordination", "QA / design checking"],
+      "learn": {
+        "objective": "Perform a repeatable clash-detection workflow and convert model clashes into actionable, traceable coordination issues.",
+        "concepts": ["Federated model review", "Search sets and clash tests", "Hard versus clearance clashes", "Issue prioritisation", "Coordination status and close-out"],
+        "seniorReasoning": "Senior coordination distinguishes meaningful constructability issues from false positives and ensures every accepted resolution remains traceable."
+      },
+      "apply": {
+        "scenario": "Review a fictional federated plant model containing electrical containment, structural steel and mechanical services with intentional clashes.",
+        "tasks": ["Define search sets for electrical and adjacent disciplines.", "Run or simulate representative clash tests.", "Classify clashes by severity and likely constructability impact.", "Create an issue register with owner and due action.", "Document close-out evidence for at least two clashes."],
+        "deliverable": "Sanitized Navisworks clash report or screenshot set plus issue/close-out register."
+      },
+      "check": {
+        "questions": [
+          {"prompt": "Two objects technically intersect but the intersection is intentional and accepted. How should it be handled?", "options": ["Keep escalating it forever.", "Classify it appropriately and record the accepted condition if required by the workflow.", "Delete one object."], "correctIndex": 1, "answer": "Classify it appropriately and record the accepted condition if required by the workflow."},
+          {"prompt": "What makes a clash high priority?", "options": ["It has the most colourful geometry.", "It has a credible installation, safety, access or coordination impact requiring action.", "It is the first item in the report."], "correctIndex": 1, "answer": "It has a credible installation, safety, access or coordination impact requiring action."},
+          {"prompt": "What is needed to close a clash properly?", "options": ["Changing its status without checking the model.", "A documented resolution and confirmation that the affected coordination condition is resolved.", "Deleting the clash report."], "correctIndex": 1, "answer": "A documented resolution and confirmation that the affected coordination condition is resolved."}
+        ]
+      },
+      "evidence": {
+        "prompt": "Capture a sanitized clash-detection exercise with prioritisation, assigned actions and documented close-out.",
+        "criteria": ["Clash test scope is clear", "Issues are prioritised", "Actions/owners are traceable", "Resolution is evidenced", "Close-out is reviewable"]
+      }
+    },
+    {
+      "week": 15,
+      "title": "Hazardous Area Classification Basics",
+      "phase": "Advanced Technical",
+      "estimatedHours": 6,
+      "skillTargets": ["Hazardous area awareness", "Electrical design ownership", "Electrical drafting & documentation", "QA / design checking"],
+      "learn": {
+        "objective": "Recognise hazardous-area design interfaces and document the limits of a designer's responsibility without making unsupported classification or equipment-selection decisions.",
+        "concepts": ["Hazardous-area classification purpose", "Zones and extent documentation", "Sources of release and ventilation context", "Equipment suitability/interface information", "Certification, design basis and escalation"],
+        "seniorReasoning": "Senior awareness means recognising when hazardous-area requirements control equipment, installation method or documentation and ensuring the classification/design basis is authoritative before proceeding."
+      },
+      "apply": {
+        "scenario": "Review a fictional chemical handling room where an electrical designer receives a layout with process equipment but no approved hazardous-area classification drawing.",
+        "tasks": ["Identify the information needed before selecting or documenting electrical equipment for the area.", "Map where classification boundaries would affect electrical drawings.", "Create an interface/clarification register.", "Separate drafting actions from engineering decisions requiring specialist confirmation.", "Prepare an issue hold-point checklist."],
+        "deliverable": "Sanitized hazardous-area interface checklist and clarification/hold-point register."
+      },
+      "check": {
+        "questions": [
+          {"prompt": "No approved hazardous-area classification is available. What is the strongest response?", "options": ["Assume the area is non-hazardous.", "Identify the missing classification/design basis and hold affected equipment decisions pending confirmation.", "Choose standard equipment and issue."], "correctIndex": 1, "answer": "Identify the missing classification/design basis and hold affected equipment decisions pending confirmation."},
+          {"prompt": "Why can hazardous-area classification affect electrical drawings?", "options": ["It can influence equipment suitability, installation methods, interfaces and required documentation.", "It only changes the title block.", "It has no relationship to electrical design."], "correctIndex": 0, "answer": "It can influence equipment suitability, installation methods, interfaces and required documentation."},
+          {"prompt": "What is the safest approach when a classification interpretation is outside your defined responsibility?", "options": ["Make the interpretation and hide it as a drafting assumption.", "Escalate to the responsible competent person and document the dependency.", "Ignore the classification."], "correctIndex": 1, "answer": "Escalate to the responsible competent person and document the dependency."}
+        ]
+      },
+      "evidence": {
+        "prompt": "Capture a sanitized hazardous-area readiness exercise demonstrating recognition of classification dependencies, equipment interfaces and escalation boundaries.",
+        "criteria": ["Required classification inputs identified", "Electrical impacts mapped", "Engineering decisions separated from drafting", "Hold points are explicit", "Escalation path is documented"]
+      }
+    }
+  ]
+}
