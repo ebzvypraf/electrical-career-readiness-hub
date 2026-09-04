@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Learning Engine Validation</title><style>body{font:15px system-ui;max-width:900px;margin:40px auto;padding:0 18px;background:#f5f7fb;color:#172238}main{background:#fff;border:1px solid #e4e9f0;border-radius:14px;padding:24px}li{margin:8px 0}.ok{color:#047857}.warn{color:#b45309}code{background:#eef2ff;padding:2px 5px;border-radius:4px}</style></head>
-<body><main><h1>Learning Engine v2 Validation</h1><p>This production-side harness validates curriculum loading, stage gates, progress calculation, cross-surface signals and the Course UI adapter without replacing the existing Hub shell.</p><ul id="results"><li>Running validation…</li></ul></main><script type="module">
-import {CURRICULUM_URLS,loadCatalog,totalProgress,nextStage,applyStageCompletion} from './learning-engine-v2.js';
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Learning Engine Validation</title><style>body{font:15px system-ui;max-width:900px;margin:40px auto;padding:0 18px;background:#f5f7fb;color:#172238}main{background:#fff;border:1px solid #e4e9f0;border-radius:14px;padding:24px}li{margin:8px 0}.ok{color:#047857}.warn{color:#b45309}</style></head>
+<body><main><h1>Learning Engine v2 Validation</h1><p>This production-side harness validates curriculum loading, stage gates, progress calculation, legacy-progress migration, cross-surface signals and the Course UI adapter without replacing the existing Hub shell.</p><ul id="results"><li>Running validation…</li></ul></main><script type="module">
+import {CURRICULUM_URLS,loadCatalog,totalProgress,nextStage,applyStageCompletion,migrateLegacyProgress,mergeLearningProgress} from './learning-engine-v2.js';
 import {buildCourseState,stageDescription} from './course-ui-adapter-v1.js';
 const out=document.querySelector('#results'); const rows=[];
 try{
@@ -22,6 +22,11 @@ try{
  const locked=applyStageCompletion(state,'1','check',{score:2,total:3}); rows.push(`<li class="ok"><b>Stage order</b>: ${locked.ok?'FAIL':'PASS'} — Check cannot be completed before Apply.</li>`);
  const applied=applyStageCompletion(state,'1','apply',{applicationNotes:'sample engineering notes'}); rows.push(`<li class="ok"><b>Apply completion</b>: ${applied.ok?'PASS':'FAIL'} — learner notes unlock completion.</li>`);
  const checked=applyStageCompletion({...state,'1':{...state['1'],apply:true}},'1','check',{score:2,total:3}); rows.push(`<li class="ok"><b>Check gate</b>: ${checked.ok?'PASS':'FAIL'} — passing reasoning score accepted.</li>`);
+ const legacy=[{learn:true,apply:false,check:false,evidence:false},{learn:true,apply:true,check:false,evidence:false}];
+ const migrated=migrateLegacyProgress(legacy,ids); const migrationOk=migrated['1'].learn&&migrated['2'].apply&&!migrated['3'].learn;
+ rows.push(`<li class="${migrationOk?'ok':'warn'}"><b>Legacy migration</b>: ${migrationOk?'PASS':'FAIL'} — array-shaped v3.6.0 progress maps to canonical week IDs without inventing later completion.</li>`);
+ const merged=mergeLearningProgress(migrated,{'2':{check:true}},ids); const mergeOk=merged['1'].learn&&merged['2'].apply&&merged['2'].check;
+ rows.push(`<li class="${mergeOk?'ok':'warn'}"><b>Progress merge</b>: ${mergeOk?'PASS':'FAIL'} — canonical and incoming progress combine without losing prior stage state.</li>`);
  const course=buildCourseState(catalog,state);
  const week2=course.model.find(w=>w.weekId==='2');
  const real=week2&&week2.title&&week2.stages.every(s=>s.description&&!s.description.includes('generic'));
