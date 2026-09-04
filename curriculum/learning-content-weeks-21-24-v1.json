@@ -1,0 +1,51 @@
+{
+  "version": "1.0.0",
+  "purpose": "Canonical extension modules for Weeks 21-24 of the Electrical Career Readiness Hub.",
+  "integration": {"stageOrder": ["learn", "apply", "check", "evidence"]},
+  "modules": [
+    {
+      "week": 21,
+      "title": "Reviewing & Mentoring Junior Drafters",
+      "phase": "QA & Leadership",
+      "estimatedHours": 5,
+      "skillTargets": ["Leadership & mentoring", "QA / design checking", "Electrical drafting & documentation"],
+      "learn": {"objective": "Develop a repeatable approach for reviewing junior drafting work while coaching the designer toward independent, accurate decisions.","concepts": ["Review scope and risk","Coaching versus correcting","Comment quality","Progressive checking","Knowledge transfer"],"seniorReasoning": "A senior reviewer protects the deliverable while explaining the reason behind important corrections so the junior designer can prevent recurrence."},
+      "apply": {"scenario": "Review a fictional junior drafter's electrical drawing package containing drafting errors, coordination gaps and a few issues requiring engineering clarification.","tasks": ["Define the review scope and priority risks.","Separate drafting corrections from design questions.","Write actionable review comments with reasons.","Identify two coaching points that build independent capability.","Prepare a recheck plan for the revised package."],"deliverable": "Sanitized review register with coaching notes, priorities and recheck criteria."},
+      "check": {"questions": [{"prompt": "A junior drafter repeats the same coordination error. What is the strongest senior response?","answer": "Correct the current deliverable, explain the underlying reasoning and establish a repeatable check that helps prevent recurrence."},{"prompt": "What should be separated during a drawing review?","answer": "Drafting/documentation corrections should be distinguished from technical design questions requiring engineer or discipline confirmation."},{"prompt": "When should a junior's work be escalated rather than simply corrected?","answer": "When the issue affects design intent, safety, compliance, interfaces or an approval boundary."}]},
+      "evidence": {"prompt": "Capture a sanitized mentoring/review exercise showing how you identified issues, coached the drafter and controlled recheck.","criteria": ["Review scope is defined","Comments are actionable","Technical boundaries are respected","Coaching and recheck are demonstrated"]}
+    },
+    {
+      "week": 22,
+      "title": "Client & Multidisciplinary Communication",
+      "phase": "QA & Leadership",
+      "estimatedHours": 5,
+      "skillTargets": ["Leadership & mentoring", "Electrical design ownership", "Electrical drafting & documentation"],
+      "learn": {"objective": "Communicate electrical design issues clearly across clients, engineers and other disciplines while protecting traceability and approval boundaries.","concepts": ["Issue framing","Technical versus commercial language","RFI and clarification discipline","Interface ownership","Decision records"],"seniorReasoning": "Senior communication makes the decision needed, consequence, options, owner and required response explicit without overstating authority or certainty."},
+      "apply": {"scenario": "Prepare responses to fictional multidisciplinary comments involving a cable route conflict, equipment-space constraint and unclear control interface.","tasks": ["Classify each issue and identify the decision owner.","Draft concise clarification/RFI wording.","Explain the electrical consequence without unnecessary jargon.","Record assumptions and requested responses.","Create a decision log for package traceability."],"deliverable": "Sanitized RFI/clarification set with decision log and interface ownership notes."},
+      "check": {"questions": [{"prompt": "Another discipline proposes a cable route that conflicts with electrical access. What is the strongest communication?","answer": "State the conflict and consequence, identify the required coordination decision and document the agreed disposition."},{"prompt": "What makes an effective technical clarification?","answer": "It identifies the issue, relevant context, impact, decision required and responsible party."},{"prompt": "Why record the final multidisciplinary decision?","answer": "It preserves traceability and provides a common reference for affected drawings and future review."}]},
+      "evidence": {"prompt": "Capture a sanitized multidisciplinary communication exercise demonstrating clear issue framing, ownership and decision traceability.","criteria": ["Issue and consequence are clear","Decision owner is identified","Communication is actionable","Disposition is traceable"]}
+    },
+    {
+      "week": 23,
+      "title": "Building a Senior-Level Portfolio Package",
+      "phase": "Portfolio & Interview",
+      "estimatedHours": 6,
+      "skillTargets": ["Electrical design ownership", "Electrical drafting & documentation", "QA / design checking", "Leadership & mentoring"],
+      "learn": {"objective": "Assemble a concise portfolio that demonstrates senior-level electrical design contribution through traceable, sanitized work evidence.","concepts": ["Evidence selection","Problem-action-result framing","Technical context","Confidentiality and sanitization","Competency mapping"],"seniorReasoning": "A strong portfolio proves capability through decisions, constraints, verification and outcomes rather than simply showing attractive drawings."},
+      "apply": {"scenario": "Select work from the preceding learning modules and build a fictionalized portfolio case study suitable for an Australian electrical design role.","tasks": ["Select evidence covering design, coordination, QA and ownership.","Remove confidential project/client information.","Write a concise context-problem-action-result narrative.","Map each artifact to a demonstrated competency.","Perform a final portfolio quality and confidentiality check."],"deliverable": "Sanitized senior-level portfolio case study with competency map and evidence index."},
+      "check": {"questions": [{"prompt": "Which portfolio evidence is strongest?","answer": "Evidence that shows your contribution, engineering reasoning, constraints, verification and outcome rather than only a finished drawing."},{"prompt": "Why sanitize portfolio evidence?","answer": "To demonstrate capability without disclosing confidential client, project or commercially sensitive information."},{"prompt": "What should a competency map establish?","answer": "A clear link between each artifact, the capability it demonstrates and the role-relevant outcome or responsibility."}]},
+      "evidence": {"prompt": "Capture your sanitized senior-level portfolio case study and competency map.","criteria": ["Evidence is sanitized","Your contribution is explicit","Competencies are mapped","Technical reasoning and outcomes are clear"]}
+    },
+    {
+      "week": 24,
+      "title": "Interview Readiness & Technical Q&A Practice",
+      "phase": "Portfolio & Interview",
+      "estimatedHours": 5,
+      "skillTargets": ["Electrical design ownership", "AS/NZS application", "QA / design checking", "Leadership & mentoring"],
+      "learn": {"objective": "Demonstrate senior electrical designer readiness through structured technical explanations, scenario responses and evidence-backed career stories.","concepts": ["Technical Q&A structure","STAR-style examples","Design judgement boundaries","Standards/application reasoning","Explaining trade-offs"],"seniorReasoning": "Senior interview performance combines technical competence with the ability to explain assumptions, risks, coordination decisions and when engineering approval is required."},
+      "apply": {"scenario": "Complete a mock senior electrical designer interview covering drawing production, AS/NZS application, design checking, multidisciplinary coordination and a difficult design-change scenario.","tasks": ["Prepare five evidence-backed career stories.","Answer technical questions using inputs, reasoning, verification and escalation structure.","Practice explaining one design trade-off to a non-specialist stakeholder.","Identify questions where you must state an engineering approval boundary.","Record weaknesses and a final improvement plan."],"deliverable": "Sanitized interview preparation pack containing technical answers, five evidence-backed stories and improvement actions."},
+      "check": {"questions": [{"prompt": "A technical interview question lacks a key design input. What is the strongest response?","answer": "State the missing input, explain why it affects the decision and describe what you would verify before finalizing the design."},{"prompt": "How should a senior designer describe a difficult coordination issue?","answer": "Explain the context, competing constraints, decision process, communication, verification and outcome."},{"prompt": "What demonstrates mature engineering judgement in an interview?","answer": "Knowing what you can decide, what must be verified and when an engineer, client or discipline owner must approve the decision."}]},
+      "evidence": {"prompt": "Capture your final interview preparation pack with technical answers, evidence-backed stories and an improvement plan.","criteria": ["Answers are technically reasoned","Examples are evidence-backed","Approval boundaries are understood","Improvement actions are specific"]}
+    }
+  ]
+}
