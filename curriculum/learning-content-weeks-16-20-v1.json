@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "purpose": "Canonical extension modules for Weeks 16-20 of the Electrical Career Readiness Hub.",
+  "integration": {"stageOrder": ["learn", "apply", "check", "evidence"]},
+  "modules": [
+    {
+      "week": 16,
+      "title": "Switchboard & MCC Layout Design",
+      "phase": "Advanced Technical",
+      "estimatedHours": 6,
+      "skillTargets": ["Switchboard & MCC layout design", "Power distribution design", "Electrical design ownership"],
+      "learn": {"objective": "Develop a disciplined workflow for arranging switchboards and MCCs with equipment interfaces, cable entry, maintainability and documentation traceability.","concepts": ["Functional sections and equipment arrangement","Cable entry and gland-space planning","Maintainability and access","Heat and segregation considerations","GA, SLD and schedule coordination"],"seniorReasoning": "A senior layout balances electrical function, installation, maintenance and document consistency rather than optimizing only for physical fit."},
+      "apply": {"scenario": "Develop a fictional MCC arrangement serving several motor feeders, a control section and incoming supply.","tasks": ["Establish incomer, bus-section and outgoing arrangement logic.","Reserve space for terminals, cable entry and future capacity where required.","Identify access and maintenance constraints.","Cross-check equipment tags and feeder references against a fictional SLD.","Record vendor and engineer inputs that must be confirmed before issue."],"deliverable": "Sanitized MCC/switchboard GA sketch with layout checklist, assumptions and discrepancy record."},
+      "check": {"questions": [{"prompt": "The MCC physically fits but cable termination access is poor. What is the strongest response?","answer": "Treat termination access and maintainability as design constraints and revise the arrangement before issue."},{"prompt": "What should be coordinated when an MCC feeder is added?","answer": "The GA, SLD, cable schedule, protection information, interfaces and revision/change records."},{"prompt": "When should a layout assumption be escalated?","answer": "When it affects safety, equipment interface, maintainability, compliance or a vendor/engineer approval boundary."}]},
+      "evidence": {"prompt": "Capture a sanitized switchboard or MCC layout exercise demonstrating coordinated arrangement and design ownership.","criteria": ["Arrangement logic is explained","Cable/maintenance constraints considered","Cross-document coordination shown","Assumptions and approvals identified"]}
+    },
+    {
+      "week": 17,
+      "title": "Instrumentation & Control Interfaces",
+      "phase": "Advanced Technical",
+      "estimatedHours": 6,
+      "skillTargets": ["Instrumentation & control interfaces", "Electrical drafting & documentation", "Electrical design ownership"],
+      "learn": {"objective": "Coordinate electrical drawings with instrumentation and control interfaces so field devices, panels, signals and interfaces remain traceable.","concepts": ["I/O and signal identification","Field-to-panel traceability","Power versus signal interfaces","Interdisciplinary boundaries","Termination and loop documentation"],"seniorReasoning": "Senior coordination makes interfaces explicit: who owns the signal, where it terminates, what power or communication dependency exists and what remains to be confirmed."},
+      "apply": {"scenario": "Coordinate a fictional pump control system containing level instruments, motor status, run commands, alarms and a PLC interface.","tasks": ["Create a signal/interface register.","Map field devices to panel/PLC termination points.","Separate power, discrete, analogue and communication interfaces.","Identify three missing or conflicting inputs.","Prepare a multidisciplinary coordination checklist."],"deliverable": "Sanitized I/O/interface register with a simplified termination/loop mapping and discrepancy record."},
+      "check": {"questions": [{"prompt": "A field instrument tag exists in the P&ID but not in the electrical I/O list. What is the strongest response?","answer": "Record the interface discrepancy, trace the controlled source and coordinate the intended signal before finalizing electrical documentation."},{"prompt": "Why separate power and signal interfaces?","answer": "They have different design, segregation, termination and verification considerations and must remain traceable."},{"prompt": "What should be confirmed before assigning a PLC termination?","answer": "Signal type, source, destination, I/O ownership, termination arrangement and approved control philosophy."}]},
+      "evidence": {"prompt": "Capture a sanitized control-interface register or loop/termination exercise showing traceability across disciplines.","criteria": ["Signals are traceable","Interface ownership is clear","Missing inputs are identified","Coordination checks are documented"]}
+    },
+    {
+      "week": 18,
+      "title": "AS/NZS 3008 & Load-Calculation Workflow",
+      "phase": "Advanced Technical",
+      "estimatedHours": 7,
+      "skillTargets": ["AS/NZS application", "Calculations & sizing", "Electrical design ownership"],
+      "learn": {"objective": "Build a reviewable workflow for electrical load, cable and voltage-drop calculations using controlled inputs and documented assumptions.","concepts": ["Load schedules and demand","Cable selection inputs","Voltage drop","Installation conditions","Calculation assumptions and review boundaries"],"seniorReasoning": "The senior skill is not memorizing a table; it is knowing which inputs drive the result, documenting them and recognizing when engineering verification is required."},
+      "apply": {"scenario": "Prepare a fictional feeder-sizing worksheet for a pump motor and auxiliary loads using supplied design inputs and intentionally incomplete installation information.","tasks": ["Create an input register for load, length, installation method and environmental conditions.","Show the calculation workflow and identify required standard references.","Perform a voltage-drop check using clearly stated assumptions.","Identify which inputs would change the selected cable/protection.","Flag results requiring engineer verification."],"deliverable": "Sanitized calculation worksheet or design-note exercise with assumptions, checks and escalation points."},
+      "check": {"questions": [{"prompt": "The cable length is uncertain and voltage drop is close to the project limit. What is the strongest response?","answer": "Do not hide the uncertainty; confirm the route/length, document the assumption and reassess the calculation before final selection."},{"prompt": "Which inputs should be traceable in a cable-sizing calculation?","answer": "Load/current, cable length, installation method, correction factors/conditions, allowable voltage drop and applicable design assumptions."},{"prompt": "When should a calculation be escalated?","answer": "When inputs are incomplete, the result is marginal, or the design decision requires engineering judgement or approval."}]},
+      "evidence": {"prompt": "Capture a sanitized load/cable-sizing worksheet demonstrating traceable inputs, calculation logic and engineering escalation awareness.","criteria": ["Inputs are explicit","Method and assumptions are stated","Result is reviewable","Verification/escalation boundary is clear"]}
+    },
+    {
+      "week": 19,
+      "title": "Design Checking & QA Review Technique",
+      "phase": "QA & Leadership",
+      "estimatedHours": 6,
+      "skillTargets": ["QA / design checking", "Electrical design ownership", "Leadership & mentoring"],
+      "learn": {"objective": "Perform a structured electrical design check that tests technical content, interfaces, standards, revisions and issue readiness.","concepts": ["Checker mindset","Independent verification","Interface checks","Traceability","Comment classification and closure"],"seniorReasoning": "A strong checker looks for consequences and omissions, not only drafting errors, and writes comments that allow the designer to resolve them efficiently."},
+      "apply": {"scenario": "Review a fictional electrical package containing an SLD, board GA, cable schedule and control interface sheet with deliberate inconsistencies.","tasks": ["Create a checking plan before reviewing.","Identify technical, coordination, drafting and document-control issues.","Classify comments by severity and required action.","Trace each major comment to affected documents.","Prepare a closure recommendation and unresolved-risk statement."],"deliverable": "Sanitized design-check register with classified comments, cross-document impacts and closure status."},
+      "check": {"questions": [{"prompt": "A drawing looks correct but a cable schedule contradicts it. How should the checker respond?","answer": "Raise the traceability issue, identify the affected documents and require resolution before issue."},{"prompt": "What distinguishes an effective checking comment?","answer": "It identifies the issue, consequence or required clarification clearly enough for the designer to act."},{"prompt": "When is a package not ready for closure?","answer": "When significant technical, safety, compliance, interface or traceability issues remain unresolved or evidence of resolution is inadequate."}]},
+      "evidence": {"prompt": "Capture a sanitized design-check register demonstrating structured QA reasoning and comment closure discipline.","criteria": ["Checks are planned","Issues are classified","Cross-document impacts are traced","Closure/readiness is demonstrated"]}
+    },
+    {
+      "week": 20,
+      "title": "Redline Markup Discipline & Drawing Revisions",
+      "phase": "QA & Leadership",
+      "estimatedHours": 5,
+      "skillTargets": ["QA / design checking", "Electrical drafting & documentation", "Electrical design ownership"],
+      "learn": {"objective": "Control redlines and revisions so changes are traceable, correctly incorporated and reflected consistently across the drawing package.","concepts": ["Markup interpretation","Revision clouds and descriptions","Change-impact assessment","Source-of-truth control","Post-revision verification"],"seniorReasoning": "Revision control is a risk-control activity: every change needs an understood source, impact, disposition and verification path."},
+      "apply": {"scenario": "Process a fictional redline package containing equipment relocation, feeder changes and annotation corrections across four related drawings.","tasks": ["Classify each markup by change type.","Identify affected drawings and schedules.","Record clarification questions before editing.","Prepare revision descriptions and a disposition log.","Perform a post-incorporation package check."],"deliverable": "Sanitized redline disposition register, revision record and post-update QA checklist."},
+      "check": {"questions": [{"prompt": "A redline is unclear but could affect cable routing. What is the strongest response?","answer": "Raise a clarification before incorporating the change and record the potential downstream impact."},{"prompt": "Why assess change impact before editing?","answer": "Because one markup can affect multiple drawings, schedules, references and design assumptions."},{"prompt": "What closes a revision properly?","answer": "The change is incorporated, affected documents are checked, revision information is updated and unresolved items are recorded."}]},
+      "evidence": {"prompt": "Capture a sanitized redline/revision exercise demonstrating controlled change incorporation and verification.","criteria": ["Markups are classified","Affected documents identified","Disposition is traceable","Post-update QA is documented"]}
+    }
+  ]
+}
