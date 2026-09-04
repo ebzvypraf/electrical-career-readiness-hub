@@ -97,6 +97,33 @@ export function createLearningState(weekIds = Object.keys(CURRICULUM_URLS)) {
   }, {});
 }
 
+/* Convert the v3.6.0 shell's persisted array-shaped progress into the
+ * canonical week-id map. This is intentionally non-destructive: unknown or
+ * already-canonical state is preserved, so adopting the engine cannot erase
+ * learner progress during the Course UI integration.
+ */
+export function migrateLegacyProgress(legacyWeeks, weekIds = Object.keys(CURRICULUM_URLS)) {
+  const ids = weekIds.map(String);
+  const source = Array.isArray(legacyWeeks) ? legacyWeeks : [];
+  const canonical = createLearningState(ids);
+  ids.forEach((id, index) => {
+    const item = source[index] || {};
+    canonical[id] = { ...emptyProgress(), ...item };
+  });
+  return canonical;
+}
+
+export function mergeLearningProgress(current, incoming, weekIds = Object.keys(CURRICULUM_URLS)) {
+  const ids = weekIds.map(String);
+  const base = createLearningState(ids);
+  const a = Array.isArray(current) ? migrateLegacyProgress(current, ids) : (current || {});
+  const b = Array.isArray(incoming) ? migrateLegacyProgress(incoming, ids) : (incoming || {});
+  ids.forEach(id => {
+    base[id] = { ...emptyProgress(), ...(a[id] || {}), ...(b[id] || {}) };
+  });
+  return base;
+}
+
 export function applyStageCompletion(progressByWeek, weekId, stage, context = {}) {
   if (!STAGES.includes(stage)) throw new Error(`Unknown learning stage: ${stage}`);
   const current = progressByWeek?.[weekId] || emptyProgress();
