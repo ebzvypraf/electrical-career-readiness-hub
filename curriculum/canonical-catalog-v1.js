@@ -14,6 +14,7 @@ export const CANONICAL_SOURCES = [
 export const CANONICAL_WEEK_IDS = Array.from({ length: 24 }, (_, i) => String(i + 1));
 
 export const ASSESSMENT_SOURCES = [
+  '/curriculum/assessment-bank-weeks-01-03-v1.json',
   '/curriculum/assessment-question-bank-v1.json',
   '/curriculum/assessment-bank-weeks-21-24-v1.json'
 ];
