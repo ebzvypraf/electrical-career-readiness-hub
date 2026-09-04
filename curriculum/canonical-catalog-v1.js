@@ -13,6 +13,11 @@ export const CANONICAL_SOURCES = [
 
 export const CANONICAL_WEEK_IDS = Array.from({ length: 24 }, (_, i) => String(i + 1));
 
+export const ASSESSMENT_SOURCES = [
+  '/curriculum/assessment-question-bank-v1.json',
+  '/curriculum/assessment-bank-weeks-21-24-v1.json'
+];
+
 async function fetchJson(url) {
   const response = await fetch(url, { cache: 'no-store' });
   if (!response.ok) throw new Error(`Canonical curriculum load failed: ${response.status} ${url}`);
@@ -59,7 +64,31 @@ export async function loadCanonicalCatalog(sources = CANONICAL_SOURCES) {
   return Object.fromEntries(CANONICAL_WEEK_IDS.map(id => [id, catalog[id]]));
 }
 
+export async function loadAssessmentCatalog(sources = ASSESSMENT_SOURCES) {
+  const payloads = await Promise.all(sources.map(fetchJson));
+  const questionsByWeek = {};
+  for (const payload of payloads) {
+    const groups = Array.isArray(payload?.weeks) ? payload.weeks : [];
+    for (const group of groups) {
+      const weekId = String(group?.week ?? '');
+      if (!CANONICAL_WEEK_IDS.includes(weekId)) continue;
+      const questions = Array.isArray(group.questions) ? group.questions : [];
+      questionsByWeek[weekId] = [...(questionsByWeek[weekId] || []), ...questions];
+    }
+  }
+  return questionsByWeek;
+}
+
 export function catalogCompleteness(catalog) {
   const ids = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
   return { expectedWeeks: 24, actualWeeks: ids.length, complete: ids.length === 24 && ids.every((id, i) => id === String(i + 1)) };
+}
+
+export function assessmentCoverage(assessments) {
+  const weeks = Object.keys(assessments || {}).filter(id => CANONICAL_WEEK_IDS.includes(String(id)));
+  return {
+    assessedWeeks: weeks.length,
+    assessedWeekIds: weeks.sort((a, b) => Number(a) - Number(b)),
+    totalQuestions: weeks.reduce((n, id) => n + (assessments[id]?.length || 0), 0)
+  };
 }
