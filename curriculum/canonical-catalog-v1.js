@@ -16,6 +16,7 @@ export const CANONICAL_WEEK_IDS = Array.from({ length: 24 }, (_, i) => String(i 
 export const ASSESSMENT_SOURCES = [
   '/curriculum/assessment-bank-weeks-01-03-v1.json',
   '/curriculum/assessment-question-bank-v1.json',
+  '/curriculum/assessment-bank-weeks-16-20-v1.json',
   '/curriculum/assessment-bank-weeks-21-24-v1.json'
 ];
 
@@ -91,5 +92,36 @@ export function assessmentCoverage(assessments) {
     assessedWeeks: weeks.length,
     assessedWeekIds: weeks.sort((a, b) => Number(a) - Number(b)),
     totalQuestions: weeks.reduce((n, id) => n + (assessments[id]?.length || 0), 0)
+  };
+}
+
+export function assessmentQuality(assessments, catalog = {}) {
+  return CANONICAL_WEEK_IDS.map(weekId => {
+    const authored = Array.isArray(assessments?.[weekId]) ? assessments[weekId] : [];
+    const questions = authored.length ? authored : (catalog?.[weekId]?.check?.questions || []);
+    const deterministic = authored.length > 0 && authored.every(q => Array.isArray(q?.options) && q.options.length >= 2 && Number.isInteger(q?.correctIndex) && q.correctIndex >= 0 && q.correctIndex < q.options.length);
+    return {
+      week: Number(weekId),
+      questionCount: questions.length,
+      deterministic,
+      mode: deterministic ? 'authored-deterministic' : questions.length ? 'compatibility' : 'missing'
+    };
+  });
+}
+
+export function validateCanonicalQuality(catalog, assessments) {
+  const coverage = catalogCompleteness(catalog);
+  const assessment = assessmentQuality(assessments, catalog);
+  const missingStages = assessment.filter(x => !['learn', 'apply', 'check', 'evidence'].every(stage => catalog?.[String(x.week)]?.[stage])).map(x => x.week);
+  const missingChecks = assessment.filter(x => x.mode === 'missing').map(x => x.week);
+  const compatibilityChecks = assessment.filter(x => x.mode === 'compatibility').map(x => x.week);
+  return {
+    ...coverage,
+    stageComplete: missingStages.length === 0,
+    missingStageWeeks: missingStages,
+    assessmentReady: missingChecks.length === 0,
+    missingAssessmentWeeks: missingChecks,
+    compatibilityWeeks: compatibilityChecks,
+    deterministicWeeks: assessment.filter(x => x.deterministic).map(x => x.week)
   };
 }
