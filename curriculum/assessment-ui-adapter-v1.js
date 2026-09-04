@@ -10,7 +10,6 @@
 (function () {
   'use strict';
 
-  const CONTENT_URL = '/curriculum/learning-content-v1.json';
   const BANK_URL = '/curriculum/assessment-question-bank-v1.json';
   const STATE_KEY = 'ecrh-v35';
   let bankByWeek = {};
@@ -59,11 +58,6 @@
           `<label><input type="radio" name="q${index}" value="${optionIndex}"> ${escapeHtml(option)}</label>`
         ).join('');
     });
-
-    const reasoning = document.querySelector('#modalCard .expected-reasoning');
-    if (reasoning) {
-      reasoning.textContent = 'Choose the response that best demonstrates the authored senior-level reasoning for this module.';
-    }
   }
 
   function readState() {
@@ -85,6 +79,9 @@
       date: new Date().toISOString()
     };
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    if (window.ECRH && typeof window.ECRH.setCheckResult === 'function') {
+      window.ECRH.setCheckResult(week - 1, state.checks[week - 1]);
+    }
   }
 
   function showCanonicalResult(result) {
@@ -136,8 +133,5 @@
     renderAuthoredChoices();
   }
 
-  // Keep CONTENT_URL referenced as an explicit contract for future v2 question
-  // hydration; the current bank is intentionally authoritative for Week 4–10.
-  void CONTENT_URL;
   load();
 })();
