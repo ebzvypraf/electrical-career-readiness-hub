@@ -49,7 +49,10 @@ export function isStageUnlocked(progressByWeek, weekId, stage) {
 export function canCompleteStage(stage, context = {}) {
   if (stage === 'learn') return true;
   if (stage === 'apply') return Boolean(context.applicationNotes?.trim());
-  if (stage === 'check') return Number.isFinite(context.score) && context.total > 0 && context.score >= Math.ceil(context.total * 0.67);
+  if (stage === 'check') {
+    if (context.assessmentResult) return Boolean(context.assessmentResult.completionReady && context.assessmentResult.passed);
+    return Number.isFinite(context.score) && context.total > 0 && context.score >= Math.ceil(context.total * 0.67);
+  }
   if (stage === 'evidence') return Boolean(context.evidence?.title?.trim() && context.evidence?.description?.trim());
   return false;
 }
@@ -79,6 +82,28 @@ export function applyStageCompletion(progressByWeek, weekId, stage, context = {}
   if (!canCompleteStage(stage, context)) return { ok: false, progress: { ...current }, reason: `Stage gate not satisfied: ${STAGE_LABELS[stage]}` };
   return { ok: true, progress: { ...current, [stage]: true }, reason: `${STAGE_LABELS[stage]} completed` };
 }
+
+/**
+ * Authoritative progression transaction. Call this from Course instead of
+ * mutating a week flag directly. The returned state is safe to persist and
+ * the returned hub snapshot is derived from that exact post-transaction state.
+ */
+export function commitStageCompletion({ catalog = {}, progressByWeek = {}, weekId, stage, context = {}, contextByWeek = {}, journalEntries = [], portfolioEntries = [] } = {}) {
+  const ids = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
+  const current = mergeLearningProgress(progressByWeek, {}, ids.length ? ids : Object.keys(progressByWeek || {}));
+  const result = applyStageCompletion(current, String(weekId), stage, context);
+  if (!result.ok) return { ...result, progressByWeek: current, hubSignals: buildHubSignals(catalog, current, contextByWeek, journalEntries, portfolioEntries) };
+
+  const nextProgress = { ...current, [String(weekId)]: result.progress };
+  const nextContext = { ...contextByWeek, [String(weekId)]: { ...(contextByWeek?.[String(weekId)] || {}), ...context } };
+  return {
+    ...result,
+    progressByWeek: nextProgress,
+    contextByWeek: nextContext,
+    hubSignals: buildHubSignals(catalog, nextProgress, nextContext, journalEntries, portfolioEntries)
+  };
+}
+
 export async function loadWeek(url, fallback = {}) { const response = await fetch(url, { cache: 'no-store' }); if (!response.ok) throw new Error(`Curriculum load failed: ${response.status} ${url}`); return normalizeWeek(await response.json(), fallback); }
 export async function loadCatalog(urls = CURRICULUM_URLS) {
   if (urls === CURRICULUM_URLS) {
@@ -104,8 +129,8 @@ export function buildHubSignals(catalog, progressByWeek = {}, contextByWeek = {}
   const totalStages = weekIds.length * STAGES.length;
   const completedStages = totalProgress(progressByWeek);
   const evidenceWeeks = weekIds.filter(id => Boolean(progressByWeek?.[id]?.evidence));
-  const next = nextStage(progressByWeek, weekIds);
 
+  const next = nextStage(progressByWeek, weekIds);
   const skillMap = {};
   const prioritySkillGaps = [];
   for (const id of weekIds) {
@@ -133,8 +158,8 @@ export function buildHubSignals(catalog, progressByWeek = {}, contextByWeek = {}
   const reflections = (journalEntries || []).filter(entry => Boolean(String(entry?.reflection || entry?.learn || entry?.whatLearned || '').trim())).length;
   const nextActions = (journalEntries || []).map(entry => String(entry?.nextAction || entry?.next || '').trim()).filter(Boolean);
   const portfolioCount = (portfolioEntries || []).length;
-
   const nextWeek = next ? catalog[next.weekId] : null;
+
   return {
     overallProgress: totalStages ? Math.round((completedStages / totalStages) * 100) : 0,
     completedStages,
