@@ -74,6 +74,15 @@ export function createLearningStateStore({
     return next;
   };
 
+  const setWeekContext = (weekId, patch = {}) => {
+    const id = String(weekId);
+    contextByWeek = {
+      ...contextByWeek,
+      [id]: { ...(contextByWeek?.[id] || {}), ...patch }
+    };
+    return publish();
+  };
+
   return {
     getState() { return state(); },
     subscribe(listener) {
@@ -94,6 +103,9 @@ export function createLearningStateStore({
       journals = Array.isArray(legacyState.journal) ? legacyState.journal : journals;
       portfolio = Object.values(legacyState.evidence || {});
       return publish();
+    },
+    updateStageContext(weekId, patch = {}) {
+      return { ok: true, state: setWeekContext(weekId, patch) };
     },
     addJournalEntry(entry = {}) {
       const normalized = {
@@ -125,6 +137,39 @@ export function createLearningStateStore({
       };
       if (!normalized.title || !normalized.description) return { ok: false, reason: 'Portfolio evidence needs a title and description' };
       portfolio = [...portfolio.filter(item => !(normalized.week != null && Number(item?.week) === normalized.week)), normalized];
+      return { ok: true, entry: normalized, state: publish() };
+    },
+    captureEvidence({ weekId, title, description, date } = {}) {
+      const id = String(weekId);
+      const normalized = {
+        id: `portfolio-week-${id}`,
+        week: Number(id),
+        title: String(title || '').trim(),
+        description: String(description || '').trim(),
+        date: String(date || new Date().toISOString())
+      };
+      if (!normalized.title || !normalized.description) return { ok: false, reason: 'Portfolio evidence needs a title and description' };
+      portfolio = [...portfolio.filter(item => Number(item?.week) !== Number(id)), normalized];
+      contextByWeek = {
+        ...contextByWeek,
+        [id]: {
+          ...(contextByWeek?.[id] || {}),
+          evidence: { title: normalized.title, description: normalized.description, date: normalized.date }
+        }
+      };
+      const result = commitStageCompletion({
+        catalog,
+        progressByWeek,
+        weekId: id,
+        stage: 'evidence',
+        context: contextByWeek[id],
+        contextByWeek,
+        journalEntries: journals,
+        portfolioEntries: portfolio
+      });
+      if (!result.ok) return { ...result, state: publish() };
+      progressByWeek = result.progressByWeek;
+      contextByWeek = result.contextByWeek;
       return { ok: true, entry: normalized, state: publish() };
     },
     replacePortfolioEntries(entries) {
