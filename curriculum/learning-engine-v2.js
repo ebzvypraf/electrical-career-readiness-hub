@@ -93,3 +93,59 @@ export function buildIntegrationSnapshot(catalog, progressByWeek, contextByWeek 
   const next = nextStage(progressByWeek, Object.keys(catalog || {}));
   return { next, totalStages: Object.keys(catalog || {}).length * STAGES.length, completedStages: weeks.reduce((n, w) => n + w.signals.completion, 0), weeks };
 }
+
+/*
+ * Cross-surface hub contract.
+ * This keeps Home, Skills, Journal and Portfolio derived from the same
+ * canonical learning state rather than maintaining separate progress models.
+ */
+export function buildHubSignals(catalog, progressByWeek = {}, contextByWeek = {}, journalEntries = [], portfolioEntries = []) {
+  const weekIds = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
+  const totalStages = weekIds.length * STAGES.length;
+  const completedStages = totalProgress(progressByWeek);
+  const evidenceWeeks = weekIds.filter(id => Boolean(progressByWeek?.[id]?.evidence));
+  const next = nextStage(progressByWeek, weekIds);
+
+  const skillMap = {};
+  const prioritySkillGaps = [];
+  for (const id of weekIds) {
+    const week = catalog[id];
+    const progress = progressByWeek?.[id] || emptyProgress();
+    for (const skill of week?.skills || []) {
+      const key = String(skill);
+      const item = skillMap[key] || { skill: key, weeks: 0, completedWeeks: 0, demonstratedWeeks: 0, knowledgeChecks: 0, evidenceQuality: 0 };
+      item.weeks += 1;
+      if (progress.evidence) item.demonstratedWeeks += 1;
+      if (progress.check) item.knowledgeChecks += 1;
+      if (progress.evidence) item.evidenceQuality += 1;
+      if (stageProgress(progress) === STAGES.length) item.completedWeeks += 1;
+      skillMap[key] = item;
+    }
+  }
+  Object.values(skillMap).forEach(item => {
+    const readiness = item.weeks ? Math.round(((item.completedWeeks + item.demonstratedWeeks) / (item.weeks * 2)) * 100) : 0;
+    item.readiness = Math.min(100, readiness);
+    if (item.readiness < 60) prioritySkillGaps.push({ skill: item.skill, readiness: item.readiness, reason: 'Needs more demonstrated capability and/or completed learning stages' });
+  });
+  prioritySkillGaps.sort((a, b) => a.readiness - b.readiness);
+
+  const studyHours = (journalEntries || []).reduce((sum, entry) => sum + (Number(entry?.hours) || 0), 0);
+  const reflections = (journalEntries || []).filter(entry => Boolean(String(entry?.reflection || entry?.learn || entry?.whatLearned || '').trim())).length;
+  const nextActions = (journalEntries || []).map(entry => String(entry?.nextAction || entry?.next || '').trim()).filter(Boolean);
+  const portfolioCount = (portfolioEntries || []).length;
+
+  const nextWeek = next ? catalog[next.weekId] : null;
+  return {
+    overallProgress: totalStages ? Math.round((completedStages / totalStages) * 100) : 0,
+    completedStages,
+    totalStages,
+    nextBestAction: next ? { weekId: next.weekId, week: nextWeek?.title || `Week ${next.weekId}`, stage: next.stage, label: STAGE_LABELS[next.stage], prompt: nextWeek?.integration?.homeAction || '' } : null,
+    studyMomentum: { studyHours, reflectionCount: reflections, portfolioCount, journalEntryCount: (journalEntries || []).length },
+    prioritySkillGaps: prioritySkillGaps.slice(0, 8),
+    skills: Object.values(skillMap).sort((a, b) => b.readiness - a.readiness),
+    journal: { studyHours, reflectionCount: reflections, nextAction: nextActions[0] || '', entries: journalEntries || [] },
+    portfolio: { evidenceCount: evidenceWeeks.length + portfolioCount, evidenceWeeks, entries: portfolioEntries || [] },
+    evidence: { evidenceReadyWeeks: evidenceWeeks.length, evidenceRate: weekIds.length ? Math.round((evidenceWeeks.length / weekIds.length) * 100) : 0 },
+    generatedAt: new Date().toISOString()
+  };
+}
