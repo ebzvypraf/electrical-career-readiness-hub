@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "canonicalAggregate": "curriculum/learning-content-v1.json",
+  "extension": "curriculum/learning-content-weeks-16-20-v1.json",
+  "status": "ready-for-aggregate-integration",
+  "weeks": [16,17,18,19,20],
+  "stageOrder": ["learn","apply","check","evidence"],
+  "integrationTargets": ["Home","Skills","Journal","Portfolio"],
+  "note": "These modules are authored as a non-destructive extension. The production Course continues to consume the existing aggregate until the extension is merged into that canonical payload."
+}
