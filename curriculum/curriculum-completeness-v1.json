@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "purpose": "Machine-readable curriculum coverage manifest for the 24-week Learn-Apply-Check-Evidence pathway.",
+  "stageOrder": ["learn", "apply", "check", "evidence"],
+  "weeks": {
+    "1-10": {"status": "canonical", "source": "learning-content-v1.json"},
+    "11-15": {"status": "canonical", "source": "learning-content-weeks-11-15-v1.json"},
+    "16-24": {"status": "roadmap", "source": "index.html roadmap; full canonical content pending"}
+  },
+  "coverage": {
+    "canonicalWeeks": 15,
+    "roadmapWeeks": 9,
+    "totalWeeks": 24,
+    "canonicalStageCount": 60
+  },
+  "qualityGates": [
+    "Every canonical week contains Learn, Apply, Check and Evidence.",
+    "Every canonical Check question has an authored correct answer or explicit compatibility-mode handling.",
+    "Every canonical Evidence module has review criteria.",
+    "Evidence completion must remain gated by a passed Check.",
+    "Downstream signals must map evidence to competency, reflection and next action."
+  ]
+}
