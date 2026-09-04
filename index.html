@@ -65,4 +65,5 @@ function restore(){const f=$('restore').files[0];if(!f)return;const r=new FileRe
 $('resume').onclick=()=>{const n=next();if(n)openLesson(n.i,['learn','apply','check','evidence'].indexOf(n.k))};$('homeOpen').onclick=$('resume').onclick;$('saveLog').onclick=log;$('saveSettings').onclick=settings;$('backup').onclick=backup;$('restoreBtn').onclick=()=>$('restore').click();$('restore').onchange=restore;$('menu').onclick=()=>$('sidebar').classList.toggle('open');$('modal').onclick=e=>{if(e.target===$('modal'))close()};document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});window.ECRH={saveNote,check,saveEvidence,complete,close};load();renderNav();go('home');$('jdate').value=new Date().toISOString().slice(0,10);loadCurriculum();
 })();
 </script>
+<script src="/curriculum/assessment-ui-adapter-v1.js"></script>
 </body></html>
