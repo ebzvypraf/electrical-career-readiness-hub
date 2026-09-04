@@ -24,7 +24,7 @@ export function normalizeWeek(content, fallback = {}) {
   return {
     id: c.id || fallback.id, week: c.week ?? fallback.week, title: c.title || fallback.title || 'Untitled week',
     phase: c.phase || fallback.phase || '', estimatedHours: c.estimatedHours ?? fallback.estimatedHours ?? 6,
-    objective: c.objective || '', learn: c.learn || { heading: 'Core learning', bullets: [], takeaway: '' },
+    objective: c.objective || c.learn?.objective || '', learn: c.learn || { heading: 'Core learning', bullets: [], takeaway: '' },
     apply: c.apply || { scenario: '', tasks: [], deliverable: '' }, check: c.check || { questions: [], passRule: '' },
     evidence: c.evidence || { prompt: '', criteria: [], portfolioCategory: '' },
     skills: c.skills || c.skillTargets || integration.skills || [],
@@ -81,6 +81,10 @@ export function applyStageCompletion(progressByWeek, weekId, stage, context = {}
 }
 export async function loadWeek(url, fallback = {}) { const response = await fetch(url, { cache: 'no-store' }); if (!response.ok) throw new Error(`Curriculum load failed: ${response.status} ${url}`); return normalizeWeek(await response.json(), fallback); }
 export async function loadCatalog(urls = CURRICULUM_URLS) {
+  if (urls === CURRICULUM_URLS) {
+    const { loadCanonicalCatalog } = await import('./canonical-catalog-v1.js');
+    return loadCanonicalCatalog();
+  }
   const entries = await Promise.all(Object.entries(urls).map(async ([week, url]) => [String(week), await loadWeek(url, { week: Number(week) })]));
   return Object.fromEntries(entries);
 }
