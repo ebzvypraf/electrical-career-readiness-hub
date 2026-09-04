@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "purpose": "Authored multiple-choice assessment bank for Weeks 21-24.",
+  "weeks": [
+    {"week":21,"questions":[
+      {"id":"w21q1","prompt":"A junior drafter repeats the same coordination error. What is the strongest senior response?","options":["Correct it silently and move on.","Correct the deliverable, explain the reasoning, and establish a repeatable prevention check.","Ask the junior to search for the answer without feedback."],"correctIndex":1},
+      {"id":"w21q2","prompt":"What should be separated during a drawing review?","options":["Only comments that are easy to fix.","Drafting/documentation corrections and technical design questions requiring confirmation.","All comments should be treated as drafting corrections."],"correctIndex":1},
+      {"id":"w21q3","prompt":"When should a junior's work be escalated rather than simply corrected?","options":["Whenever a spelling error appears.","When the issue affects design intent, safety, compliance, interfaces, or approval boundaries.","Only when the junior requests escalation."],"correctIndex":1}
+    ]},
+    {"week":22,"questions":[
+      {"id":"w22q1","prompt":"Another discipline proposes a cable route that conflicts with electrical access. What is the strongest communication?","options":["Reject it without explanation.","State the conflict and consequence, identify the coordination decision required, and document the disposition.","Change the route immediately without coordination."],"correctIndex":1},
+      {"id":"w22q2","prompt":"What makes an effective technical clarification?","options":["A long message containing every project detail.","Issue, context, impact, decision required, and responsible party.","A request that simply says 'please advise'."],"correctIndex":1},
+      {"id":"w22q3","prompt":"Why record the final multidisciplinary decision?","options":["To increase email volume.","To preserve traceability and provide a common reference for affected deliverables.","Because every discussion must become a drawing revision."],"correctIndex":1}
+    ]},
+    {"week":23,"questions":[
+      {"id":"w23q1","prompt":"Which portfolio evidence is strongest?","options":["A polished drawing with no explanation.","Evidence showing contribution, reasoning, constraints, verification, and outcome.","A list of software commands used."],"correctIndex":1},
+      {"id":"w23q2","prompt":"Why sanitize portfolio evidence?","options":["To make the drawing look simpler.","To demonstrate capability without exposing confidential client, project, or commercially sensitive information.","To remove all technical context."],"correctIndex":1},
+      {"id":"w23q3","prompt":"What should a competency map establish?","options":["Only the file name.","A clear link between each artifact, demonstrated capability, and role-relevant outcome or responsibility.","The number of pages in the portfolio."],"correctIndex":1}
+    ]},
+    {"week":24,"questions":[
+      {"id":"w24q1","prompt":"A technical interview question lacks a key design input. What is the strongest response?","options":["Invent the missing input.","State the missing input, explain its effect, and describe what you would verify before finalizing the design.","Avoid answering the question."],"correctIndex":1},
+      {"id":"w24q2","prompt":"How should a senior designer describe a difficult coordination issue?","options":["Focus only on who caused the problem.","Explain context, competing constraints, decision process, communication, verification, and outcome.","Give only the final answer."],"correctIndex":1},
+      {"id":"w24q3","prompt":"What demonstrates mature engineering judgement in an interview?","options":["Claiming authority for every decision.","Knowing what you can decide, what must be verified, and when another owner must approve.","Avoiding technical details."],"correctIndex":1}
+    ]}
+  ]
+}
