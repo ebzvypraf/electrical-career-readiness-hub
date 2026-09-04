@@ -21,8 +21,8 @@ jobs:
           from pathlib import Path
           path = Path('index.html')
           text = path.read_text(encoding='utf-8')
-          bad = r'\\"\'\\":\'&#39;\''
-          good = r'"\'":\'&#39;\''
+          bad = chr(92) + '"' + "'" + chr(92) + '"' + ':'
+          good = '"' + "'" + '"' + ':'
           if bad not in text:
               raise SystemExit('No malformed key found; refusing to modify the baseline.')
           updated = text.replace(bad, good, 1)
