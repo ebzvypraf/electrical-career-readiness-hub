@@ -1,0 +1,48 @@
+{
+  "week": 9,
+  "title": "Cable Sizing & Voltage Drop Workflow",
+  "phase": "Design Ownership",
+  "estimatedHours": 6,
+  "objective": "Learn how to structure and review a cable-sizing workflow, including inputs, assumptions, correction factors, voltage drop, protection and documentation boundaries.",
+  "learn": {
+    "heading": "What senior designers should understand",
+    "bullets": [
+      "Cable sizing is an input-driven design process; the result cannot be separated from load, installation method, ambient conditions, grouping and protection requirements.",
+      "Record the design basis and source of each significant input so calculations can be checked.",
+      "Voltage drop is one check among several and should not be treated as the only sizing criterion.",
+      "Use conservative assumptions only when their impact is understood and the responsible engineer accepts the basis.",
+      "Drafting records should show the approved result and relevant references without disguising engineering calculations as drafting decisions."
+    ],
+    "takeaway": "Senior capability means understanding the sizing workflow and its boundaries, even when detailed calculations require engineering review."
+  },
+  "apply": {
+    "scenario": "A fictional 22 kW motor is supplied from an LV MCC through a defined cable route. The brief provides nominal voltage, load current, route length and installation context but leaves two inputs intentionally unresolved.",
+    "tasks": [
+      "Build an input sheet listing load, voltage, length, installation method, grouping, ambient assumptions and protection.",
+      "Create a calculation workflow showing ampacity, voltage-drop and protection checks in the correct sequence.",
+      "Identify the two unresolved inputs and explain how each could affect the selected cable.",
+      "Prepare a review checklist for another designer/engineer to verify the calculation basis.",
+      "Record which parts you can document confidently and which require responsible-engineer approval."
+    ],
+    "deliverable": "A sanitized cable-sizing workflow/input sheet and review checklist; calculation software output may be attached if available."
+  },
+  "check": {
+    "questions": [
+      {"q":"What should be established before selecting a cable size?","a":["Only the conductor colour.","The design inputs, installation conditions, load and applicable protection/voltage-drop requirements.","The preferred cable size from a previous job."],"correct":1,"why":"Sizing depends on the design basis and installation conditions."},
+      {"q":"A missing installation condition could materially change ampacity. What should happen?","a":["Ignore it and select the most common cable.","Flag the dependency, establish the required input and avoid treating the provisional result as final.","Remove the ampacity check."],"correct":1,"why":"Unresolved inputs must remain visible when they affect the result."},
+      {"q":"Which statement best describes the drafting boundary?","a":["Drafting can approve any calculation if the drawing looks correct.","The drawing should accurately document the approved design result while calculation assumptions and approval responsibility remain traceable.","Calculations are never relevant to drawings."],"correct":1,"why":"Good documentation preserves engineering accountability and traceability."}
+    ],
+    "passRule": "Explain the input-to-result chain and identify where engineering approval is required."
+  },
+  "evidence": {
+    "prompt": "Capture a sanitized cable-sizing input/workflow sheet and review checklist demonstrating traceable design reasoning.",
+    "criteria": ["Inputs and assumptions are listed.","The sizing/check sequence is clear.","Unresolved inputs are flagged.","Approval boundaries are stated."],
+    "portfolioCategory": "Calculations & sizing"
+  },
+  "integration": {
+    "home": "Recommend Week 10 after completion and show sizing workflow as the latest milestone.",
+    "skills": ["Calculations & sizing", "Electrical design ownership", "QA / design checking"],
+    "journal": "Reflect on the difference between documenting a calculation and owning the engineering approval behind it.",
+    "portfolio": "Add the sanitized sizing workflow as evidence of calculation awareness and design coordination."
+  }
+}
