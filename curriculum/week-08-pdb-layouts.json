@@ -1,0 +1,48 @@
+{
+  "week": 8,
+  "title": "Power Distribution Board Layouts",
+  "phase": "Design Ownership",
+  "estimatedHours": 6,
+  "objective": "Develop a repeatable approach to LV distribution-board layout decisions, balancing electrical function, maintainability, safety, interfaces and drawing clarity.",
+  "learn": {
+    "heading": "What senior designers should understand",
+    "bullets": [
+      "Start from the circuit schedule, equipment requirements and enclosure constraints rather than drawing a layout by appearance.",
+      "Separate functional arrangement from final physical dimensions and verify vendor information before committing space.",
+      "Maintain segregation, access, cable entry, gland space, heat and maintenance considerations within the applicable design basis.",
+      "Use consistent tags and cross-references between the SLD, schedule, GA and wiring information.",
+      "Clearly identify decisions that require engineering or vendor confirmation."
+    ],
+    "takeaway": "A strong board layout is a coordinated design record: physical arrangement supports the electrical function and remains traceable to controlled inputs."
+  },
+  "apply": {
+    "scenario": "Create a fictional 12-way LV distribution board for a small industrial facility with incomer, outgoing motor feeders, spare ways, metering and control interfaces.",
+    "tasks": [
+      "Create a functional arrangement showing incomer, protection, outgoing ways, metering and spare capacity.",
+      "Prepare a preliminary GA block layout including cable-entry and maintenance considerations.",
+      "Identify at least five physical or coordination constraints that could change the arrangement.",
+      "Cross-reference each major item to a fictional circuit or equipment identifier.",
+      "Record three decisions that must be confirmed from vendor data before issue."
+    ],
+    "deliverable": "A sanitized preliminary board arrangement with assumptions, constraints and cross-reference notes."
+  },
+  "check": {
+    "questions": [
+      {"q":"What should drive a preliminary board layout?","a":["Only the visual symmetry of the enclosure.","Circuit function, protection, equipment data, cable entry, access and applicable design requirements.","The previous project's dimensions."],"correct":1,"why":"Layout is a coordinated electrical and physical design decision."},
+      {"q":"Vendor dimensions are missing for a critical component. What is the best response?","a":["Assume a standard size and issue the GA.","Show a controlled assumption if appropriate, flag the dependency and verify before final issue.","Remove the component from the drawing."],"correct":1,"why":"Controlled assumptions prevent hidden design risk."},
+      {"q":"Why are cross-references important on a board GA?","a":["They make the drawing look more detailed.","They connect physical items to functional and documentary records for checking and coordination.","They eliminate the need for an SLD."],"correct":1,"why":"Traceability supports multidisciplinary checking and future revisions."}
+    ],
+    "passRule": "Explain how the selected response protects coordination and maintainability."
+  },
+  "evidence": {
+    "prompt": "Capture a sanitized preliminary distribution-board layout with its assumptions and coordination checks.",
+    "criteria": ["Functional arrangement is clear.","Physical constraints are considered.","Cross-references are visible.","Unconfirmed vendor/design inputs are controlled."],
+    "portfolioCategory": "Power distribution design"
+  },
+  "integration": {
+    "home": "Recommend Week 9 after completion and show board layout as the latest design milestone.",
+    "skills": ["Power distribution design", "Electrical design ownership", "Electrical drafting & documentation"],
+    "journal": "Reflect on how physical layout decisions depend on electrical function, vendor data and maintainability.",
+    "portfolio": "Add the sanitized board arrangement as power-distribution evidence."
+  }
+}
