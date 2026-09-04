@@ -66,7 +66,7 @@ export async function loadCanonicalCatalog(sources = CANONICAL_SOURCES) {
   return Object.fromEntries(CANONICAL_WEEK_IDS.map(id => [id, catalog[id]]));
 }
 
-export async function loadAssessmentCatalog(sources = ASSESSMENT_SOURCES) {
+export async function loadAssessmentCatalog(sources = ASSESSMENT_SOURCES, catalog = {}) {
   const payloads = await Promise.all(sources.map(fetchJson));
   const questionsByWeek = {};
   for (const payload of payloads) {
@@ -76,6 +76,13 @@ export async function loadAssessmentCatalog(sources = ASSESSMENT_SOURCES) {
       if (!CANONICAL_WEEK_IDS.includes(weekId)) continue;
       const questions = Array.isArray(group.questions) ? group.questions : [];
       questionsByWeek[weekId] = [...(questionsByWeek[weekId] || []), ...questions];
+    }
+  }
+  for (const weekId of CANONICAL_WEEK_IDS) {
+    if (questionsByWeek[weekId]?.length) continue;
+    const curriculumQuestions = catalog?.[weekId]?.check?.questions;
+    if (Array.isArray(curriculumQuestions) && curriculumQuestions.length) {
+      questionsByWeek[weekId] = curriculumQuestions;
     }
   }
   return questionsByWeek;
@@ -99,7 +106,8 @@ export function assessmentQuality(assessments, catalog = {}) {
   return CANONICAL_WEEK_IDS.map(weekId => {
     const authored = Array.isArray(assessments?.[weekId]) ? assessments[weekId] : [];
     const questions = authored.length ? authored : (catalog?.[weekId]?.check?.questions || []);
-    const deterministic = authored.length > 0 && authored.every(q => Array.isArray(q?.options) && q.options.length >= 2 && Number.isInteger(q?.correctIndex) && q.correctIndex >= 0 && q.correctIndex < q.options.length);
+    const candidate = authored.length ? authored : questions;
+    const deterministic = candidate.length > 0 && candidate.every(q => Array.isArray(q?.options) && q.options.length >= 2 && Number.isInteger(q?.correctIndex) && q.correctIndex >= 0 && q.correctIndex < q.options.length);
     return {
       week: Number(weekId),
       questionCount: questions.length,
