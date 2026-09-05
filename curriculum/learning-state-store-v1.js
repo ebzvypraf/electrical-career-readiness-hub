@@ -10,6 +10,7 @@ import {
   commitStageCompletion,
   buildHubSignals
 } from './learning-engine-v2.js';
+import { scoreQuestionSet } from './assessment-engine-v1.js';
 
 export const LEARNING_STATE_KEY = 'ecrh-canonical-learning-state-v1';
 export const LEARNING_CONTEXT_KEY = 'ecrh-canonical-learning-context-v1';
@@ -196,14 +197,30 @@ export function createLearningStateStore({
     },
     recordAssessmentResult({ weekId, result = {} } = {}) {
       const id = String(weekId);
-      const normalized = {
-        score: Number(result.score) || 0,
-        total: Number(result.total) || 0,
-        passed: Boolean(result.passed),
-        completionReady: Boolean(result.completionReady ?? result.passed),
-        date: String(result.date || new Date().toISOString()),
-        responses: result.responses && typeof result.responses === 'object' ? result.responses : {}
-      };
+      const responses = result.responses && typeof result.responses === 'object' ? result.responses : {};
+      const authoredQuestions = catalog?.[id]?.check?.questions;
+      const authoritative = Array.isArray(authoredQuestions) && authoredQuestions.length
+        ? scoreQuestionSet(authoredQuestions, responses)
+        : null;
+      const normalized = authoritative
+        ? {
+            score: authoritative.score,
+            total: authoritative.total,
+            passed: authoritative.passed,
+            completionReady: authoritative.completionReady,
+            date: String(result.date || new Date().toISOString()),
+            responses,
+            engineVersion: authoritative.engineVersion,
+            gradingNote: authoritative.gradingNote
+          }
+        : {
+            score: Number(result.score) || 0,
+            total: Number(result.total) || 0,
+            passed: Boolean(result.passed),
+            completionReady: Boolean(result.completionReady ?? result.passed),
+            date: String(result.date || new Date().toISOString()),
+            responses
+          };
       contextByWeek = {
         ...contextByWeek,
         [id]: { ...(contextByWeek?.[id] || {}), assessmentResult: normalized }
