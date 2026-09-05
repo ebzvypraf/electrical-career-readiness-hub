@@ -71,6 +71,10 @@
 
   function questionsFor(week){const a=assessments[String(week)];return Array.isArray(a)&&a.length?a:(catalog[String(week)]?.check?.questions||[]);}
   function openLesson(week,stage){
+    if(stage==='learn' && !state.progressByWeek?.[String(week)]?.learn){
+      const viewed=store.updateStageContext(String(week),{learnViewedAt:new Date().toISOString()});
+      if(viewed.ok) state=viewed.state;
+    }
     const d=catalog[String(week)]||{}, p=state.progressByWeek?.[String(week)]||{}, ctx=state.contextByWeek?.[String(week)]||{}, qs=questionsFor(week); let body='';
     if(stage==='learn') body=`<div class="learning-hero"><b>Objective</b><p>${esc(d.objective||'')}</p></div><div class="learning-card"><h3>${esc(d.learn?.heading||'What to understand')}</h3><ul>${(d.learn?.concepts||d.learn?.bullets||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul><p><b>Senior reasoning:</b> ${esc(d.learn?.seniorReasoning||d.learn?.takeaway||'')}</p></div>`;
     if(stage==='apply') body=`<div class="learning-hero"><b>Scenario</b><p>${esc(d.apply?.scenario||'')}</p></div><div class="learning-grid"><div class="learning-card"><h3>Do this</h3><ol>${(d.apply?.tasks||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ol></div><div class="learning-card"><h3>Deliverable</h3><p>${esc(d.apply?.deliverable||'')}</p></div></div><div class="evidence-form"><label>Application notes<textarea id="canon-note">${esc(ctx.applicationNotes||'')}</textarea></label><button class="btn" id="canon-save-note">Save application notes</button></div>`;
