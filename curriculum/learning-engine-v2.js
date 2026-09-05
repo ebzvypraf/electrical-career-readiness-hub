@@ -14,7 +14,22 @@ export function normalizeWeek(content, fallback = {}) { const c = content || {},
 export function stageProgress(progress) { const p = { ...emptyProgress(), ...(progress || {}) }; return STAGES.reduce((n, stage) => n + (p[stage] ? 1 : 0), 0); }
 export function totalProgress(progressByWeek) { return Object.values(progressByWeek || {}).reduce((n, p) => n + stageProgress(p), 0); }
 export function nextStage(progressByWeek, weekIds) { for (const id of weekIds || Object.keys(progressByWeek || {})) { const p = progressByWeek?.[id] || emptyProgress(); for (const stage of STAGES) if (!p[stage]) return { weekId: id, stage }; } return null; }
-export function isStageUnlocked(progressByWeek, weekId, stage) { const p = progressByWeek?.[weekId] || emptyProgress(), index = STAGES.indexOf(stage); if (index < 0) return false; if (index === 0) return true; return STAGES.slice(0, index).every(previous => Boolean(p[previous])); }
+export function isStageUnlocked(progressByWeek, weekId, stage) {
+  const ids = Object.keys(progressByWeek || {}).sort((a, b) => Number(a) - Number(b));
+  const currentId = String(weekId);
+  const p = progressByWeek?.[currentId] || emptyProgress();
+  const index = STAGES.indexOf(stage);
+  if (index < 0) return false;
+  if (index > 0 && !STAGES.slice(0, index).every(previous => Boolean(p[previous]))) return false;
+  if (index === 0) {
+    const weekIndex = ids.indexOf(currentId);
+    if (weekIndex > 0) {
+      const previousId = ids[weekIndex - 1];
+      return Boolean(progressByWeek?.[previousId]?.evidence);
+    }
+  }
+  return true;
+}
 export function canCompleteStage(stage, context = {}) {
   if (stage === 'learn') return Boolean(context.learnViewedAt);
   if (stage === 'apply') return Boolean(context.applicationNotes?.trim());
@@ -29,7 +44,7 @@ export function deriveSignals(week, progress, context = {}) { const p = { ...emp
 export function createLearningState(weekIds = Object.keys(CURRICULUM_URLS)) { return weekIds.reduce((state, id) => { state[id] = emptyProgress(); return state; }, {}); }
 export function migrateLegacyProgress(legacyWeeks, weekIds = Object.keys(CURRICULUM_URLS)) { const ids = weekIds.map(String), source = Array.isArray(legacyWeeks) ? legacyWeeks : [], canonical = createLearningState(ids); ids.forEach((id, index) => { canonical[id] = { ...emptyProgress(), ...(source[index] || {}) }; }); return canonical; }
 export function mergeLearningProgress(current, incoming, weekIds = Object.keys(CURRICULUM_URLS)) { const ids = weekIds.map(String), base = createLearningState(ids); const a = Array.isArray(current) ? migrateLegacyProgress(current, ids) : (current || {}), b = Array.isArray(incoming) ? migrateLegacyProgress(incoming, ids) : (incoming || {}); ids.forEach(id => { base[id] = { ...emptyProgress(), ...(a[id] || {}), ...(b[id] || {}) }; }); return base; }
-export function applyStageCompletion(progressByWeek, weekId, stage, context = {}) { if (!STAGES.includes(stage)) throw new Error(`Unknown learning stage: ${stage}`); const current = progressByWeek?.[weekId] || emptyProgress(); if (!isStageUnlocked(progressByWeek, weekId, stage)) return { ok: false, progress: { ...current }, reason: 'Stage locked: complete the previous stage first' }; if (!canCompleteStage(stage, context)) return { ok: false, progress: { ...current }, reason: `Stage gate not satisfied: ${STAGE_LABELS[stage]}` }; return { ok: true, progress: { ...current, [stage]: true }, reason: `${STAGE_LABELS[stage]} completed` }; }
+export function applyStageCompletion(progressByWeek, weekId, stage, context = {}) { if (!STAGES.includes(stage)) throw new Error(`Unknown learning stage: ${stage}`); const current = progressByWeek?.[weekId] || emptyProgress(); if (!isStageUnlocked(progressByWeek, weekId, stage)) return { ok: false, progress: { ...current }, reason: 'Stage locked: complete the previous learning stage first' }; if (!canCompleteStage(stage, context)) return { ok: false, progress: { ...current }, reason: `Stage gate not satisfied: ${STAGE_LABELS[stage]}` }; return { ok: true, progress: { ...current, [stage]: true }, reason: `${STAGE_LABELS[stage]} completed` }; }
 export function commitStageCompletion({ catalog = {}, progressByWeek = {}, weekId, stage, context = {}, contextByWeek = {}, journalEntries = [], portfolioEntries = [] } = {}) { const ids = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b)); const current = mergeLearningProgress(progressByWeek, {}, ids.length ? ids : Object.keys(progressByWeek || {})); const result = applyStageCompletion(current, String(weekId), stage, context); if (!result.ok) return { ...result, progressByWeek: current, hubSignals: buildHubSignals(catalog, current, contextByWeek, journalEntries, portfolioEntries) }; const nextProgress = { ...current, [String(weekId)]: result.progress }; const nextContext = { ...contextByWeek, [String(weekId)]: { ...(contextByWeek?.[String(weekId)] || {}), ...context } }; return { ...result, progressByWeek: nextProgress, contextByWeek: nextContext, hubSignals: buildHubSignals(catalog, nextProgress, nextContext, journalEntries, portfolioEntries) }; }
 export async function loadWeek(url, fallback = {}) { const response = await fetch(url, { cache: 'no-store' }); if (!response.ok) throw new Error(`Curriculum load failed: ${response.status} ${url}`); return normalizeWeek(await response.json(), fallback); }
 export async function loadCatalog(urls = CURRICULUM_URLS) { if (urls === CURRICULUM_URLS) { const { loadCanonicalCatalog } = await import('./canonical-catalog-v1.js'); return loadCanonicalCatalog(); } const entries = await Promise.all(Object.entries(urls).map(async ([week, url]) => [String(week), await loadWeek(url, { week: Number(week) })])); return Object.fromEntries(entries); }
