@@ -78,16 +78,19 @@
     if(stage==='evidence') body=`<div class="learning-hero"><b>Evidence requirement</b><p>${esc(d.evidence?.prompt||'')}</p><div class="rubric">${(d.evidence?.criteria||[]).map((x,n)=>`<div class="rubric-row"><span>${n+1}. ${esc(x)}</span><span class="tag">Required</span></div>`).join('')}</div></div><div class="evidence-form"><label>Evidence title<input id="canon-et" value="${esc(ctx.evidence?.title||'')}"></label><label>What does it prove?<textarea id="canon-ed">${esc(ctx.evidence?.description||'')}</textarea></label><button class="btn primary" id="canon-save-evidence">Save & link evidence</button></div>`;
     $('modalCard').innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px"><div><div class="k">Week ${week} • ${stageLabel(stage)}</div><h2>${esc(d.title||`Week ${week}`)}</h2><span class="pill">${esc(d.phase||'')}</span></div><button class="btn" id="canon-close">Close</button></div>${body}<div class="mission" style="margin-top:12px"><b>Stage gate</b><p class="muted">${p[stage]?'Completed.':'Complete the required work honestly before marking this stage complete.'}</p></div><button class="btn primary" id="canon-complete">${p[stage]?'Completed — review':'Mark stage complete'}</button>`;
     $('modal').classList.add('show'); $('canon-close').onclick=()=>$('modal').classList.remove('show');
-    if(stage==='apply') $('canon-save-note').onclick=()=>{const s=legacy();s.notes=s.notes||{};s.notes[week-1]=$('canon-note').value.trim();writeLegacy(s);store.syncLegacyState(s);publish();openLesson(week,stage);};
+    if(stage==='apply') $('canon-save-note').onclick=()=>{const notes=$('canon-note').value.trim();const result=store.updateStageContext(String(week),{applicationNotes:notes});if(!result.ok)return alert(result.reason||'Could not save application notes.');state=result.state;renderAll();openLesson(week,stage);};
     if(stage==='check') $('canon-score').onclick=()=>scoreCheck(week);
-    if(stage==='evidence') $('canon-save-evidence').onclick=()=>{const title=$('canon-et').value.trim(),description=$('canon-ed').value.trim();if(!title||!description)return alert('Add an evidence title and description first.');const s=legacy();s.evidence=s.evidence||{};s.evidence[week-1]={title,description,date:new Date().toISOString(),week};writeLegacy(s);store.syncLegacyState(s);publish();openLesson(week,stage);};
+    if(stage==='evidence') $('canon-save-evidence').onclick=()=>{const title=$('canon-et').value.trim(),description=$('canon-ed').value.trim();if(!title||!description)return alert('Add an evidence title and description first.');const result=store.captureEvidence({weekId:String(week),title,description,date:new Date().toISOString()});if(!result.ok)return alert(result.reason||'Evidence could not be captured.');state=result.state;$('modal').classList.remove('show');renderAll();};
     $('canon-complete').onclick=()=>completeStage(week,stage);
   }
   function scoreCheck(week){
     const qs=questionsFor(week), responses={}; qs.forEach((q,n)=>{const c=document.querySelector(`input[name="cq${n}"]:checked`),a=$(`ca${n}`);responses[q.id||`q${n+1}`]=c?c.value:(a?a.value:'');});
     let score=0; const authored=qs.length&&qs.every(q=>Array.isArray(q.options)&&Number.isInteger(q.correctIndex));
     if(authored) qs.forEach((q,n)=>{const c=document.querySelector(`input[name="cq${n}"]:checked`);if(c&&Number(c.value)===q.correctIndex)score++;}); else score=0;
-    const passed=authored?score===qs.length:qs.length===0; const s=legacy();s.checks=s.checks||{};s.checks[week-1]={score,total:qs.length,passed,completionReady:passed,date:new Date().toISOString()};writeLegacy(s);store.syncLegacyState(s);publish();openLesson(week,'check');
+    const passed=authored?score===qs.length:qs.length===0;
+    const result=store.recordAssessmentResult({weekId:String(week),result:{score,total:qs.length,passed,completionReady:passed,date:new Date().toISOString(),responses}});
+    if(!result.ok)return alert(result.reason||'Check result could not be recorded.');
+    state=result.state;renderAll();openLesson(week,'check');
   }
   function completeStage(week,stage){
     const context=store.getState().contextByWeek?.[String(week)]||{}; const result=store.completeStage({weekId:String(week),stage,context});
@@ -107,7 +110,7 @@
       $('menu').onclick=()=>$('sidebar').classList.toggle('open');
       $('modal').onclick=e=>{if(e.target===$('modal'))$('modal').classList.remove('show');};
       document.addEventListener('keydown',e=>{if(e.key==='Escape')$('modal').classList.remove('show');});
-      $('saveLog').onclick=()=>{const s=legacy();s.journal=Array.isArray(s.journal)?s.journal:[];s.journal.push({date:$('jdate').value,hours:+$('jhours').value||0,study:$('jstudy').value,learn:$('jlearn').value,hard:$('jhard').value,next:$('jnext').value});writeLegacy(s);store.syncLegacyState(s);['jhours','jstudy','jlearn','jhard','jnext'].forEach(id=>$(id).value='');};
+      $('saveLog').onclick=()=>{const date=$('jdate').value,hours=+$('jhours').value||0,study=$('jstudy').value,learn=$('jlearn').value,hard=$('jhard').value,next=$('jnext').value;if(!date||(!study&&!learn&&!hard&&!next&&hours<=0))return alert('Add a date and study information.');const result=store.addJournalEntry({date,hours,study,learn,hard,next});if(!result.ok)return alert(result.reason||'Journal entry could not be saved.');state=result.state;['jhours','jstudy','jlearn','jhard','jnext'].forEach(id=>$(id).value='');renderAll();};
       $('saveSettings').onclick=()=>{const s=legacy();s.target=Math.max(1,Math.min(20,+$('targetInput').value||6));writeLegacy(s);renderAll();};
       $('targetInput').value=legacy().target||6;
       $('resume').onclick=()=>{const n=nextAction(state);if(n)openLesson(n.week,n.stage);};
