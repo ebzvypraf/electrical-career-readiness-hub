@@ -128,11 +128,6 @@ export function createLearningStateStore({
       const incomingContext = contextFromLegacyState(legacyState);
       contextByWeek = { ...contextByWeek, ...incomingContext };
 
-      // Legacy UI writes are treated as an import transaction into canonical
-      // Journal/Portfolio state. The adapter may still maintain ecrh-v35 for
-      // backward compatibility, but canonical storage is normalized and
-      // published atomically here so downstream surfaces never read the legacy
-      // collections directly.
       if (Array.isArray(legacyState.journal)) {
         journals = legacyState.journal.map((entry, index) => normalizeJournalEntry(entry, index));
       }
@@ -162,6 +157,22 @@ export function createLearningStateStore({
     replaceJournalEntries(entries) {
       journals = Array.isArray(entries) ? entries.map(normalizeJournalEntry) : [];
       return publish();
+    },
+    recordAssessmentResult({ weekId, result = {} } = {}) {
+      const id = String(weekId);
+      const normalized = {
+        score: Number(result.score) || 0,
+        total: Number(result.total) || 0,
+        passed: Boolean(result.passed),
+        completionReady: Boolean(result.completionReady ?? result.passed),
+        date: String(result.date || new Date().toISOString()),
+        responses: result.responses && typeof result.responses === 'object' ? result.responses : {}
+      };
+      contextByWeek = {
+        ...contextByWeek,
+        [id]: { ...(contextByWeek?.[id] || {}), assessmentResult: normalized }
+      };
+      return { ok: true, result: normalized, state: publish() };
     },
     addPortfolioEntry(entry = {}) {
       const normalized = normalizePortfolioEntry(entry);
