@@ -17,6 +17,19 @@
   function nextAction(s) { for (let i=1;i<=24;i++) for (const k of STAGES) if (!s.progressByWeek?.[String(i)]?.[k]) return { week:i, stage:k }; return null; }
   function stageLabel(k) { return k.charAt(0).toUpperCase()+k.slice(1); }
   function weekTitle(i) { return catalog[String(i)]?.title || `Week ${i}`; }
+  function stageLockReason(week, stage) {
+    const id=String(week), p=state.progressByWeek?.[id]||{};
+    const index=STAGES.indexOf(stage);
+    if(index<0) return '';
+    if(index>0){
+      const previous=STAGES[index-1];
+      if(!p[previous]) return `${stageLabel(stage)} is locked until ${stageLabel(previous)} is completed.`;
+    }
+    if(stage==='learn' && Number(week)>1 && !state.progressByWeek?.[String(Number(week)-1)]?.evidence){
+      return `Week ${week} is locked until Week ${Number(week)-1} Evidence is completed.`;
+    }
+    return '';
+  }
   function publish() { state = store.getState(); renderAll(); }
 
   function renderNav() {
@@ -44,9 +57,9 @@
 
   function renderCourse() {
     const n=nextAction(state);
-    $('modules').innerHTML=Array.from({length:24},(_,x)=>x+1).map(i=>{const open=n?.week===i, d=catalog[String(i)]||{};return `<div class="week ${open?'open':''}"><button class="weekhead" aria-expanded="${open}"><span class="wno">W${String(i).padStart(2,'0')}</span><span class="phase">${esc(d.phase||'')}</span><span class="wtitle">${esc(d.title||`Week ${i}`)}</span><span class="wcount">${weekCount(state,i)}/4</span></button><div class="weekbody">${STAGES.map(k=>`<div class="stage"><span>${state.progressByWeek?.[String(i)]?.[k]?'✓':STAGES.indexOf(k)+1}</span><b>${stageLabel(k)}</b><span>${k==='learn'?'Build understanding.':k==='apply'?'Produce a practical output.':k==='check'?'Validate your reasoning.':'Capture reviewable evidence.'}</span><button class="btn ${state.progressByWeek?.[String(i)]?.[k]?'':'primary'}" data-canonical-open="${i}:${k}">${state.progressByWeek?.[String(i)]?.[k]?'Review':'Open'}</button></div>`).join('')}</div></div>`}).join('');
+    $('modules').innerHTML=Array.from({length:24},(_,x)=>x+1).map(i=>{const open=n?.week===i, d=catalog[String(i)]||{};return `<div class="week ${open?'open':''}"><button class="weekhead" aria-expanded="${open}"><span class="wno">W${String(i).padStart(2,'0')}</span><span class="phase">${esc(d.phase||'')}</span><span class="wtitle">${esc(d.title||`Week ${i}`)}</span><span class="wcount">${weekCount(state,i)}/4</span></button><div class="weekbody">${STAGES.map(k=>{const completed=Boolean(state.progressByWeek?.[String(i)]?.[k]),reason=stageLockReason(i,k);return `<div class="stage"><span>${completed?'✓':STAGES.indexOf(k)+1}</span><b>${stageLabel(k)}</b><span>${reason?`<span title="${esc(reason)}">Locked: ${esc(reason)}</span>`:k==='learn'?'Build understanding.':k==='apply'?'Produce a practical output.':k==='check'?'Validate your reasoning.':'Capture reviewable evidence.'}</span><button class="btn ${completed?'':'primary'}" ${reason&&!completed?'disabled aria-disabled="true"':''} data-canonical-open="${i}:${k}">${completed?'Review':reason?'Locked':'Open'}</button></div>`;}).join('')}</div></div>`}).join('');
     document.querySelectorAll('.weekhead').forEach(h=>h.onclick=()=>{h.parentElement.classList.toggle('open');h.setAttribute('aria-expanded',h.parentElement.classList.contains('open'));});
-    document.querySelectorAll('[data-canonical-open]').forEach(b=>b.onclick=()=>{const [i,k]=b.dataset.canonicalOpen.split(':');openLesson(+i,k);});
+    document.querySelectorAll('[data-canonical-open]').forEach(b=>b.onclick=()=>{const [i,k]=b.dataset.canonicalOpen.split(':');if(stageLockReason(+i,k)){alert(stageLockReason(+i,k));return;}openLesson(+i,k);});
   }
 
   function renderSkills() {
@@ -71,6 +84,7 @@
 
   function questionsFor(week){const a=assessments[String(week)];return Array.isArray(a)&&a.length?a:(catalog[String(week)]?.check?.questions||[]);}
   function openLesson(week,stage){
+    const lockReason=stageLockReason(week,stage); if(lockReason){alert(lockReason);return;}
     if(stage==='learn' && !state.progressByWeek?.[String(week)]?.learn){
       const viewed=store.updateStageContext(String(week),{learnViewedAt:new Date().toISOString()});
       if(viewed.ok) state=viewed.state;
