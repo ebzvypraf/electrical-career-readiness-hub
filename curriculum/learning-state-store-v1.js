@@ -45,6 +45,28 @@ function contextFromLegacyState(state) {
   }]));
 }
 
+function normalizeJournalEntry(entry = {}, index = 0) {
+  return {
+    id: String(entry.id || `journal-legacy-${entry.date || 'undated'}-${index}`),
+    date: String(entry.date || new Date().toISOString().slice(0, 10)),
+    hours: Number(entry.hours) || 0,
+    study: String(entry.study || '').trim(),
+    learn: String(entry.learn || '').trim(),
+    hard: String(entry.hard || '').trim(),
+    next: String(entry.next || '').trim()
+  };
+}
+
+function normalizePortfolioEntry(entry = {}, week = null) {
+  return {
+    id: String(entry.id || `portfolio-week-${week ?? 'unassigned'}`),
+    week: week == null ? (entry.week == null ? null : Number(entry.week)) : Number(week),
+    title: String(entry.title || '').trim(),
+    description: String(entry.description || '').trim(),
+    date: String(entry.date || new Date().toISOString())
+  };
+}
+
 export function createLearningStateStore({
   catalog = {},
   storage = typeof window !== 'undefined' ? window.localStorage : null,
@@ -97,26 +119,40 @@ export function createLearningStateStore({
     },
     syncLegacyState(legacyState = {}) {
       const incomingWeeks = Array.isArray(legacyState.weeks) ? legacyState.weeks : [];
-      progressByWeek = mergeLearningProgress(progressByWeek, Object.fromEntries(incomingWeeks.map((week, index) => [String(index + 1), week])), weekIds);
+      progressByWeek = mergeLearningProgress(
+        progressByWeek,
+        Object.fromEntries(incomingWeeks.map((week, index) => [String(index + 1), week])),
+        weekIds
+      );
+
       const incomingContext = contextFromLegacyState(legacyState);
       contextByWeek = { ...contextByWeek, ...incomingContext };
-      journals = Array.isArray(legacyState.journal) ? legacyState.journal : journals;
-      portfolio = Object.values(legacyState.evidence || {});
+
+      // Legacy UI writes are treated as an import transaction into canonical
+      // Journal/Portfolio state. The adapter may still maintain ecrh-v35 for
+      // backward compatibility, but canonical storage is normalized and
+      // published atomically here so downstream surfaces never read the legacy
+      // collections directly.
+      if (Array.isArray(legacyState.journal)) {
+        journals = legacyState.journal.map((entry, index) => normalizeJournalEntry(entry, index));
+      }
+
+      if (legacyState.evidence && typeof legacyState.evidence === 'object') {
+        const imported = Object.entries(legacyState.evidence)
+          .map(([index, entry]) => normalizePortfolioEntry(entry, Number(index) + 1))
+          .filter(entry => entry.title && entry.description);
+        const byWeek = new Map(portfolio.map(entry => [entry.week == null ? `id:${entry.id}` : `week:${entry.week}`, entry]));
+        imported.forEach(entry => byWeek.set(`week:${entry.week}`, entry));
+        portfolio = Array.from(byWeek.values());
+      }
+
       return publish();
     },
     updateStageContext(weekId, patch = {}) {
       return { ok: true, state: setWeekContext(weekId, patch) };
     },
     addJournalEntry(entry = {}) {
-      const normalized = {
-        id: entry.id || `journal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        date: String(entry.date || new Date().toISOString().slice(0, 10)),
-        hours: Number(entry.hours) || 0,
-        study: String(entry.study || '').trim(),
-        learn: String(entry.learn || '').trim(),
-        hard: String(entry.hard || '').trim(),
-        next: String(entry.next || '').trim()
-      };
+      const normalized = normalizeJournalEntry(entry);
       if (!normalized.study && !normalized.learn && !normalized.hard && !normalized.next && normalized.hours <= 0) {
         return { ok: false, reason: 'Journal entry is empty' };
       }
@@ -124,30 +160,18 @@ export function createLearningStateStore({
       return { ok: true, entry: normalized, state: publish() };
     },
     replaceJournalEntries(entries) {
-      journals = Array.isArray(entries) ? entries : [];
+      journals = Array.isArray(entries) ? entries.map(normalizeJournalEntry) : [];
       return publish();
     },
     addPortfolioEntry(entry = {}) {
-      const normalized = {
-        id: entry.id || `portfolio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        week: entry.week == null ? null : Number(entry.week),
-        title: String(entry.title || '').trim(),
-        description: String(entry.description || '').trim(),
-        date: String(entry.date || new Date().toISOString())
-      };
+      const normalized = normalizePortfolioEntry(entry);
       if (!normalized.title || !normalized.description) return { ok: false, reason: 'Portfolio evidence needs a title and description' };
       portfolio = [...portfolio.filter(item => !(normalized.week != null && Number(item?.week) === normalized.week)), normalized];
       return { ok: true, entry: normalized, state: publish() };
     },
     captureEvidence({ weekId, title, description, date } = {}) {
       const id = String(weekId);
-      const normalized = {
-        id: `portfolio-week-${id}`,
-        week: Number(id),
-        title: String(title || '').trim(),
-        description: String(description || '').trim(),
-        date: String(date || new Date().toISOString())
-      };
+      const normalized = normalizePortfolioEntry({ title, description, date }, Number(id));
       if (!normalized.title || !normalized.description) return { ok: false, reason: 'Portfolio evidence needs a title and description' };
       portfolio = [...portfolio.filter(item => Number(item?.week) !== Number(id)), normalized];
       contextByWeek = {
@@ -173,7 +197,7 @@ export function createLearningStateStore({
       return { ok: true, entry: normalized, state: publish() };
     },
     replacePortfolioEntries(entries) {
-      portfolio = Array.isArray(entries) ? entries : [];
+      portfolio = Array.isArray(entries) ? entries.map(entry => normalizePortfolioEntry(entry)) : [];
       return publish();
     },
     completeStage({ weekId, stage, context = {} } = {}) {
