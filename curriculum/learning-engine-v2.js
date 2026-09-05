@@ -49,4 +49,82 @@ export function commitStageCompletion({ catalog = {}, progressByWeek = {}, weekI
 export async function loadWeek(url, fallback = {}) { const response = await fetch(url, { cache: 'no-store' }); if (!response.ok) throw new Error(`Curriculum load failed: ${response.status} ${url}`); return normalizeWeek(await response.json(), fallback); }
 export async function loadCatalog(urls = CURRICULUM_URLS) { if (urls === CURRICULUM_URLS) { const { loadCanonicalCatalog } = await import('./canonical-catalog-v1.js'); return loadCanonicalCatalog(); } const entries = await Promise.all(Object.entries(urls).map(async ([week, url]) => [String(week), await loadWeek(url, { week: Number(week) })])); return Object.fromEntries(entries); }
 export function buildIntegrationSnapshot(catalog, progressByWeek, contextByWeek = {}) { const weeks = Object.entries(catalog || {}).map(([weekId, week]) => { const progress = progressByWeek?.[weekId] || emptyProgress(); return { weekId, title: week.title, progress, signals: deriveSignals(week, progress, contextByWeek?.[weekId] || {}) }; }); const next = nextStage(progressByWeek, Object.keys(catalog || {})); return { next, totalStages: Object.keys(catalog || {}).length * STAGES.length, completedStages: weeks.reduce((n, w) => n + w.signals.completion, 0), weeks }; }
-export function buildHubSignals(catalog, progressByWeek = {}, contextByWeek = {}, journalEntries = [], portfolioEntries = []) { const weekIds = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b)); const totalStages = weekIds.length * STAGES.length; const completedStages = totalProgress(progressByWeek); const evidenceWeeks = weekIds.filter(id => Boolean(progressByWeek?.[id]?.evidence)); const next = nextStage(progressByWeek, weekIds); const skillMap = {}; const prioritySkillGaps = []; for (const id of weekIds) { const week = catalog[id]; const progress = progressByWeek?.[id] || emptyProgress(); for (const skill of week?.skills || []) { const key = String(skill); const item = skillMap[key] || { skill: key, weeks: 0, completedWeeks: 0, demonstratedWeeks: 0, knowledgeChecks: 0, evidenceQuality: 0 }; item.weeks += 1; if (progress.evidence) item.demonstratedWeeks += 1; if (progress.check) item.knowledgeChecks += 1; if (progress.evidence) item.evidenceQuality += 1; if (stageProgress(progress) === STAGES.length) item.completedWeeks += 1; skillMap[key] = item; } } Object.values(skillMap).forEach(item => { const readiness = item.weeks ? Math.round(((item.completedWeeks + item.demonstratedWeeks) / (item.weeks * 2)) * 100) : 0; item.readiness = Math.min(100, readiness); if (item.readiness < 60) prioritySkillGaps.push({ skill: item.skill, readiness: item.readiness, reason: 'Needs more demonstrated capability and/or completed learning stages' }); }); prioritySkillGaps.sort((a, b) => a.readiness - b.readiness); const studyHours = (journalEntries || []).reduce((sum, entry) => sum + (Number(entry?.hours) || 0), 0); const reflections = (journalEntries || []).filter(entry => Boolean(String(entry?.reflection || entry?.learn || entry?.whatLearned || '').trim())).length; const nextActions = (journalEntries || []).map(entry => String(entry?.nextAction || entry?.next || '').trim()).filter(Boolean); const evidenceWeeksCount = evidenceWeeks.length; const evidenceRecordCount = new Set([...evidenceWeeks.map(id => `week:${id}`), ...(portfolioEntries || []).map((entry, index) => `entry:${entry?.week ?? index}:${entry?.title ?? index}`)]).size; const knowledgeChecksPassed = weekIds.filter(id => Boolean(progressByWeek?.[id]?.check)).length; const evidenceCompletionRate = weekIds.length ? Math.round((evidenceWeeksCount / weekIds.length) * 100) : 0; const nextWeek = next ? catalog[next.weekId] : null; const demonstratedCapability = Object.values(skillMap).map(item => ({ skill: item.skill, score: Math.min(5, Math.round(item.readiness / 20)), target: 5, readiness: item.readiness, evidenceCount: item.demonstratedWeeks, knowledgeChecks: item.knowledgeChecks })).sort((a, b) => b.readiness - a.readiness); return { overallProgress: totalStages ? Math.round((completedStages / totalStages) * 100) : 0, completedStages, totalStages, nextBestAction: next ? { weekId: next.weekId, week: nextWeek?.title || `Week ${next.weekId}`, stage: next.stage, label: STAGE_LABELS[next.stage], prompt: nextWeek?.integration?.homeAction || '' } : null, studyMomentum: { studyHours, reflectionCount: reflections, portfolioCount: evidenceRecordCount, journalEntryCount: (journalEntries || []).length }, prioritySkillGaps: prioritySkillGaps.slice(0, 8), skills: Object.values(skillMap).sort((a, b) => b.readiness - a.readiness), demonstratedCapability, journal: { studyHours, hoursThisWeek: studyHours, reflectionCount: reflections, entryCount: (journalEntries || []).length, nextAction: nextActions[0] || '', entries: journalEntries || [] }, portfolio: { evidenceCount: evidenceRecordCount, evidenceCompletionRate: evidenceCompletionRate / 100, evidenceWeeks, entries: portfolioEntries || [] }, evidence: { evidenceReadyWeeks: evidenceWeeks.length, evidenceRate: evidenceCompletionRate }, knowledgeChecksPassed, generatedAt: new Date().toISOString() }; }
+export function buildHubSignals(catalog, progressByWeek = {}, contextByWeek = {}, journalEntries = [], portfolioEntries = []) {
+  const weekIds = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
+  const totalStages = weekIds.length * STAGES.length;
+  const completedStages = totalProgress(progressByWeek);
+  const evidenceWeeks = weekIds.filter(id => Boolean(progressByWeek?.[id]?.evidence));
+  const next = nextStage(progressByWeek, weekIds);
+  const skillMap = {};
+  const prioritySkillGaps = [];
+  const stageWeights = { learn: 0.2, apply: 0.25, check: 0.25, evidence: 0.3 };
+  for (const id of weekIds) {
+    const week = catalog[id];
+    const progress = progressByWeek?.[id] || emptyProgress();
+    for (const skill of week?.skills || []) {
+      const key = String(skill);
+      const item = skillMap[key] || {
+        skill: key, weeks: 0, completedWeeks: 0, demonstratedWeeks: 0,
+        knowledgeChecks: 0, evidenceQuality: 0,
+        learningCoverage: 0, applicationCoverage: 0,
+        assessmentCoverage: 0, evidenceCoverage: 0
+      };
+      item.weeks += 1;
+      item.learningCoverage += progress.learn ? 1 : 0;
+      item.applicationCoverage += progress.apply ? 1 : 0;
+      item.assessmentCoverage += progress.check ? 1 : 0;
+      item.evidenceCoverage += progress.evidence ? 1 : 0;
+      if (progress.evidence) item.demonstratedWeeks += 1;
+      if (progress.check) item.knowledgeChecks += 1;
+      if (progress.evidence) item.evidenceQuality += 1;
+      if (stageProgress(progress) === STAGES.length) item.completedWeeks += 1;
+    }
+  }
+  Object.values(skillMap).forEach(item => {
+    const weeks = Math.max(1, item.weeks);
+    const coverage = {
+      learn: item.learningCoverage / weeks,
+      apply: item.applicationCoverage / weeks,
+      check: item.assessmentCoverage / weeks,
+      evidence: item.evidenceCoverage / weeks
+    };
+    item.coverage = Object.fromEntries(Object.entries(coverage).map(([stage, value]) => [stage, Math.round(value * 100)]));
+    item.readiness = Math.min(100, Math.round(Object.entries(stageWeights).reduce((sum, [stage, weight]) => sum + coverage[stage] * weight, 0) * 100));
+    if (item.readiness < 60) prioritySkillGaps.push({
+      skill: item.skill,
+      readiness: item.readiness,
+      reason: 'Needs stronger demonstrated capability across learning, application, assessment, and evidence.'
+    });
+  });
+  prioritySkillGaps.sort((a, b) => a.readiness - b.readiness);
+  const studyHours = (journalEntries || []).reduce((sum, entry) => sum + (Number(entry?.hours) || 0), 0);
+  const reflections = (journalEntries || []).filter(entry => Boolean(String(entry?.reflection || entry?.learn || entry?.whatLearned || '').trim())).length;
+  const nextActions = (journalEntries || []).map(entry => String(entry?.nextAction || entry?.next || '').trim()).filter(Boolean);
+  const evidenceWeeksCount = evidenceWeeks.length;
+  const evidenceRecordCount = new Set([...evidenceWeeks.map(id => `week:${id}`), ...(portfolioEntries || []).map((entry, index) => `entry:${entry?.week ?? index}:${entry?.title ?? index}`)]).size;
+  const knowledgeChecksPassed = weekIds.filter(id => Boolean(progressByWeek?.[id]?.check)).length;
+  const evidenceCompletionRate = weekIds.length ? Math.round((evidenceWeeksCount / weekIds.length) * 100) : 0;
+  const nextWeek = next ? catalog[next.weekId] : null;
+  const demonstratedCapability = Object.values(skillMap).map(item => ({
+    skill: item.skill,
+    score: Math.min(5, Math.round(item.readiness / 20)),
+    target: 5,
+    readiness: item.readiness,
+    evidenceCount: item.demonstratedWeeks,
+    knowledgeChecks: item.knowledgeChecks,
+    coverage: item.coverage
+  })).sort((a, b) => b.readiness - a.readiness);
+  return {
+    overallProgress: totalStages ? Math.round((completedStages / totalStages) * 100) : 0,
+    completedStages, totalStages,
+    nextBestAction: next ? { weekId: next.weekId, week: nextWeek?.title || `Week ${next.weekId}`, stage: next.stage, label: STAGE_LABELS[next.stage], prompt: nextWeek?.integration?.homeAction || '' } : null,
+    studyMomentum: { studyHours, reflectionCount: reflections, portfolioCount: evidenceRecordCount, journalEntryCount: (journalEntries || []).length },
+    prioritySkillGaps: prioritySkillGaps.slice(0, 8), skills: Object.values(skillMap).sort((a, b) => b.readiness - a.readiness),
+    demonstratedCapability,
+    journal: { studyHours, hoursThisWeek: studyHours, reflectionCount: reflections, entryCount: (journalEntries || []).length, nextAction: nextActions[0] || '', entries: journalEntries || [] },
+    portfolio: { evidenceCount: evidenceRecordCount, evidenceCompletionRate: evidenceCompletionRate / 100, evidenceWeeks, entries: portfolioEntries || [] },
+    evidence: { evidenceReadyWeeks: evidenceWeeks.length, evidenceRate: evidenceCompletionRate },
+    knowledgeChecksPassed,
+    generatedAt: new Date().toISOString()
+  };
+}
