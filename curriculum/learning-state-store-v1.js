@@ -67,6 +67,50 @@ function normalizePortfolioEntry(entry = {}, week = null) {
   };
 }
 
+function mergeLegacyJournal(current, incoming) {
+  const existing = Array.isArray(current) ? current : [];
+  const imported = Array.isArray(incoming) ? incoming.map(normalizeJournalEntry) : [];
+  const byId = new Map(existing.map((entry, index) => [String(entry?.id || `existing-${index}`), entry]));
+  imported.forEach(entry => {
+    if (!byId.has(entry.id)) byId.set(entry.id, entry);
+  });
+  return Array.from(byId.values());
+}
+
+function mergeLegacyPortfolio(current, legacyEvidence) {
+  const existing = Array.isArray(current) ? current : [];
+  if (!legacyEvidence || typeof legacyEvidence !== 'object') return existing;
+  const imported = Object.entries(legacyEvidence)
+    .map(([index, entry]) => normalizePortfolioEntry(entry, Number(index) + 1))
+    .filter(entry => entry.title && entry.description);
+  const byWeek = new Map();
+  existing.forEach(entry => {
+    const key = entry?.week == null ? `id:${entry?.id}` : `week:${entry.week}`;
+    byWeek.set(key, entry);
+  });
+  imported.forEach(entry => {
+    const key = entry.week == null ? `id:${entry.id}` : `week:${entry.week}`;
+    if (!byWeek.has(key)) byWeek.set(key, entry);
+  });
+  return Array.from(byWeek.values());
+}
+
+function mergeLegacyContext(current, incoming) {
+  const existing = current || {};
+  const next = { ...existing };
+  Object.entries(incoming || {}).forEach(([id, legacyContext]) => {
+    const currentContext = existing[id] || {};
+    next[id] = {
+      ...legacyContext,
+      ...currentContext,
+      applicationNotes: currentContext.applicationNotes || legacyContext.applicationNotes || '',
+      assessmentResult: currentContext.assessmentResult || legacyContext.assessmentResult || null,
+      evidence: currentContext.evidence || legacyContext.evidence || null
+    };
+  });
+  return next;
+}
+
 export function createLearningStateStore({
   catalog = {},
   storage = typeof window !== 'undefined' ? window.localStorage : null,
@@ -125,21 +169,13 @@ export function createLearningStateStore({
         weekIds
       );
 
-      const incomingContext = contextFromLegacyState(legacyState);
-      contextByWeek = { ...contextByWeek, ...incomingContext };
+      contextByWeek = mergeLegacyContext(contextByWeek, contextFromLegacyState(legacyState));
 
       if (Array.isArray(legacyState.journal)) {
-        journals = legacyState.journal.map((entry, index) => normalizeJournalEntry(entry, index));
+        journals = mergeLegacyJournal(journals, legacyState.journal);
       }
 
-      if (legacyState.evidence && typeof legacyState.evidence === 'object') {
-        const imported = Object.entries(legacyState.evidence)
-          .map(([index, entry]) => normalizePortfolioEntry(entry, Number(index) + 1))
-          .filter(entry => entry.title && entry.description);
-        const byWeek = new Map(portfolio.map(entry => [entry.week == null ? `id:${entry.id}` : `week:${entry.week}`, entry]));
-        imported.forEach(entry => byWeek.set(`week:${entry.week}`, entry));
-        portfolio = Array.from(byWeek.values());
-      }
+      portfolio = mergeLegacyPortfolio(portfolio, legacyState.evidence);
 
       return publish();
     },
