@@ -4,6 +4,7 @@
  */
 import './evidence-ui-enhancer-v1.js';
 import './interview-readiness-enhancer-v1.js';
+import './skill-gap-action-enhancer-v1.js';
 
 export const STATUS = { DRAFT: 'draft', REVIEW: 'needs-review', DEMONSTRATED: 'demonstrated' };
 const REQUIRED = ['title', 'description'];
