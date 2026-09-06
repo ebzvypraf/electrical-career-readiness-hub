@@ -2,6 +2,8 @@
  * Adds the canonical evidence rubric/reflection fields to the existing Course modal
  * without replacing the production shell or legacy UI adapter.
  */
+import './portfolio-review-enhancer-v1.js';
+
 (function () {
   'use strict';
 
