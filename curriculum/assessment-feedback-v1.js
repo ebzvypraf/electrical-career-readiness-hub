@@ -1,5 +1,6 @@
 /* Electrical Career Readiness Hub — Assessment Feedback Engine v1. */
 import './assessment-feedback-ui-v1.js';
+import './assessment-priority-ui-v1.js';
 export const ASSESSMENT_FEEDBACK_VERSION = '1.0.0';
 
 function clean(value) { return String(value ?? '').trim(); }
