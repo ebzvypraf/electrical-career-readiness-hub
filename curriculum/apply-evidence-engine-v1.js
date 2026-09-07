@@ -1,6 +1,8 @@
 /* Electrical Career Readiness Hub — Apply evidence engine v1.
  * Turns the Apply stage from a free-form note into a small, auditable completion record.
  */
+import './apply-impact-ui-v1.js';
+
 export const APPLY_EVIDENCE_VERSION = '1.0.0';
 
 export function normalizeApplyEvidence(input = {}) {
