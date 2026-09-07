@@ -3,6 +3,7 @@
  * State boundary for Course, Home, Skills, Journal and Portfolio.
  */
 import { createLearningState, mergeLearningProgress, commitStageCompletion, buildHubSignals } from './learning-engine-v2.js';
+import { chooseNextBestAction } from './adaptive-action-engine-v1.js';
 import { scoreQuestionSet } from './assessment-engine-v1.js';
 import { buildAssessmentFeedback } from './assessment-feedback-v1.js';
 import { normalize as normalizeEvidence } from './evidence-engine-v1.js';
@@ -26,7 +27,8 @@ export function createLearningStateStore({ catalog = {}, storage = typeof window
   const weekIds = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
   const savedProgress = readJson(storage, LEARNING_STATE_KEY, {}); const savedContext = readJson(storage, LEARNING_CONTEXT_KEY, {}); const savedJournal = readJson(storage, LEARNING_JOURNAL_KEY, null); const savedPortfolio = readJson(storage, LEARNING_PORTFOLIO_KEY, null);
   let progressByWeek = mergeLearningProgress(savedProgress, {}, weekIds); let contextByWeek = savedContext || {}; let journals = Array.isArray(savedJournal) ? savedJournal.map(normalizeJournalEntry) : (Array.isArray(journalEntries) ? journalEntries.map(normalizeJournalEntry) : []); let portfolio = Array.isArray(savedPortfolio) ? savedPortfolio.map(normalizePortfolioEntry) : (Array.isArray(portfolioEntries) ? portfolioEntries.map(normalizePortfolioEntry) : []); const listeners = new Set();
-  const snapshot = () => buildHubSignals(catalog, progressByWeek, contextByWeek, journals, portfolio); const state = () => ({ progressByWeek, contextByWeek, journalEntries: journals, portfolioEntries: portfolio, hubSignals: snapshot() }); const publish = () => { const next = state(); writeJson(storage, LEARNING_STATE_KEY, progressByWeek); writeJson(storage, LEARNING_CONTEXT_KEY, contextByWeek); writeJson(storage, LEARNING_JOURNAL_KEY, journals); writeJson(storage, LEARNING_PORTFOLIO_KEY, portfolio); listeners.forEach(listener => listener(next)); return next; };
+  const snapshot = () => { const base = buildHubSignals(catalog, progressByWeek, contextByWeek, journals, portfolio); return { ...base, nextBestAction: chooseNextBestAction({ catalog, progressByWeek, contextByWeek, hubSignals: base }) }; };
+  const state = () => ({ progressByWeek, contextByWeek, journalEntries: journals, portfolioEntries: portfolio, hubSignals: snapshot() }); const publish = () => { const next = state(); writeJson(storage, LEARNING_STATE_KEY, progressByWeek); writeJson(storage, LEARNING_CONTEXT_KEY, contextByWeek); writeJson(storage, LEARNING_JOURNAL_KEY, journals); writeJson(storage, LEARNING_PORTFOLIO_KEY, portfolio); listeners.forEach(listener => listener(next)); return next; };
   const setWeekContext = (weekId, patch = {}) => { const id = String(weekId); contextByWeek = { ...contextByWeek, [id]: { ...(contextByWeek?.[id] || {}), ...patch } }; return publish(); };
   return {
     getState() { return state(); },
