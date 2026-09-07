@@ -10,9 +10,7 @@ import './journal-learning-link-v1.js';
 export const STATUS = { DRAFT: 'draft', REVIEW: 'needs-review', DEMONSTRATED: 'demonstrated' };
 const REQUIRED = ['title', 'description'];
 
-function text(value) {
-  return String(value == null ? '' : value).trim();
-}
+function text(value) { return String(value == null ? '' : value).trim(); }
 
 export function normalize(module, input) {
   const evidence = input || {};
@@ -27,17 +25,23 @@ export function normalize(module, input) {
   const nextAction = text(evidence.nextAction);
   const allCriteriaSatisfied = criterionResults.length === 0 || criterionResults.every(c => c.satisfied);
   const fieldsComplete = REQUIRED.every(field => text(evidence[field]).length > 0);
-  const demonstrated = fieldsComplete && allCriteriaSatisfied;
+  const applicationEvidence = evidence.applicationEvidence || evidence.context && evidence.context.applicationEvidence || null;
+  const checkResult = evidence.checkResult || evidence.context && evidence.context.assessmentResult || null;
+  const applyReady = !applicationEvidence || Boolean(applicationEvidence.tasksComplete && applicationEvidence.deliverable && applicationEvidence.decisions && applicationEvidence.assumptions && applicationEvidence.verification);
+  const checkPassed = !checkResult || Boolean(checkResult.passed || checkResult.completionReady);
+  const prerequisitesSatisfied = applyReady && checkPassed;
+  const demonstrated = fieldsComplete && allCriteriaSatisfied && prerequisitesSatisfied;
   let reviewStatus = text(evidence.reviewStatus);
   if (![STATUS.DRAFT, STATUS.REVIEW, STATUS.DEMONSTRATED].includes(reviewStatus)) reviewStatus = demonstrated ? STATUS.DEMONSTRATED : STATUS.DRAFT;
   if (!demonstrated && reviewStatus === STATUS.DEMONSTRATED) reviewStatus = STATUS.REVIEW;
-  const quality = demonstrated ? 'high' : (fieldsComplete ? 'developing' : 'insufficient');
+  const quality = demonstrated ? 'high' : (fieldsComplete && prerequisitesSatisfied ? 'developing' : 'insufficient');
   return {
     week: module && Number(module.week) || null,
     title, description,
     competency: Array.isArray(module && module.skillTargets) ? module.skillTargets.slice() : [],
     reflection, nextAction, reviewStatus, evidenceQuality: quality,
-    criteria: criterionResults, fieldsComplete, allCriteriaSatisfied, demonstrated,
+    criteria: criterionResults, fieldsComplete, allCriteriaSatisfied,
+    applicationEvidence, checkResult, applyReady, checkPassed, prerequisitesSatisfied, demonstrated,
     capturedAt: text(evidence.capturedAt) || null
   };
 }
