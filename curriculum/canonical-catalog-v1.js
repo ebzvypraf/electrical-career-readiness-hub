@@ -9,6 +9,7 @@ import './remediation-impact-ui-v1.js';
 import './evidence-provenance-ui-v1.js';
 import './learning-integrity-ui-v1.js';
 import './learner-state-integrity-ui-v1.js';
+import './learner-flow-integrity-v1.js';
 
 export const CANONICAL_SOURCES = [
   '/curriculum/learning-content-v1.json',
@@ -87,9 +88,7 @@ export async function loadAssessmentCatalog(sources = ASSESSMENT_SOURCES, catalo
   for (const weekId of CANONICAL_WEEK_IDS) {
     if (questionsByWeek[weekId]?.length) continue;
     const curriculumQuestions = catalog?.[weekId]?.check?.questions;
-    if (Array.isArray(curriculumQuestions) && curriculumQuestions.length) {
-      questionsByWeek[weekId] = curriculumQuestions;
-    }
+    if (Array.isArray(curriculumQuestions) && curriculumQuestions.length) questionsByWeek[weekId] = curriculumQuestions;
   }
   return questionsByWeek;
 }
@@ -101,11 +100,7 @@ export function catalogCompleteness(catalog) {
 
 export function assessmentCoverage(assessments) {
   const weeks = Object.keys(assessments || {}).filter(id => CANONICAL_WEEK_IDS.includes(String(id)));
-  return {
-    assessedWeeks: weeks.length,
-    assessedWeekIds: weeks.sort((a, b) => Number(a) - Number(b)),
-    totalQuestions: weeks.reduce((n, id) => n + (assessments[id]?.length || 0), 0)
-  };
+  return { assessedWeeks: weeks.length, assessedWeekIds: weeks.sort((a, b) => Number(a) - Number(b)), totalQuestions: weeks.reduce((n, id) => n + (assessments[id]?.length || 0), 0) };
 }
 
 export function assessmentQuality(assessments, catalog = {}) {
@@ -114,12 +109,7 @@ export function assessmentQuality(assessments, catalog = {}) {
     const questions = authored.length ? authored : (catalog?.[weekId]?.check?.questions || []);
     const candidate = authored.length ? authored : questions;
     const deterministic = candidate.length > 0 && candidate.every(q => Array.isArray(q?.options) && q.options.length >= 2 && Number.isInteger(q?.correctIndex) && q.correctIndex >= 0 && q.correctIndex < q.options.length);
-    return {
-      week: Number(weekId),
-      questionCount: questions.length,
-      deterministic,
-      mode: deterministic ? 'authored-deterministic' : questions.length ? 'compatibility' : 'missing'
-    };
+    return { week: Number(weekId), questionCount: questions.length, deterministic, mode: deterministic ? 'authored-deterministic' : questions.length ? 'compatibility' : 'missing' };
   });
 }
 
@@ -129,13 +119,5 @@ export function validateCanonicalQuality(catalog, assessments) {
   const missingStages = assessment.filter(x => !['learn', 'apply', 'check', 'evidence'].every(stage => catalog?.[String(x.week)]?.[stage])).map(x => x.week);
   const missingChecks = assessment.filter(x => x.mode === 'missing').map(x => x.week);
   const compatibilityChecks = assessment.filter(x => x.mode === 'compatibility').map(x => x.week);
-  return {
-    ...coverage,
-    stageComplete: missingStages.length === 0,
-    missingStageWeeks: missingStages,
-    assessmentReady: missingChecks.length === 0,
-    missingAssessmentWeeks: missingChecks,
-    compatibilityWeeks: compatibilityChecks,
-    deterministicWeeks: assessment.filter(x => x.deterministic).map(x => x.week)
-  };
+  return { ...coverage, stageComplete: missingStages.length === 0, missingStageWeeks: missingStages, assessmentReady: missingChecks.length === 0, missingAssessmentWeeks: missingChecks, compatibilityWeeks: compatibilityChecks, deterministicWeeks: assessment.filter(x => x.deterministic).map(x => x.week) };
 }
