@@ -4,6 +4,8 @@
  * runtime catalog without duplicating lesson definitions in the UI.
  */
 
+import './remediation-ui-v1.js';
+
 export const CANONICAL_SOURCES = [
   '/curriculum/learning-content-v1.json',
   '/curriculum/learning-content-weeks-11-15-v1.json',
