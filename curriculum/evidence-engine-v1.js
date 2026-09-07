@@ -27,9 +27,12 @@ export function normalize(module, input) {
   const fieldsComplete = REQUIRED.every(field => text(evidence[field]).length > 0);
   const applicationEvidence = evidence.applicationEvidence || evidence.context && evidence.context.applicationEvidence || null;
   const checkResult = evidence.checkResult || evidence.context && evidence.context.assessmentResult || null;
-  const applyReady = !applicationEvidence || Boolean(applicationEvidence.tasksComplete && applicationEvidence.deliverable && applicationEvidence.decisions && applicationEvidence.assumptions && applicationEvidence.verification);
-  const checkPassed = !checkResult || Boolean(checkResult.passed || checkResult.completionReady);
+  const applyReady = Boolean(applicationEvidence && applicationEvidence.tasksComplete && applicationEvidence.deliverable && applicationEvidence.decisions && applicationEvidence.assumptions && applicationEvidence.verification);
+  const checkPassed = Boolean(checkResult && (checkResult.passed || checkResult.completionReady));
   const prerequisitesSatisfied = applyReady && checkPassed;
+  const missingPrerequisites = [];
+  if (!applyReady) missingPrerequisites.push('Complete and save the structured Apply record, including all tasks, deliverable, decisions, assumptions, and verification.');
+  if (!checkPassed) missingPrerequisites.push('Pass the Check stage before submitting Evidence.');
   const demonstrated = fieldsComplete && allCriteriaSatisfied && prerequisitesSatisfied;
   let reviewStatus = text(evidence.reviewStatus);
   if (![STATUS.DRAFT, STATUS.REVIEW, STATUS.DEMONSTRATED].includes(reviewStatus)) reviewStatus = demonstrated ? STATUS.DEMONSTRATED : STATUS.DRAFT;
@@ -41,7 +44,7 @@ export function normalize(module, input) {
     competency: Array.isArray(module && module.skillTargets) ? module.skillTargets.slice() : [],
     reflection, nextAction, reviewStatus, evidenceQuality: quality,
     criteria: criterionResults, fieldsComplete, allCriteriaSatisfied,
-    applicationEvidence, checkResult, applyReady, checkPassed, prerequisitesSatisfied, demonstrated,
+    applicationEvidence, checkResult, applyReady, checkPassed, prerequisitesSatisfied, missingPrerequisites, demonstrated,
     capturedAt: text(evidence.capturedAt) || null
   };
 }
@@ -51,7 +54,7 @@ export function canComplete(module, input) { return normalize(module, input).dem
 export function buildSignals(module, evidence) {
   const e = normalize(module, evidence);
   return {
-    home: { week: e.week, evidenceReady: e.demonstrated, evidenceQuality: e.evidenceQuality },
+    home: { week: e.week, evidenceReady: e.demonstrated, evidenceQuality: e.evidenceQuality, prerequisitesSatisfied: e.prerequisitesSatisfied, missingPrerequisites: e.missingPrerequisites },
     skills: e.competency.map(skill => ({ skill, demonstratedCapability: e.demonstrated, evidenceQuality: e.evidenceQuality, week: e.week })),
     journal: { week: e.week, reflection: e.reflection, nextAction: e.nextAction },
     portfolio: { week: e.week, title: e.title, description: e.description, competency: e.competency, reflection: e.reflection, nextAction: e.nextAction, reviewStatus: e.reviewStatus, evidenceQuality: e.evidenceQuality, criteria: e.criteria, capturedAt: e.capturedAt }
