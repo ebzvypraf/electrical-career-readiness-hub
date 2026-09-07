@@ -5,6 +5,7 @@ import './remediation-ui-v1.js';
 import './journal-portfolio-signals-ui-v1.js';
 import './evidence-impact-ui-v1.js';
 import './skill-gap-action-ui-v1.js';
+import './apply-gate-bridge-v1.js';
 export const ASSESSMENT_FEEDBACK_VERSION = '1.1.0';
 
 function clean(value) { return String(value ?? '').trim(); }
