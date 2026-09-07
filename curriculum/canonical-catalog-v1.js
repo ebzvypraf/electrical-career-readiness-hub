@@ -5,6 +5,7 @@
  */
 
 import './remediation-ui-v1.js';
+import './remediation-impact-ui-v1.js';
 
 export const CANONICAL_SOURCES = [
   '/curriculum/learning-content-v1.json',
