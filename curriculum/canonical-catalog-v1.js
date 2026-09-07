@@ -6,6 +6,7 @@
 
 import './remediation-ui-v1.js';
 import './remediation-impact-ui-v1.js';
+import './evidence-provenance-ui-v1.js';
 
 export const CANONICAL_SOURCES = [
   '/curriculum/learning-content-v1.json',
@@ -110,7 +111,7 @@ export function assessmentQuality(assessments, catalog = {}) {
     const authored = Array.isArray(assessments?.[weekId]) ? assessments[weekId] : [];
     const questions = authored.length ? authored : (catalog?.[weekId]?.check?.questions || []);
     const candidate = authored.length ? authored : questions;
-    const deterministic = candidate.length > 0 && candidate.every(q => Array.isArray(q?.options) && q.options.length >= 2 && Number.isInteger(q?.correctIndex) && q.correctIndex >= 0 && q.correctIndex < q.options.length);
+    const deterministic = candidate.length > 0 && candidate.every(q => Array.isArray(q?.options) && q.options.length >= 2 && Number.isInteger(q.correctIndex) && q.correctIndex >= 0 && q.correctIndex < q.options.length);
     return {
       week: Number(weekId),
       questionCount: questions.length,
