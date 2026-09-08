@@ -30,11 +30,14 @@
       const evidence = ctx.evidence;
       if (!apply && !check && !evidence) return;
 
-      const recovery = check?.passed && remediation?.status === 'complete';
+      const recovery = evidence?.recoveryProvenance || (check?.passed && remediation?.status === 'complete' ? { recovered: true, attempts: 0, recoveredConcepts: remediation?.concepts || [] } : null);
+      const recoveryMarkup = recovery?.recovered
+        ? `<div class="rubric-row"><span>Recovery provenance</span><span class="pill ok">Recovered${recovery.attempts > 1 ? ` after ${esc(recovery.attempts)} attempts` : ''}</span></div>${recovery.recoveredConcepts?.length ? `<div class="muted" style="margin-top:6px">Reinforced: ${esc(recovery.recoveredConcepts.join(', '))}</div>` : ''}`
+        : '';
       const node = document.createElement('div');
       node.dataset.evidenceProvenance = 'true';
       node.style.marginTop = '9px';
-      node.innerHTML = `<div class="rubric"><div class="rubric-row"><span>Apply record</span><span class="pill ${apply?.tasksComplete ? 'ok' : ''}">${apply?.tasksComplete ? 'Completed' : 'Not recorded'}</span></div><div class="rubric-row"><span>Knowledge Check</span><span class="pill ${check?.passed ? 'ok' : ''}">${check?.passed ? `Passed${check.percentage != null ? ` (${esc(check.percentage)}%)` : ''}` : 'Not passed'}</span></div>${remediation ? `<div class="rubric-row"><span>Remediation</span><span class="pill ${recovery ? 'ok' : ''}">${recovery ? 'Recovered' : esc(remediation.status || 'Active')}</span></div>` : ''}<div class="rubric-row"><span>Evidence gate</span><span class="pill ${evidence?.demonstrated ? 'ok' : ''}">${evidence?.demonstrated ? 'Demonstrated' : 'Recorded'}</span></div></div>`;
+      node.innerHTML = `<div class="rubric"><div class="rubric-row"><span>Apply record</span><span class="pill ${apply?.tasksComplete ? 'ok' : ''}">${apply?.tasksComplete ? 'Completed' : 'Not recorded'}</span></div><div class="rubric-row"><span>Knowledge Check</span><span class="pill ${check?.passed ? 'ok' : ''}">${check?.passed ? `Passed${check.percentage != null ? ` (${esc(check.percentage)}%)` : ''}` : 'Not passed'}</span></div>${remediation ? `<div class="rubric-row"><span>Remediation</span><span class="pill ${recovery?.recovered ? 'ok' : ''}">${recovery?.recovered ? 'Recovered' : esc(remediation.status || 'Active')}</span></div>` : ''}${recoveryMarkup}<div class="rubric-row"><span>Evidence gate</span><span class="pill ${evidence?.demonstrated ? 'ok' : ''}">${evidence?.demonstrated ? 'Demonstrated' : 'Recorded'}</span></div></div>`;
       card.appendChild(node);
     });
   }
