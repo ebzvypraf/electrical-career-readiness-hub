@@ -11,6 +11,7 @@ export const STATUS = { DRAFT: 'draft', REVIEW: 'needs-review', DEMONSTRATED: 'd
 const REQUIRED = ['title', 'description'];
 
 function text(value) { return String(value == null ? '' : value).trim(); }
+function time(value) { const n = Date.parse(value || ''); return Number.isFinite(n) ? n : null; }
 
 function buildRecoveryProvenance(checkResult, context = {}) {
   const history = Array.isArray(context?.assessmentHistory)
@@ -62,12 +63,17 @@ export function normalize(module, input) {
   const missingPrerequisites = [];
   if (!applyReady) missingPrerequisites.push('Complete and save the structured Apply record, including all tasks, deliverable, decisions, assumptions, and verification.');
   if (!checkPassed) missingPrerequisites.push('Pass the Check stage before submitting Evidence.');
+  const evidenceCapturedAt = time(evidence.capturedAt);
+  const applyCapturedAt = time(applicationEvidence?.capturedAt);
+  const checkCapturedAt = time(checkResult?.date);
+  const upstreamChangedAfterEvidence = evidenceCapturedAt != null && [applyCapturedAt, checkCapturedAt].some(value => value != null && value > evidenceCapturedAt);
+  if (upstreamChangedAfterEvidence) missingPrerequisites.push('Re-capture Evidence because the upstream Apply or Check record changed after this Evidence was captured.');
   const linkageComplete = Boolean(applyLink && checkLink);
-  const demonstrated = fieldsComplete && allCriteriaSatisfied && prerequisitesSatisfied;
+  const demonstrated = fieldsComplete && allCriteriaSatisfied && prerequisitesSatisfied && !upstreamChangedAfterEvidence;
   let reviewStatus = text(evidence.reviewStatus);
   if (![STATUS.DRAFT, STATUS.REVIEW, STATUS.DEMONSTRATED].includes(reviewStatus)) reviewStatus = demonstrated ? STATUS.DEMONSTRATED : STATUS.DRAFT;
   if (!demonstrated && reviewStatus === STATUS.DEMONSTRATED) reviewStatus = STATUS.REVIEW;
-  const quality = demonstrated && linkageComplete ? 'high' : (demonstrated || (fieldsComplete && prerequisitesSatisfied) ? 'developing' : 'insufficient');
+  const quality = demonstrated && linkageComplete ? 'high' : (demonstrated || (fieldsComplete && prerequisitesSatisfied && !upstreamChangedAfterEvidence) ? 'developing' : 'insufficient');
   const context = evidence.context || {};
   const recoveryProvenance = buildRecoveryProvenance(checkResult, context);
   return {
@@ -76,6 +82,7 @@ export function normalize(module, input) {
     reflection, nextAction, applyLink, checkLink, linkageComplete,
     reviewStatus, evidenceQuality: quality, criteria: criterionResults, fieldsComplete, allCriteriaSatisfied,
     applicationEvidence, checkResult, applyReady, checkPassed, prerequisitesSatisfied, missingPrerequisites, demonstrated,
+    upstreamChangedAfterEvidence, evidenceCapturedAt: evidence.capturedAt || null,
     recoveryProvenance, capturedAt: text(evidence.capturedAt) || null
   };
 }
@@ -85,10 +92,10 @@ export function canComplete(module, input) { return normalize(module, input).dem
 export function buildSignals(module, evidence) {
   const e = normalize(module, evidence);
   return {
-    home: { week: e.week, evidenceReady: e.demonstrated, evidenceQuality: e.evidenceQuality, prerequisitesSatisfied: e.prerequisitesSatisfied, missingPrerequisites: e.missingPrerequisites, recovered: e.recoveryProvenance.recovered, linkageComplete: e.linkageComplete },
+    home: { week: e.week, evidenceReady: e.demonstrated, evidenceQuality: e.evidenceQuality, prerequisitesSatisfied: e.prerequisitesSatisfied, missingPrerequisites: e.missingPrerequisites, recovered: e.recoveryProvenance.recovered, linkageComplete: e.linkageComplete, upstreamChangedAfterEvidence: e.upstreamChangedAfterEvidence },
     skills: e.competency.map(skill => ({ skill, demonstratedCapability: e.demonstrated, evidenceQuality: e.evidenceQuality, week: e.week, recoveryAssisted: e.recoveryProvenance.recovered, recoveryConcepts: e.recoveryProvenance.recoveredConcepts, evidenceLinkageComplete: e.linkageComplete })),
-    journal: { week: e.week, reflection: e.reflection, nextAction: e.nextAction, recovery: e.recoveryProvenance, applyLink: e.applyLink, checkLink: e.checkLink },
-    portfolio: { week: e.week, title: e.title, description: e.description, competency: e.competency, reflection: e.reflection, nextAction: e.nextAction, applyLink: e.applyLink, checkLink: e.checkLink, linkageComplete: e.linkageComplete, reviewStatus: e.reviewStatus, evidenceQuality: e.evidenceQuality, criteria: e.criteria, capturedAt: e.capturedAt, recoveryProvenance: e.recoveryProvenance }
+    journal: { week: e.week, reflection: e.reflection, nextAction: e.nextAction, recovery: e.recoveryProvenance, applyLink: e.applyLink, checkLink: e.checkLink, upstreamChangedAfterEvidence: e.upstreamChangedAfterEvidence },
+    portfolio: { week: e.week, title: e.title, description: e.description, competency: e.competency, reflection: e.reflection, nextAction: e.nextAction, applyLink: e.applyLink, checkLink: e.checkLink, linkageComplete: e.linkageComplete, reviewStatus: e.reviewStatus, evidenceQuality: e.evidenceQuality, criteria: e.criteria, capturedAt: e.capturedAt, upstreamChangedAfterEvidence: e.upstreamChangedAfterEvidence, recoveryProvenance: e.recoveryProvenance }
   };
 }
 
