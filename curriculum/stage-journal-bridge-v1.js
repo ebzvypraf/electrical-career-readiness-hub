@@ -1,8 +1,8 @@
 /*
- * Electrical Career Readiness Hub — stage → Journal bridge v1.2.
+ * Electrical Career Readiness Hub — stage → Journal bridge v1.3.
  * Completes the learner-loop journal trail for Learn and Evidence stages,
- * while also persisting the first observed completion timestamp so the
- * Journal record is tied to the learner's actual canonical stage transition.
+ * while persisting the canonical stage-transition timestamp so Journal dates
+ * reflect the actual learner action rather than the bridge's observation time.
  * Apply, Check and remediation already have canonical journal bridges in the state store.
  * This module is idempotent: one journal record per completed Learn/Evidence stage.
  */
@@ -30,8 +30,9 @@
         : {};
 
       if (progress?.learn && !stageTimestamps.learn) {
+        const learnCompletedAt = clean(context.learnViewedAt) || new Date().toISOString();
         store.updateStageContext(weekId, {
-          stageCompletedAt: { ...stageTimestamps, learn: new Date().toISOString() }
+          stageCompletedAt: { ...stageTimestamps, learn: learnCompletedAt }
         });
         return;
       }
