@@ -1,16 +1,25 @@
 /* Electrical Career Readiness Hub — actionable skill-gap UI v1. */
 (function () {
   'use strict';
+  const escapeHtml = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
   const run = () => {
     const api = window.ECRHCanonical;
-    const state = api?.store?.getState?.();
+    const store = api?.store?.();
+    const state = store?.getState?.();
     const signals = state?.hubSignals;
     if (!signals) return;
     const gaps = Array.isArray(signals.prioritySkillGaps) ? signals.prioritySkillGaps : [];
+    const recoveryWeeks = Object.entries(state?.contextByWeek || {}).filter(([, context]) => context?.recoveryProvenance?.recovered || context?.evidence?.recoveryProvenance?.recovered);
     const mount = (root, key) => {
       if (!root) return;
-      const old = root.querySelector('[data-skill-gap-actions]');
-      if (old) old.remove();
+      root.querySelectorAll('[data-skill-gap-actions],[data-recovered-capability]').forEach(node => node.remove());
+      if (recoveryWeeks.length) {
+        const recovery = document.createElement('div');
+        recovery.dataset.recoveredCapability = key;
+        recovery.className = 'goal';
+        recovery.innerHTML = `<b>Recovered capability</b><small>${recoveryWeeks.length} week${recoveryWeeks.length === 1 ? '' : 's'} now include${recoveryWeeks.length === 1 ? 's' : ''} a successful post-reinforcement Check. Treat this as demonstrated recovery, not a duplicate skill rating.</small>`;
+        root.prepend(recovery);
+      }
       if (!gaps.length) return;
       const wrap = document.createElement('div');
       wrap.dataset.skillGapActions = key;
@@ -31,7 +40,6 @@
       };
     });
   };
-  const escapeHtml = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
   const observe = () => {
     run();
     const api = window.ECRHCanonical;
