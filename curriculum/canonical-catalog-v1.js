@@ -12,6 +12,7 @@ import './learner-state-integrity-v1.js';
 import './learner-flow-integrity-v1.js';
 import './stage-journal-bridge-v1.js';
 import './assessment-recovery-journal-bridge-v1.js';
+import './assessment-history-bridge-v1.js';
 
 export const CANONICAL_SOURCES = [
   '/curriculum/learning-content-v1.json',
