@@ -2,12 +2,13 @@
  * Electrical Career Readiness Hub — adaptive next-action engine v1.
  * Chooses the highest-value learner action from canonical state signals.
  *
- * v1.1 adds recovery-aware context to skill-gap actions without changing
- * the authoritative stage gates or double-counting recovered capability.
+ * v1.2 adds cross-week transfer awareness so a capability already
+ * demonstrated with strong evidence is treated as a transfer opportunity,
+ * not a reason to repeat generic remediation.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.1.0';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.0';
 
 function text(value) { return String(value ?? '').trim(); }
 
@@ -21,6 +22,15 @@ function assessmentTrail(context = {}) {
     latestPassed: Boolean(latest?.passed),
     latestPercentage: Number.isFinite(Number(latest?.percentage)) ? Number(latest.percentage) : null
   };
+}
+
+function skillTransferContext(hubSignals, skill) {
+  const summary = (hubSignals?.skills || []).find(item => text(item?.skill).toLowerCase() === text(skill).toLowerCase()) || null;
+  if (!summary) return { demonstratedWeeks: 0, evidenceQuality: 0, transferReady: false };
+  const demonstratedWeeks = Number(summary.demonstratedWeeks) || 0;
+  const evidenceQuality = Number(summary.evidenceQuality) || 0;
+  const transferReady = demonstratedWeeks > 0 && evidenceQuality >= 80;
+  return { demonstratedWeeks, evidenceQuality, transferReady };
 }
 
 export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contextByWeek = {}, hubSignals = {} } = {}) {
@@ -49,8 +59,9 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
   }).filter(Boolean).sort((a, b) => a.priority - b.priority || Number(a.weekId) - Number(b.weekId));
   if (remediationCandidates.length) return remediationCandidates[0];
 
-  // 2. Prefer the highest-value competency gap, while carrying the Check trail
-  //    into the action so recovered capability is recognized without being counted twice.
+  // 2. Prefer the highest-value competency gap. If that skill has already
+  //    been demonstrated strongly elsewhere, frame the next unlocked stage as
+  //    transfer practice rather than repeating the same generic instruction.
   const gaps = Array.isArray(hubSignals?.prioritySkillGaps) ? hubSignals.prioritySkillGaps : [];
   const gapCandidates = gaps.map((gap, index) => {
     const weekId = text(gap.recommendedWeekId);
@@ -62,28 +73,41 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
     const evidenceQuality = text(contextByWeek?.[weekId]?.evidence?.evidenceQuality) || 'insufficient';
     const evidenceBonus = evidenceQuality === 'high' ? 0 : evidenceQuality === 'developing' ? 1 : 2;
     const recoveryBonus = trail.recovered ? 1 : 0;
+    const transfer = skillTransferContext(hubSignals, gap.skill);
+    const transferBonus = transfer.transferReady ? 2 : 0;
     const gapReadiness = Number.isFinite(Number(gap.readiness)) ? Number(gap.readiness) : 100;
-    const priority = Math.max(0, gapReadiness) - evidenceBonus - recoveryBonus + index * 0.01;
+    const priority = Math.max(0, gapReadiness) - evidenceBonus - recoveryBonus - transferBonus + index * 0.01;
     const recoveryNote = trail.recovered
       ? ` This capability was recovered after ${trail.attempts} Check attempts; the next action preserves that recovery trail.`
       : '';
+    const transferNote = transfer.transferReady
+      ? ` ${transfer.demonstratedWeeks} prior week${transfer.demonstratedWeeks === 1 ? '' : 's'} already show strong evidence for this skill; use this stage to transfer it into a new context.`
+      : '';
+    const transferPrompt = transfer.transferReady
+      ? `Transfer ${gap.skill} into the Week ${weekId} ${STAGE_LABELS[stage]} task and explicitly compare the new context with the prior demonstrated example.`
+      : (gap.journalNextAction || `Strengthen ${gap.skill} through the ${STAGE_LABELS[stage]} stage.`);
 
     return {
       priority,
       weekId,
       week: catalog[weekId]?.title || gap.recommendedWeekTitle || `Week ${weekId}`,
       stage,
-      label: STAGE_LABELS[stage],
-      prompt: gap.journalNextAction || `Strengthen ${gap.skill} through the ${STAGE_LABELS[stage]} stage.`,
-      reason: `Priority competency gap: ${gap.skill} (${gap.readiness ?? 'developing'}% readiness).${recoveryNote}`,
+      label: transfer.transferReady ? `Transfer ${STAGE_LABELS[stage]}` : STAGE_LABELS[stage],
+      prompt: transferPrompt,
+      reason: `Priority competency gap: ${gap.skill} (${gap.readiness ?? 'developing'}% readiness).${recoveryNote}${transferNote}`,
       skill: gap.skill,
       adaptive: true,
-      source: 'skill-gap',
+      source: transfer.transferReady ? 'skill-gap-transfer' : 'skill-gap',
       assessmentTrail: {
         attempts: trail.attempts,
         recovered: trail.recovered,
         latestPassed: trail.latestPassed,
         latestPercentage: trail.latestPercentage
+      },
+      transfer: {
+        transferReady: transfer.transferReady,
+        demonstratedWeeks: transfer.demonstratedWeeks,
+        evidenceQuality: transfer.evidenceQuality
       },
       evidenceQuality,
       engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION
