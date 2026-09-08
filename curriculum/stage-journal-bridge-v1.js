@@ -1,5 +1,5 @@
 /*
- * Electrical Career Readiness Hub — stage → Journal bridge v1.
+ * Electrical Career Readiness Hub — stage → Journal bridge v1.1.
  * Completes the learner-loop journal trail for Learn and Evidence stages.
  * Apply, Check and remediation already have canonical journal bridges in the state store.
  * This module is idempotent: one journal record per completed Learn/Evidence stage.
@@ -7,10 +7,8 @@
 (function () {
   'use strict';
 
-  const STAGES = ['learn', 'apply', 'check', 'evidence'];
   let initialized = false;
   let unsubscribe = null;
-
   const clean = value => String(value ?? '').trim();
   const stateApi = () => window.ECRHCanonical;
   const getStore = () => {
@@ -22,17 +20,15 @@
     if (!store || !state) return;
     const entries = Array.isArray(state.journalEntries) ? state.journalEntries : [];
     const byId = new Set(entries.map(entry => String(entry?.id || '')));
-    const catalog = stateApi()?.getCatalog?.() || {};
 
     Object.entries(state.progressByWeek || {}).forEach(([weekId, progress]) => {
-      const week = catalog[String(weekId)] || {};
       if (progress?.learn && !byId.has(`learn-${weekId}`)) {
         store.addJournalEntry({
           id: `learn-${weekId}`,
           date: new Date().toISOString().slice(0, 10),
           hours: 0,
-          study: `Week ${weekId}: ${clean(week.title) || 'Learning stage'}`,
-          learn: clean(week.learn?.takeaway || week.learn?.seniorReasoning || week.objective || 'Core learning completed.'),
+          study: `Week ${weekId}: Learn stage completed`,
+          learn: clean(state.contextByWeek?.[String(weekId)]?.learnSummary || 'Core learning completed and ready for practical application.'),
           reflection: 'Learn stage completed in the canonical pathway.',
           nextAction: `Continue to Apply for Week ${weekId}.`,
           weekId,
@@ -77,7 +73,5 @@
   new MutationObserver(scheduleInit).observe(document.documentElement, { subtree: true, childList: true });
   scheduleInit();
 
-  if (typeof window !== 'undefined') {
-    window.ECRHStageJournalBridge = { init, bridge };
-  }
+  if (typeof window !== 'undefined') window.ECRHStageJournalBridge = { init, bridge };
 })();
