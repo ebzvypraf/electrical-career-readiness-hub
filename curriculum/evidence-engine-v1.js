@@ -13,13 +13,30 @@ const REQUIRED = ['title', 'description'];
 function text(value) { return String(value == null ? '' : value).trim(); }
 
 function buildRecoveryProvenance(checkResult, context = {}) {
-  const history = Array.isArray(context?.assessmentHistory) ? context.assessmentHistory : [];
+  const history = Array.isArray(context?.assessmentHistory)
+    ? context.assessmentHistory
+    : (Array.isArray(checkResult?.assessmentHistory) ? checkResult.assessmentHistory : []);
   const remediation = context?.remediation || null;
-  const recovered = Boolean(checkResult?.passed && remediation?.status === 'complete' && history.length > 1);
+  const recovered = Boolean(
+    checkResult?.recovered ||
+    (checkResult?.passed && remediation?.status === 'complete' && history.length > 1)
+  );
   const priorFailed = history.slice(0, -1).filter(item => item?.passed === false).at(-1) || null;
-  const recoveredQuestionIds = Array.isArray(priorFailed?.missedQuestionIds) ? priorFailed.missedQuestionIds.slice() : [];
-  const recoveredConcepts = Array.isArray(remediation?.concepts) ? remediation.concepts.map(text).filter(Boolean) : [];
-  return { recovered, attempts: history.length, priorFailedAttempt: Boolean(priorFailed), recoveredQuestionIds, recoveredConcepts, remediationStatus: text(remediation?.status), reinforcementNote: text(remediation?.notes) };
+  const recoveredQuestionIds = Array.isArray(priorFailed?.missedQuestionIds)
+    ? priorFailed.missedQuestionIds.slice()
+    : [];
+  const recoveredConcepts = Array.isArray(remediation?.concepts)
+    ? remediation.concepts.map(text).filter(Boolean)
+    : [];
+  return {
+    recovered,
+    attempts: history.length || (checkResult ? Number(checkResult.attemptNumber) || 1 : 0),
+    priorFailedAttempt: Boolean(priorFailed) || Boolean(checkResult?.recovered),
+    recoveredQuestionIds,
+    recoveredConcepts,
+    remediationStatus: text(remediation?.status),
+    reinforcementNote: text(remediation?.notes)
+  };
 }
 
 export function normalize(module, input) {
