@@ -1,6 +1,8 @@
 /*
- * Electrical Career Readiness Hub — stage → Journal bridge v1.1.
- * Completes the learner-loop journal trail for Learn and Evidence stages.
+ * Electrical Career Readiness Hub — stage → Journal bridge v1.2.
+ * Completes the learner-loop journal trail for Learn and Evidence stages,
+ * while also persisting the first observed completion timestamp so the
+ * Journal record is tied to the learner's actual canonical stage transition.
  * Apply, Check and remediation already have canonical journal bridges in the state store.
  * This module is idempotent: one journal record per completed Learn/Evidence stage.
  */
@@ -22,13 +24,33 @@
     const byId = new Set(entries.map(entry => String(entry?.id || '')));
 
     Object.entries(state.progressByWeek || {}).forEach(([weekId, progress]) => {
+      const context = state.contextByWeek?.[String(weekId)] || {};
+      const stageTimestamps = context.stageCompletedAt && typeof context.stageCompletedAt === 'object'
+        ? context.stageCompletedAt
+        : {};
+
+      if (progress?.learn && !stageTimestamps.learn) {
+        store.updateStageContext(weekId, {
+          stageCompletedAt: { ...stageTimestamps, learn: new Date().toISOString() }
+        });
+        return;
+      }
+
+      if (progress?.evidence && !stageTimestamps.evidence) {
+        const evidence = context.evidence || {};
+        store.updateStageContext(weekId, {
+          stageCompletedAt: { ...stageTimestamps, evidence: clean(evidence.capturedAt) || new Date().toISOString() }
+        });
+        return;
+      }
+
       if (progress?.learn && !byId.has(`learn-${weekId}`)) {
         store.addJournalEntry({
           id: `learn-${weekId}`,
-          date: new Date().toISOString().slice(0, 10),
+          date: clean(stageTimestamps.learn).slice(0, 10) || new Date().toISOString().slice(0, 10),
           hours: 0,
           study: `Week ${weekId}: Learn stage completed`,
-          learn: clean(state.contextByWeek?.[String(weekId)]?.learnSummary || 'Core learning completed and ready for practical application.'),
+          learn: clean(context.learnSummary || 'Core learning completed and ready for practical application.'),
           reflection: 'Learn stage completed in the canonical pathway.',
           nextAction: `Continue to Apply for Week ${weekId}.`,
           weekId,
@@ -38,10 +60,10 @@
       }
 
       if (progress?.evidence && !byId.has(`evidence-${weekId}`)) {
-        const evidence = state.contextByWeek?.[String(weekId)]?.evidence || {};
+        const evidence = context.evidence || {};
         store.addJournalEntry({
           id: `evidence-${weekId}`,
-          date: clean(evidence.capturedAt) || new Date().toISOString().slice(0, 10),
+          date: clean(stageTimestamps.evidence || evidence.capturedAt).slice(0, 10) || new Date().toISOString().slice(0, 10),
           hours: 0,
           study: `Week ${weekId}: Evidence captured`,
           learn: clean(evidence.description || 'Demonstrated capability recorded as portfolio evidence.'),
