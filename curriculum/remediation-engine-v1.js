@@ -1,7 +1,7 @@
 /* Electrical Career Readiness Hub — remediation engine v1.
  * Canonical transaction for failed Check -> targeted reinforcement -> retry.
  */
-export const REMEDIATION_ENGINE_VERSION = '1.0.0';
+export const REMEDIATION_ENGINE_VERSION = '1.1.0';
 export const REMEDIATION_STATUS = { REQUIRED: 'required', IN_PROGRESS: 'in-progress', READY_TO_RETRY: 'ready-to-retry', COMPLETE: 'complete' };
 
 function clean(value) { return String(value ?? '').trim(); }
@@ -11,13 +11,25 @@ export function buildRemediationPlan(assessmentResult = {}) {
   const reinforcement = Array.isArray(feedback.reinforcement) ? feedback.reinforcement : [];
   const concepts = [...new Set(reinforcement.flatMap(item => Array.isArray(item?.concepts) ? item.concepts.map(clean).filter(Boolean) : []))];
   const questionIds = reinforcement.map(item => clean(item?.questionId)).filter(Boolean);
+  const focus = concepts.length ? concepts : ['the failed Check items'];
+  const actionPlan = focus.map((concept, index) => ({
+    id: `reinforce-${index + 1}`,
+    concept,
+    steps: [
+      `Review the ${concept} material and identify the rule or principle that controls the decision.`,
+      `Explain the ${concept} reasoning in your own words and connect it to the practical Apply task.`,
+      `Verify the explanation against the Check question and note what would change in the drawing, calculation or coordination decision.`
+    ],
+    evidencePrompt: `Capture one concrete example showing how ${concept} was applied or verified.`
+  }));
   return {
     engineVersion: REMEDIATION_ENGINE_VERSION,
     status: reinforcement.length ? REMEDIATION_STATUS.REQUIRED : REMEDIATION_STATUS.COMPLETE,
     failedCount: Number(feedback.failedCount) || reinforcement.length,
     questionIds,
     concepts,
-    actions: concepts.length ? concepts.map(concept => `Review and explain ${concept} in your own words.`) : ['Review the failed Check items and explain the correct reasoning before retrying.']
+    actions: actionPlan.map(item => item.steps[1]),
+    actionPlan
   };
 }
 
