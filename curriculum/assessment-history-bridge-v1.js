@@ -1,83 +1,56 @@
 /*
  * Electrical Career Readiness Hub — assessment history bridge v1.
- * Persists every canonical Check attempt without replacing the authoritative
- * assessment result. The latest result remains the stage gate; history becomes
- * the learner's visible recovery/learning trail.
+ * Read-only integration layer for the canonical Check attempt trail.
+ * Persistence belongs to the canonical learning-state store; this bridge
+ * exposes stable summaries to Home, Skills, Journal and Portfolio without
+ * wrapping or mutating the assessment command path.
  */
 (function () {
   'use strict';
 
-  const HISTORY_VERSION = '1.0.0';
+  const HISTORY_VERSION = '1.1.0';
   let installed = false;
+  let unsubscribe = null;
+  let renderQueued = false;
 
+  const getStore = () => {
+    try { return window.ECRHCanonical?.store?.() || null; } catch (_) { return null; }
+  };
   const clean = value => String(value ?? '').trim();
 
-  function buildAttempt(result, timestamp) {
-    return {
-      version: HISTORY_VERSION,
-      date: String(result?.date || timestamp),
-      score: Number(result?.score) || 0,
-      total: Number(result?.total) || 0,
-      percentage: Number.isFinite(Number(result?.percentage)) ? Number(result.percentage) : null,
-      passed: Boolean(result?.passed),
-      completionReady: Boolean(result?.completionReady),
-      engineVersion: clean(result?.engineVersion),
-      gradingNote: clean(result?.gradingNote),
-      resultCount: Array.isArray(result?.results) ? result.results.length : 0,
-      missedQuestionIds: Array.isArray(result?.results)
-        ? result.results.filter(item => item && item.correct === false).map(item => clean(item.id)).filter(Boolean)
-        : []
-    };
+  function normalizeHistory(history) {
+    return Array.isArray(history) ? history.filter(item => item && typeof item === 'object') : [];
+  }
+
+  function buildSummary(state) {
+    const records = Object.entries(state?.contextByWeek || {})
+      .map(([weekId, context]) => ({ weekId, history: normalizeHistory(context?.assessmentHistory) }))
+      .filter(item => item.history.length);
+    const attempts = records.reduce((sum, item) => sum + item.history.length, 0);
+    const passedAttempts = records.reduce((sum, item) => sum + item.history.filter(item => Boolean(item?.passed)).length, 0);
+    const recoveredWeeks = records.filter(item => {
+      const latest = item.history[item.history.length - 1];
+      return item.history.slice(0, -1).some(attempt => attempt?.passed === false) && Boolean(latest?.passed);
+    });
+    return { attempts, passedAttempts, recoveredWeeks, records };
   }
 
   function install() {
-    if (installed || !window.ECRHCanonical?.ready) return false;
-    const store = window.ECRHCanonical.store?.();
-    if (!store || typeof store.recordAssessmentResult !== 'function') return false;
-
-    const original = store.recordAssessmentResult.bind(store);
-    store.recordAssessmentResult = function wrappedRecordAssessmentResult(payload = {}) {
-      const result = original(payload);
-      if (!result?.ok) return result;
-
-      const weekId = String(payload.weekId);
-      const current = result.state?.contextByWeek?.[weekId] || store.getState()?.contextByWeek?.[weekId] || {};
-      const previous = Array.isArray(current.assessmentHistory) ? current.assessmentHistory : [];
-      const attempt = buildAttempt(result.result, new Date().toISOString());
-      const history = [...previous, attempt].slice(-12);
-      const updated = store.updateStageContext(weekId, {
-        assessmentHistory: history,
-        assessmentAttemptCount: history.length,
-        assessmentFirstPass: history.length === 1 && Boolean(attempt.passed),
-        assessmentRecovered: history.length > 1 && Boolean(attempt.passed)
-      });
-
-      return {
-        ...result,
-        attempt,
-        assessmentHistory: history,
-        state: updated?.state || store.getState()
-      };
-    };
+    if (installed) return true;
+    const store = getStore();
+    if (!store || typeof store.getState !== 'function') return false;
 
     installed = true;
     window.ECRHAssessmentHistory = {
       version: HISTORY_VERSION,
       getWeekHistory(weekId) {
-        return store.getState()?.contextByWeek?.[String(weekId)]?.assessmentHistory || [];
+        const context = store.getState()?.contextByWeek?.[String(weekId)] || {};
+        return normalizeHistory(context.assessmentHistory);
       },
-      getSummary() {
-        const state = store.getState();
-        const records = Object.entries(state?.contextByWeek || {}).map(([weekId, context]) => ({
-          weekId,
-          history: Array.isArray(context?.assessmentHistory) ? context.assessmentHistory : []
-        })).filter(item => item.history.length);
-        const attempts = records.reduce((sum, item) => sum + item.history.length, 0);
-        const passedAttempts = records.reduce((sum, item) => sum + item.history.filter(x => x.passed).length, 0);
-        const recoveredWeeks = records.filter(item => item.history.length > 1 && item.history[item.history.length - 1]?.passed);
-        return { attempts, passedAttempts, recoveredWeeks, records };
-      }
+      getSummary() { return buildSummary(store.getState()); }
     };
+
+    if (typeof store.subscribe === 'function') unsubscribe = store.subscribe(() => scheduleRender());
     return true;
   }
 
@@ -86,6 +59,7 @@
   }
 
   function render() {
+    renderQueued = false;
     if (!installed || !window.ECRHAssessmentHistory) return;
     const summary = window.ECRHAssessmentHistory.getSummary();
     if (!summary.attempts) return;
@@ -113,7 +87,7 @@
       const node = document.createElement('div');
       node.dataset.assessmentHistory = 'journal';
       node.className = 'goal';
-      node.innerHTML = `<b>Assessment attempt trail</b><div class="muted">${summary.records.slice(-4).reverse().map(item => { const last = item.history[item.history.length - 1]; return `Week ${esc(item.weekId)} — ${esc(last?.score)}/${esc(last?.total)}${last?.percentage != null ? ` (${esc(last.percentage)}%)` : ''}${last?.passed ? ' — passed' : ' — reinforcement needed'}`; }).join('<br>')}</div>`;
+      node.innerHTML = `<b>Assessment attempt trail</b><div class="muted">${summary.records.slice().reverse().slice(0, 4).map(item => { const last = item.history[item.history.length - 1]; return `Week ${esc(item.weekId)} — ${esc(last?.score)}/${esc(last?.total)}${last?.percentage != null ? ` (${esc(last.percentage)}%)` : ''}${last?.passed ? ' — passed' : ' — reinforcement needed'}`; }).join('<br>')}</div>`;
       logs.prepend(node);
     }
 
@@ -122,19 +96,24 @@
       const node = document.createElement('div');
       node.dataset.assessmentHistory = 'portfolio';
       node.className = 'goal';
-      node.innerHTML = `<b>Assessment provenance</b><small>Portfolio readiness can now be interpreted alongside the number of Check attempts and successful recovery, rather than only the latest score.</small>`;
+      node.innerHTML = `<b>Assessment provenance</b><small>Portfolio readiness can now be interpreted alongside Check attempts and successful recovery, rather than only the latest score.</small>`;
       readiness.prepend(node);
     }
+  }
+
+  function scheduleRender() {
+    if (renderQueued) return;
+    renderQueued = true;
+    setTimeout(render, 0);
   }
 
   function boot() {
     if (!install()) { setTimeout(boot, 100); return; }
     render();
-    setTimeout(render, 250);
   }
 
   if (typeof window !== 'undefined') {
     document.addEventListener('DOMContentLoaded', boot, { once: true });
-    new MutationObserver(() => { if (!installed) boot(); else render(); }).observe(document.documentElement, { subtree: true, childList: true });
+    new MutationObserver(() => { if (!installed) boot(); }).observe(document.documentElement, { subtree: true, childList: true });
   }
 })();
