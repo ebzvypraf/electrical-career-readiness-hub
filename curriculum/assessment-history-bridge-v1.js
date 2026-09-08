@@ -8,7 +8,7 @@
 (function () {
   'use strict';
 
-  const HISTORY_VERSION = '1.1.0';
+  const HISTORY_VERSION = '1.2.0';
   let installed = false;
   let unsubscribe = null;
   let renderQueued = false;
@@ -16,7 +16,6 @@
   const getStore = () => {
     try { return window.ECRHCanonical?.store?.() || null; } catch (_) { return null; }
   };
-  const clean = value => String(value ?? '').trim();
 
   function normalizeHistory(history) {
     return Array.isArray(history) ? history.filter(item => item && typeof item === 'object') : [];
@@ -55,7 +54,20 @@
   }
 
   function esc(value) {
-    return String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
+    return String(value ?? '').replace(/[&<>\\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\\"':'&quot;', "'":'&#39;' }[c]));
+  }
+
+  function upsert(container, key, className, html) {
+    if (!container) return null;
+    let node = container.querySelector(`[data-assessment-history="${key}"]`);
+    if (!node) {
+      node = document.createElement('div');
+      node.dataset.assessmentHistory = key;
+      node.className = className;
+      container.prepend(node);
+    }
+    node.innerHTML = html;
+    return node;
   }
 
   function render() {
@@ -65,40 +77,20 @@
     if (!summary.attempts) return;
 
     const home = document.getElementById('feed');
-    if (home && !home.querySelector('[data-assessment-history="home"]')) {
-      const node = document.createElement('div');
-      node.dataset.assessmentHistory = 'home';
-      node.className = 'feeditem';
-      node.innerHTML = `<b>Check learning trail</b><div class="muted">${summary.attempts} assessment attempt${summary.attempts === 1 ? '' : 's'} recorded${summary.recoveredWeeks.length ? `, including ${summary.recoveredWeeks.length} recovered Check${summary.recoveredWeeks.length === 1 ? '' : 's'}` : ''}.</div>`;
-      home.prepend(node);
-    }
+    upsert(home, 'home', 'feeditem',
+      `<b>Check learning trail</b><div class="muted">${summary.attempts} assessment attempt${summary.attempts === 1 ? '' : 's'} recorded${summary.recoveredWeeks.length ? `, including ${summary.recoveredWeeks.length} recovered Check${summary.recoveredWeeks.length === 1 ? '' : 's'}` : ''}.</div>`);
 
     const advice = document.getElementById('advice');
-    if (advice && !advice.querySelector('[data-assessment-history="skills"]')) {
-      const node = document.createElement('div');
-      node.dataset.assessmentHistory = 'skills';
-      node.className = 'goal';
-      node.innerHTML = `<b>Assessment progression</b><small>${summary.passedAttempts} passed attempt${summary.passedAttempts === 1 ? '' : 's'} across the recorded learning trail. Repeated attempts remain visible as progression evidence.</small>`;
-      advice.prepend(node);
-    }
+    upsert(advice, 'skills', 'goal',
+      `<b>Assessment progression</b><small>${summary.passedAttempts} passed attempt${summary.passedAttempts === 1 ? '' : 's'} across the recorded learning trail. Repeated attempts remain visible as progression evidence.</small>`);
 
     const logs = document.getElementById('logs');
-    if (logs && !logs.querySelector('[data-assessment-history="journal"]')) {
-      const node = document.createElement('div');
-      node.dataset.assessmentHistory = 'journal';
-      node.className = 'goal';
-      node.innerHTML = `<b>Assessment attempt trail</b><div class="muted">${summary.records.slice().reverse().slice(0, 4).map(item => { const last = item.history[item.history.length - 1]; return `Week ${esc(item.weekId)} — ${esc(last?.score)}/${esc(last?.total)}${last?.percentage != null ? ` (${esc(last.percentage)}%)` : ''}${last?.passed ? ' — passed' : ' — reinforcement needed'}`; }).join('<br>')}</div>`;
-      logs.prepend(node);
-    }
+    upsert(logs, 'journal', 'goal',
+      `<b>Assessment attempt trail</b><div class="muted">${summary.records.slice().reverse().slice(0, 4).map(item => { const last = item.history[item.history.length - 1]; return `Week ${esc(item.weekId)} — ${esc(last?.score)}/${esc(last?.total)}${last?.percentage != null ? ` (${esc(last.percentage)}%)` : ''}${last?.passed ? ' — passed' : ' — reinforcement needed'}`; }).join('<br>')}</div>`);
 
     const readiness = document.getElementById('readiness');
-    if (readiness && !readiness.querySelector('[data-assessment-history="portfolio"]')) {
-      const node = document.createElement('div');
-      node.dataset.assessmentHistory = 'portfolio';
-      node.className = 'goal';
-      node.innerHTML = `<b>Assessment provenance</b><small>Portfolio readiness can now be interpreted alongside Check attempts and successful recovery, rather than only the latest score.</small>`;
-      readiness.prepend(node);
-    }
+    upsert(readiness, 'portfolio', 'goal',
+      `<b>Assessment provenance</b><small>${summary.attempts} recorded attempt${summary.attempts === 1 ? '' : 's'} across the learning trail${summary.recoveredWeeks.length ? `, with ${summary.recoveredWeeks.length} recovered Check${summary.recoveredWeeks.length === 1 ? '' : 's'}` : ''}. Portfolio readiness can be interpreted alongside Check attempts rather than only the latest score.</small>`);
   }
 
   function scheduleRender() {
