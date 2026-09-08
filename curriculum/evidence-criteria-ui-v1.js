@@ -19,27 +19,31 @@
     const weekId = weekIdFromModal();
     if (!weekId) return;
     const card = document.getElementById('modalCard');
-    if (!card || card.dataset.evidenceCriteriaWeek === weekId) return;
+    if (!card) return;
     const rows = Array.from(card.querySelectorAll('.rubric-row'));
     if (!rows.length) return;
+    const existing = canonical()?.store?.()?.getState?.()?.contextByWeek?.[weekId]?.evidence || null;
     rows.forEach((row, index) => {
       if (row.querySelector('[data-evidence-criterion]')) return;
       const label = row.querySelector('span:first-child')?.textContent?.trim() || `Criterion ${index + 1}`;
+      const id = `criterion_${index + 1}`;
+      const checked = existing?.[id] === true || existing?.[id] === 'true';
+      const control = `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" data-evidence-criterion="${id}" ${checked ? 'checked' : ''}> Confirmed</label>`;
       const status = row.querySelector('.tag');
-      if (status) status.innerHTML = `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" data-evidence-criterion="criterion_${index + 1}"> Confirmed</label>`;
-      else row.insertAdjacentHTML('beforeend', `<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" data-evidence-criterion="criterion_${index + 1}"> Confirmed</label>`);
+      if (status) status.innerHTML = control;
+      else row.insertAdjacentHTML('beforeend', control);
       row.setAttribute('data-evidence-criterion-label', label);
     });
     card.dataset.evidenceCriteriaWeek = weekId;
   }
 
   function handleSave(event) {
-    const button = event.target.closest('#canon-save-evidence');
+    const button = event.target.closest('#canonical-save-evidence');
     if (!button) return;
     const weekId = weekIdFromModal();
     if (!weekId) return;
-    const title = document.getElementById('canon-et')?.value.trim() || '';
-    const description = document.getElementById('canon-ed')?.value.trim() || '';
+    const title = document.getElementById('canonical-et')?.value.trim() || '';
+    const description = document.getElementById('canonical-ed')?.value.trim() || '';
     if (!title || !description) return;
     const criteria = {};
     document.querySelectorAll('#modalCard [data-evidence-criterion]').forEach(input => { criteria[input.dataset.evidenceCriterion] = Boolean(input.checked); });
@@ -49,7 +53,7 @@
       alert('Confirm every Evidence criterion before saving demonstrated evidence.');
       return;
     }
-    const store = canonical()?.store?.();
+    const store = canonical()?.store;
     if (!store?.captureEvidence) return;
     event.preventDefault();
     event.stopImmediatePropagation();
