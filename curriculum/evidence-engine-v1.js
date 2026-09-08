@@ -78,7 +78,7 @@ export function normalize(module, input) {
   const recoveryProvenance = buildRecoveryProvenance(checkResult, context);
   return {
     week: module && Number(module.week) || null, title, description,
-    competency: Array.isArray(module && module.skillTargets) ? module.skillTargets.slice() : [],
+    competency: Array.isArray(module && module.skillTargets) ? module.skillTargets.slice() : (Array.isArray(module && module.skills) ? module.skills.slice() : []),
     reflection, nextAction, applyLink, checkLink, linkageComplete,
     reviewStatus, evidenceQuality: quality, criteria: criterionResults, fieldsComplete, allCriteriaSatisfied,
     applicationEvidence, checkResult, applyReady, checkPassed, prerequisitesSatisfied, missingPrerequisites, demonstrated,
