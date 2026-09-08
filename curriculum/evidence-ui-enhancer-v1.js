@@ -12,6 +12,15 @@ import './portfolio-review-enhancer-v1.js';
   function api() { return root() && root().ECRHCanonical; }
   function currentWeek() { const card = document.getElementById('modalCard'); const marker = card && card.querySelector('.k'); const match = marker && text(marker.textContent).match(/Week\s+(\d+)/i); return match ? Number(match[1]) : null; }
   function evidenceContext(week) { const canonical = api(); const store = canonical && canonical.store; return store && store.getState ? (store.getState().contextByWeek?.[String(week)]?.evidence || {}) : {}; }
+  function weekContext(week) { const canonical = api(); const store = canonical && canonical.store; return store && store.getState ? (store.getState().contextByWeek?.[String(week)] || {}) : {}; }
+  function time(value) { const n = Date.parse(value || ''); return Number.isFinite(n) ? n : null; }
+  function isStaleEvidence(week, evidence) {
+    const ctx = weekContext(week); const captured = time(evidence?.capturedAt || evidence?.date);
+    if (captured == null) return false;
+    const apply = time(ctx?.applicationEvidence?.capturedAt);
+    const check = time(ctx?.assessmentResult?.date);
+    return [apply, check].some(value => value != null && value > captured);
+  }
 
   function enhance() {
     const card = document.getElementById('modalCard');
@@ -20,7 +29,9 @@ import './portfolio-review-enhancer-v1.js';
     const criteria = Array.isArray(module?.evidence?.criteria) ? module.evidence.criteria : []; const existing = evidenceContext(week) || {};
     const anchor = document.getElementById('canon-ed'); const form = anchor && anchor.closest('.evidence-form'); if (!form) return;
     const block = document.createElement('div'); block.className = 'evidence-form'; block.id = 'canonical-evidence-quality';
-    block.innerHTML = '<div class="learning-card"><h3>Evidence quality</h3>' +
+    const stale = isStaleEvidence(week, existing);
+    block.innerHTML = (stale ? '<div class="result warn"><b>Evidence needs recapture.</b><p>This saved Evidence is older than a later Apply or Check result. The previous proof remains in history, but it cannot represent the latest learning state until you capture it again.</p></div>' : '') +
+      '<div class="learning-card"><h3>Evidence quality</h3>' +
       '<p class="muted">Connect the proof to the practical Apply decision and the Check learning result. High-quality evidence shows the chain, not only the final artifact.</p>' +
       (criteria.length ? '<div class="rubric">' + criteria.map(function (label, index) { const id = 'criterion_' + (index + 1); const checked = existing[id] === true || existing[id] === 'true'; return '<label class="rubric-row" style="cursor:pointer;gap:10px;align-items:flex-start"><span style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="' + id + '" ' + (checked ? 'checked' : '') + '> <span>' + (index + 1) + '. ' + esc(label) + '</span></span><span class="tag">Required</span></label>'; }).join('') + '</div>' : '<div class="saved">No additional rubric criteria are defined for this week.</div>') +
       '<label>Apply decision / artifact link<textarea id="canon-eal" placeholder="Which Apply decision, deliverable, or verification does this Evidence prove?">' + esc(existing.applyLink || '') + '</textarea></label>' +
