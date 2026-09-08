@@ -12,6 +12,24 @@ const REQUIRED = ['title', 'description'];
 
 function text(value) { return String(value == null ? '' : value).trim(); }
 
+function buildRecoveryProvenance(checkResult, context = {}) {
+  const history = Array.isArray(context?.assessmentHistory) ? context.assessmentHistory : [];
+  const remediation = context?.remediation || null;
+  const recovered = Boolean(checkResult?.passed && remediation?.status === 'complete' && history.length > 1);
+  const priorFailed = history.slice(0, -1).filter(item => item?.passed === false).at(-1) || null;
+  const recoveredQuestionIds = Array.isArray(priorFailed?.missedQuestionIds) ? priorFailed.missedQuestionIds.slice() : [];
+  const recoveredConcepts = Array.isArray(remediation?.concepts) ? remediation.concepts.map(text).filter(Boolean) : [];
+  return {
+    recovered,
+    attempts: history.length,
+    priorFailedAttempt: Boolean(priorFailed),
+    recoveredQuestionIds,
+    recoveredConcepts,
+    remediationStatus: text(remediation?.status),
+    reinforcementNote: text(remediation?.notes)
+  };
+}
+
 export function normalize(module, input) {
   const evidence = input || {};
   const criteria = Array.isArray(module && module.evidence && module.evidence.criteria) ? module.evidence.criteria : [];
@@ -38,6 +56,8 @@ export function normalize(module, input) {
   if (![STATUS.DRAFT, STATUS.REVIEW, STATUS.DEMONSTRATED].includes(reviewStatus)) reviewStatus = demonstrated ? STATUS.DEMONSTRATED : STATUS.DRAFT;
   if (!demonstrated && reviewStatus === STATUS.DEMONSTRATED) reviewStatus = STATUS.REVIEW;
   const quality = demonstrated ? 'high' : (fieldsComplete && prerequisitesSatisfied ? 'developing' : 'insufficient');
+  const context = evidence.context || {};
+  const recoveryProvenance = buildRecoveryProvenance(checkResult, context);
   return {
     week: module && Number(module.week) || null,
     title, description,
@@ -45,6 +65,7 @@ export function normalize(module, input) {
     reflection, nextAction, reviewStatus, evidenceQuality: quality,
     criteria: criterionResults, fieldsComplete, allCriteriaSatisfied,
     applicationEvidence, checkResult, applyReady, checkPassed, prerequisitesSatisfied, missingPrerequisites, demonstrated,
+    recoveryProvenance,
     capturedAt: text(evidence.capturedAt) || null
   };
 }
@@ -54,10 +75,10 @@ export function canComplete(module, input) { return normalize(module, input).dem
 export function buildSignals(module, evidence) {
   const e = normalize(module, evidence);
   return {
-    home: { week: e.week, evidenceReady: e.demonstrated, evidenceQuality: e.evidenceQuality, prerequisitesSatisfied: e.prerequisitesSatisfied, missingPrerequisites: e.missingPrerequisites },
-    skills: e.competency.map(skill => ({ skill, demonstratedCapability: e.demonstrated, evidenceQuality: e.evidenceQuality, week: e.week })),
-    journal: { week: e.week, reflection: e.reflection, nextAction: e.nextAction },
-    portfolio: { week: e.week, title: e.title, description: e.description, competency: e.competency, reflection: e.reflection, nextAction: e.nextAction, reviewStatus: e.reviewStatus, evidenceQuality: e.evidenceQuality, criteria: e.criteria, capturedAt: e.capturedAt }
+    home: { week: e.week, evidenceReady: e.demonstrated, evidenceQuality: e.evidenceQuality, prerequisitesSatisfied: e.prerequisitesSatisfied, missingPrerequisites: e.missingPrerequisites, recovered: e.recoveryProvenance.recovered },
+    skills: e.competency.map(skill => ({ skill, demonstratedCapability: e.demonstrated, evidenceQuality: e.evidenceQuality, week: e.week, recoveryAssisted: e.recoveryProvenance.recovered, recoveryConcepts: e.recoveryProvenance.recoveredConcepts })),
+    journal: { week: e.week, reflection: e.reflection, nextAction: e.nextAction, recovery: e.recoveryProvenance },
+    portfolio: { week: e.week, title: e.title, description: e.description, competency: e.competency, reflection: e.reflection, nextAction: e.nextAction, reviewStatus: e.reviewStatus, evidenceQuality: e.evidenceQuality, criteria: e.criteria, capturedAt: e.capturedAt, recoveryProvenance: e.recoveryProvenance }
   };
 }
 
