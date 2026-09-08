@@ -10,6 +10,7 @@ import './evidence-provenance-ui-v1.js';
 import './learning-integrity-ui-v1.js';
 import './learner-state-integrity-ui-v1.js';
 import './learner-flow-integrity-v1.js';
+import './stage-journal-bridge-v1.js';
 
 export const CANONICAL_SOURCES = [
   '/curriculum/learning-content-v1.json',
