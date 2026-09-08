@@ -5,15 +5,20 @@
  * v1.2 adds cross-week transfer awareness so a capability already
  * demonstrated with strong evidence is treated as a transfer opportunity,
  * not a reason to repeat generic remediation.
+ *
+ * v1.2.1 also treats a legacy/current assessmentResult as a one-attempt
+ * assessment trail when assessmentHistory has not yet been materialized.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.0';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.1';
 
 function text(value) { return String(value ?? '').trim(); }
 
 function assessmentTrail(context = {}) {
-  const history = Array.isArray(context?.assessmentHistory) ? context.assessmentHistory : [];
+  const history = Array.isArray(context?.assessmentHistory) && context.assessmentHistory.length
+    ? context.assessmentHistory
+    : (context?.assessmentResult ? [context.assessmentResult] : []);
   const latest = history.at(-1) || context?.assessmentResult || null;
   const priorFailure = history.slice(0, -1).some(item => item?.passed === false);
   return {
