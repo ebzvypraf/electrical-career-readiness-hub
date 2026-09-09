@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "purpose": "Machine-readable curriculum coverage and assessment-quality manifest for the 24-week Learn-Apply-Check-Evidence pathway.",
   "stageOrder": ["learn", "apply", "check", "evidence"],
   "weeks": {
@@ -15,10 +15,10 @@
     "canonicalStageCount": 96
   },
   "assessmentCoverage": {
-    "deterministicWeeks": "1-10,16-20,21-24",
-    "compatibilityWeeks": "11-15",
+    "deterministicWeeks": "1-24",
+    "compatibilityWeeks": "",
     "missingWeeks": 0,
-    "qualityRule": "Authored assessment banks use options plus correctIndex; Weeks 11-15 retain explicit compatibility-mode checks until authored choices are added."
+    "qualityRule": "All canonical weeks now use authored assessment questions with options plus correctIndex for deterministic scoring."
   },
   "qualityGates": [
     "Every canonical week contains Learn, Apply, Check and Evidence.",
