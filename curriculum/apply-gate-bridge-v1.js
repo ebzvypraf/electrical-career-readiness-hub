@@ -18,8 +18,8 @@
 
   function bridge() {
     const api = window.ECRHCanonical;
-    if (!api || typeof api.store !== 'function') return false;
-    const store = api.store();
+    if (!api) return false;
+    const store = typeof api.store === 'function' ? api.store() : api.store;
     if (!store || typeof store.completeStage !== 'function' || store.__applyGateBridgeV1) return Boolean(store);
 
     const original = store.completeStage.bind(store);
