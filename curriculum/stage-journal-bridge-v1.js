@@ -1,10 +1,14 @@
 /*
- * Electrical Career Readiness Hub — stage → Journal bridge v1.3.
+ * Electrical Career Readiness Hub — stage → Journal bridge v1.4.
  * Completes the learner-loop journal trail for Learn and Evidence stages,
  * while persisting the canonical stage-transition timestamp so Journal dates
  * reflect the actual learner action rather than the bridge's observation time.
  * Apply, Check and remediation already have canonical journal bridges in the state store.
  * This module is idempotent: one journal record per completed Learn/Evidence stage.
+ *
+ * Store compatibility: ECRHCanonical.store is the canonical store object in the
+ * current runtime; older builds exposed it as a function. Resolve both forms so
+ * the Journal bridge remains attached to the same canonical state boundary.
  */
 (function () {
   'use strict';
@@ -14,7 +18,10 @@
   const clean = value => String(value ?? '').trim();
   const stateApi = () => window.ECRHCanonical;
   const getStore = () => {
-    try { return stateApi()?.store?.() || null; } catch (_) { return null; }
+    try {
+      const candidate = stateApi()?.store;
+      return typeof candidate === 'function' ? candidate() : candidate || null;
+    } catch (_) { return null; }
   };
 
   function bridge(state) {
