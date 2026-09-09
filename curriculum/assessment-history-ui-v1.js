@@ -1,12 +1,19 @@
-/* Electrical Career Readiness Hub — Check attempt history UI v1.
+/* Electrical Career Readiness Hub — Check attempt history UI v2.
  * Makes assessment recovery visible without changing grading or progression rules.
+ * Resolves the canonical store using the current object/function-compatible contract.
  */
 (function () {
   'use strict';
   const KEY = 'ecrh-assessment-history-ui-v1';
   const esc = v => String(v ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
   function api() { return typeof window !== 'undefined' ? window.ECRHCanonical : null; }
-  function state() { try { return api()?.store?.()?.getState?.() || null; } catch (_) { return null; } }
+  function store() {
+    try {
+      const candidate = api()?.store;
+      return typeof candidate === 'function' ? candidate() : candidate || null;
+    } catch (_) { return null; }
+  }
+  function state() { try { return store()?.getState?.() || null; } catch (_) { return null; } }
   function weekFromModal() {
     const text = document.querySelector('#modalCard .k')?.textContent || '';
     const m = text.match(/Week\s+(\d+)\s+•\s+Check/i);
