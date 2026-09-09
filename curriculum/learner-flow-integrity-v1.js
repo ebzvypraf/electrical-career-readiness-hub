@@ -1,10 +1,11 @@
 /*
- * Electrical Career Readiness Hub — learner flow integrity v1.2.
+ * Electrical Career Readiness Hub — learner flow integrity v1.3.
  * Read-only smoke tests for the canonical 24-week learning journey.
  * Validates the simulated engine contract, remediation recovery propagation,
  * and the learner's persisted canonical state without mutating progress.
  */
 import { STAGES, createLearningState, applyStageCompletion, buildHubSignals } from './learning-engine-v2.js';
+import { normalizeApplyEvidence } from './apply-evidence-engine-v1.js';
 import { startRemediation, completeRemediation, canRetryCheck } from './remediation-engine-v1.js';
 
 const PANEL_ID = 'learner-flow-integrity-panel';
@@ -12,6 +13,17 @@ const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;
 
 function result(name, ok, detail) { return { name, ok: Boolean(ok), detail: String(detail || '') }; }
 function weekShape(weekIds) { return Object.fromEntries(weekIds.map(id => [String(id), { week: Number(id), title: `Week ${id}`, skills: [`Skill ${id}`], integration: { homeAction: `Continue Week ${id}`, journalPrompt: `Reflect on Week ${id}`, portfolioPrompt: `Capture Week ${id} evidence` } }])); }
+
+function smokeApplyEvidence() {
+  return normalizeApplyEvidence({
+    tasks: [true, true],
+    deliverable: 'Smoke-test design record',
+    decisions: 'Recorded design decisions',
+    assumptions: 'Recorded assumptions and interfaces',
+    verification: 'Defined QA verification',
+    notes: 'Synthetic validation only.'
+  });
+}
 
 function persistedStateChecks(state, ids) {
   const checks = [];
@@ -49,18 +61,21 @@ export function runLearnerFlowSmokeTest(weekIds = [], state = null) {
   const checks = [];
   checks.push(result('24-week canonical state', ids.length === 24 && ids.every((id, index) => id === String(index + 1)), `${ids.length}/24 canonical week state records present.`));
 
+  const applicationEvidence = smokeApplyEvidence();
   let progress = createLearningState(ids);
   for (const id of ids) {
     const learn = applyStageCompletion(progress, id, 'learn', { learnViewedAt: 'smoke-test' });
     progress[id] = learn.progress;
-    const apply = applyStageCompletion(progress, id, 'apply', { applicationNotes: 'Smoke-test application record.' });
+    const apply = applyStageCompletion(progress, id, 'apply', { applicationEvidence });
     progress[id] = apply.progress;
-    const check = applyStageCompletion(progress, id, 'check', { assessmentResult: { passed: true, completionReady: true } });
+    const check = applyStageCompletion(progress, id, 'check', {
+      assessmentResult: { completionReady: true, passed: true }
+    });
     progress[id] = check.progress;
     const evidence = applyStageCompletion(progress, id, 'evidence', { evidence: { demonstrated: true } });
     progress[id] = evidence.progress;
   }
-  checks.push(result('Sequential 24-week journey', Object.values(progress).every(p => STAGES.every(stage => p[stage])), 'Every week completed through Learn → Apply → Check → Evidence.'));
+  checks.push(result('Sequential 24-week journey', Object.values(progress).every(p => STAGES.every(stage => p[stage])), 'Every week completed through Learn → Apply → Check → Evidence using the current structured Apply contract.'));
 
   const fresh = createLearningState(ids);
   const invalidApply = applyStageCompletion(fresh, '1', 'apply', { applicationNotes: 'Should remain locked.' });
