@@ -18,6 +18,7 @@ import './assessment-history-bridge-v1.js';
 import './recovery-provenance-bridge-v1.js';
 import './assessment-store-bridge-v1.js';
 import './skills-canonical-ui-v1.js';
+import './home-learning-loop-ui-v1.js';
 
 export const CANONICAL_SOURCES = [
   '/curriculum/learning-content-v1.json',
