@@ -20,6 +20,7 @@ import './assessment-store-bridge-v1.js';
 import './skills-canonical-ui-v1.js';
 import './home-learning-loop-ui-v1.js';
 import './portfolio-review-enhancer-v1.js';
+import './journal-canonical-ui-v1.js';
 
 export const CANONICAL_SOURCES = [
   '/curriculum/learning-content-v1.json',
