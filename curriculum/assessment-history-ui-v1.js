@@ -1,6 +1,7 @@
-/* Electrical Career Readiness Hub — Check attempt history UI v2.
+/* Electrical Career Readiness Hub — Check attempt history UI v3.
  * Makes assessment recovery visible without changing grading or progression rules.
- * Resolves the canonical store using the current object/function-compatible contract.
+ * Uses persisted per-attempt recovery state so historical failures do not
+ * incorrectly label later ordinary passes as recovered.
  */
 (function () {
   'use strict';
@@ -29,18 +30,19 @@
     if (!history.length) return;
     const remediation = ctx?.remediation || null;
     const latest = history[history.length - 1];
-    const failed = history.filter(a => a && a.passed === false);
-    const recovered = Boolean(latest?.passed && failed.length);
+    const hasPersistedRecovery = history.some(a => typeof a?.recovered === 'boolean');
+    const recovered = hasPersistedRecovery ? latest?.recovered === true : Boolean(latest?.passed && history.slice(0, -1).some(a => a?.passed === false));
     const rows = history.slice().reverse().map((a, i) => {
       const missed = Array.isArray(a?.missedQuestionIds) ? a.missedQuestionIds.length : 0;
-      const label = a?.passed ? (i === 0 && recovered ? 'Recovered pass' : 'Pass') : 'Not passed';
+      const recoveredAttempt = a?.recovered === true || (!hasPersistedRecovery && i === 0 && recovered);
+      const label = a?.passed ? (recoveredAttempt ? 'Recovered pass' : 'Pass') : 'Not passed';
       return `<div class="rubric-row"><span><b>Attempt ${esc(a?.attemptNumber || history.length - i)}</b> — ${esc(label)}<small style="display:block;color:var(--muted)">${esc(a?.score ?? 0)}/${esc(a?.total ?? 0)}${a?.percentage != null ? ` (${esc(a.percentage)}%)` : ''} · ${esc(a?.date || 'undated')}${missed ? ` · ${missed} missed` : ''}</small></span><span class="pill ${a?.passed ? 'ok' : ''}">${a?.passed ? 'Passed' : 'Review'}</span></div>`;
     }).join('');
     const note = recovered
       ? 'This Check was passed after an earlier failed attempt. The recovery is retained as part of your learning trail.'
       : remediation?.status === 'ready-to-retry'
         ? 'Targeted reinforcement is complete. Retry is unlocked.'
-        : failed.length
+        : history.some(a => a?.passed === false) && remediation?.status !== 'complete'
           ? 'A previous attempt needs targeted reinforcement before another retry.'
           : 'Your assessment trail is recorded here for review.';
     const box = document.createElement('div');
