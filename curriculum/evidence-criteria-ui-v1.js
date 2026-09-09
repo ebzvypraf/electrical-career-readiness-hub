@@ -6,8 +6,11 @@
 (function () {
   'use strict';
 
-  const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
   const canonical = () => window.ECRHCanonical;
+  const getStore = () => {
+    const api = canonical();
+    return typeof api?.store === 'function' ? api.store() : api?.store || null;
+  };
 
   function weekIdFromModal() {
     const header = document.querySelector('#modalCard .k');
@@ -22,7 +25,8 @@
     if (!card) return;
     const rows = Array.from(card.querySelectorAll('.rubric-row'));
     if (!rows.length) return;
-    const existing = canonical()?.store?.()?.getState?.()?.contextByWeek?.[weekId]?.evidence || null;
+    const state = getStore()?.getState?.();
+    const existing = state?.contextByWeek?.[weekId]?.evidence || null;
     rows.forEach((row, index) => {
       if (row.querySelector('[data-evidence-criterion]')) return;
       const label = row.querySelector('span:first-child')?.textContent?.trim() || `Criterion ${index + 1}`;
@@ -53,7 +57,7 @@
       alert('Confirm every Evidence criterion before saving demonstrated evidence.');
       return;
     }
-    const store = canonical()?.store;
+    const store = getStore();
     if (!store?.captureEvidence) return;
     event.preventDefault();
     event.stopImmediatePropagation();
