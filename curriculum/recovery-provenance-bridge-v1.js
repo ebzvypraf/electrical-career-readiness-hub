@@ -1,7 +1,10 @@
 /*
- * Electrical Career Readiness Hub — recovery provenance bridge v1.
+ * Electrical Career Readiness Hub — recovery provenance bridge v1.1.
  * Carries a successful remediation/retry into the canonical Evidence and
  * Portfolio records so Skills/Home/Journal can distinguish recovered capability.
+ *
+ * Store compatibility: resolve the current canonical store object while
+ * retaining support for older function-style store exposure.
  */
 (function () {
   'use strict';
@@ -9,7 +12,10 @@
   let installed = false;
   const clean = value => String(value ?? '').trim();
   const getStore = () => {
-    try { return window.ECRHCanonical?.store?.() || null; } catch (_) { return null; }
+    try {
+      const candidate = window.ECRHCanonical?.store;
+      return typeof candidate === 'function' ? candidate() : candidate || null;
+    } catch (_) { return null; }
   };
 
   function buildProvenance(context) {
@@ -59,7 +65,7 @@
     };
 
     installed = true;
-    window.ECRHRecoveryProvenance = { version: '1.0.0', buildProvenance };
+    window.ECRHRecoveryProvenance = { version: '1.1.0', buildProvenance };
     return true;
   }
 
