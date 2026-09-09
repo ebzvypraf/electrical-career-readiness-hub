@@ -99,7 +99,34 @@ export async function loadAssessmentCatalog(sources = ASSESSMENT_SOURCES, catalo
     const curriculumQuestions = catalog?.[weekId]?.check?.questions;
     if (Array.isArray(curriculumQuestions) && curriculumQuestions.length) questionsByWeek[weekId] = curriculumQuestions;
   }
-  const missing = CANONICAL_WEEK_IDS.filter(id => !questionsByWeek[id]?.length);
-  if (missing.length) throw new Error(`Canonical assessment catalog incomplete; missing Weeks ${missing.join(', ')}`);
   return questionsByWeek;
+}
+
+export function catalogCompleteness(catalog) {
+  const ids = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
+  return { expectedWeeks: 24, actualWeeks: ids.length, complete: ids.length === 24 && ids.every((id, i) => id === String(i + 1)) };
+}
+
+export function assessmentCoverage(assessments) {
+  const weeks = Object.keys(assessments || {}).filter(id => CANONICAL_WEEK_IDS.includes(String(id)));
+  return { assessedWeeks: weeks.length, assessedWeekIds: weeks.sort((a, b) => Number(a) - Number(b)), totalQuestions: weeks.reduce((n, id) => n + (assessments[id]?.length || 0), 0) };
+}
+
+export function assessmentQuality(assessments, catalog = {}) {
+  return CANONICAL_WEEK_IDS.map(weekId => {
+    const authored = Array.isArray(assessments?.[weekId]) ? assessments[weekId] : [];
+    const questions = authored.length ? authored : (catalog?.[weekId]?.check?.questions || []);
+    const candidate = authored.length ? authored : questions;
+    const deterministic = candidate.length > 0 && candidate.every(q => Array.isArray(q?.options) && q.options.length >= 2 && Number.isInteger(q?.correctIndex) && q.correctIndex >= 0 && q.correctIndex < q.options.length);
+    return { week: Number(weekId), questionCount: questions.length, deterministic, mode: deterministic ? 'authored-deterministic' : questions.length ? 'compatibility' : 'missing' };
+  });
+}
+
+export function validateCanonicalQuality(catalog, assessments) {
+  const coverage = catalogCompleteness(catalog);
+  const assessment = assessmentQuality(assessments, catalog);
+  const missingStages = assessment.filter(x => !['learn', 'apply', 'check', 'evidence'].every(stage => catalog?.[String(x.week)]?.[stage])).map(x => x.week);
+  const missingChecks = assessment.filter(x => x.mode === 'missing').map(x => x.week);
+  const compatibilityChecks = assessment.filter(x => x.mode === 'compatibility').map(x => x.week);
+  return { ...coverage, stageComplete: missingStages.length === 0, missingStageWeeks: missingStages, assessmentReady: missingChecks.length === 0, missingAssessmentWeeks: missingChecks, compatibilityWeeks: compatibilityChecks, deterministicWeeks: assessment.filter(x => x.deterministic).map(x => x.week) };
 }
