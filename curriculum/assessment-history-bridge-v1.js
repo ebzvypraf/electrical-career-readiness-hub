@@ -8,13 +8,17 @@
 (function () {
   'use strict';
 
-  const HISTORY_VERSION = '1.2.0';
+  const HISTORY_VERSION = '1.2.1';
   let installed = false;
   let unsubscribe = null;
   let renderQueued = false;
 
   const getStore = () => {
-    try { return window.ECRHCanonical?.store?.() || null; } catch (_) { return null; }
+    try {
+      const api = window.ECRHCanonical;
+      const store = typeof api?.store === 'function' ? api.store() : api?.store;
+      return store && typeof store.getState === 'function' ? store : null;
+    } catch (_) { return null; }
   };
 
   function normalizeHistory(history) {
@@ -37,7 +41,7 @@
   function install() {
     if (installed) return true;
     const store = getStore();
-    if (!store || typeof store.getState !== 'function') return false;
+    if (!store) return false;
 
     installed = true;
     window.ECRHAssessmentHistory = {
