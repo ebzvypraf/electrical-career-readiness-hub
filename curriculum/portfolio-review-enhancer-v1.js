@@ -9,7 +9,7 @@
   function text(value) { return String(value == null ? '' : value).trim(); }
   function esc(value) { return text(value).replace(/[&<>\"']/g, function (char) { return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[char]); }); }
   function api() { return typeof window !== 'undefined' ? window.ECRHCanonical : null; }
-  function store() { const canonical = api(); return canonical && canonical.store; }
+  function store() { const canonical = api(); return typeof canonical?.store === 'function' ? canonical.store() : canonical?.store || null; }
   function entries() { const s = store(); return s && s.getState ? (s.getState().portfolioEntries || []) : []; }
 
   function statusMeta(entry) {
