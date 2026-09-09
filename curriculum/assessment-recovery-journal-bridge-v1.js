@@ -1,8 +1,11 @@
 /*
- * Electrical Career Readiness Hub — assessment recovery → Journal bridge v1.
+ * Electrical Career Readiness Hub — assessment recovery → Journal bridge v1.1.
  * Records successful Check recovery after targeted remediation as a durable
  * learner milestone, so Home/Skills/Journal can distinguish recovery from
  * an ordinary first-pass Check without changing the canonical stage gates.
+ *
+ * Store compatibility: resolve the current canonical store object while
+ * retaining support for older function-style store exposure.
  */
 (function () {
   'use strict';
@@ -11,7 +14,10 @@
   let unsubscribe = null;
   const clean = value => String(value ?? '').trim();
   const getStore = () => {
-    try { return window.ECRHCanonical?.store?.() || null; } catch (_) { return null; }
+    try {
+      const candidate = window.ECRHCanonical?.store;
+      return typeof candidate === 'function' ? candidate() : candidate || null;
+    } catch (_) { return null; }
   };
 
   function recoveryId(weekId, remediation, assessment) {
@@ -46,7 +52,7 @@
         hours: 0,
         study: `Week ${weekId}: Check recovered after targeted reinforcement`,
         learn: concepts.length ? `Reinforced: ${concepts.join(', ')}.` : 'Targeted reinforcement completed before the successful retry.',
-        reflection: clean(remediation?.notes || 'The failed Check was reviewed, reinforced and successfully recovered.'),
+        reflection: clean(remediation?.notes || `The failed Check was reviewed, reinforced and successfully recovered (${score}).`),
         nextAction: `Capture the recovered capability as Evidence for Week ${weekId}.`,
         weekId,
         stage: 'check'
