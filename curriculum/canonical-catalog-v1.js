@@ -15,6 +15,7 @@ import './learner-flow-integrity-v1.js';
 import './stage-journal-bridge-v1.js';
 import './assessment-recovery-journal-bridge-v1.js';
 import './assessment-history-bridge-v1.js';
+import './assessment-history-ui-v1.js';
 import './recovery-provenance-bridge-v1.js';
 import './assessment-store-bridge-v1.js';
 import './skills-canonical-ui-v1.js';
