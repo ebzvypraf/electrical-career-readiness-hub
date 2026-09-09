@@ -1,6 +1,7 @@
-/* Electrical Career Readiness Hub — canonical Check/store bridge v1.
+/* Electrical Career Readiness Hub — canonical Check/store bridge v2.
  * Routes the learner-facing Check submission through the shared learning-state store
- * so assessment history, remediation and Journal signals are committed atomically.
+ * while matching the current production Check UI controls and preserving authored
+ * question IDs in the canonical response record.
  */
 (function () {
   'use strict';
@@ -28,8 +29,10 @@
     const responses = {};
     questionsFor(week).forEach((question, index) => {
       const id = question?.id || `q${index + 1}`;
-      const choice = document.querySelector(`input[name="canonical-q${index}"]:checked`);
-      const answer = document.getElementById(`canonical-answer-${index}`);
+      const choice = document.querySelector(`input[name="cq${index}"]:checked`) ||
+        document.querySelector(`input[name="canonical-q${index}"]:checked`);
+      const answer = document.getElementById(`ca${index}`) ||
+        document.getElementById(`canonical-answer-${index}`);
       responses[id] = choice ? choice.value : (answer ? answer.value : '');
     });
     return responses;
@@ -43,18 +46,21 @@
     node.className = `result ${result?.passed ? '' : 'warn'}`;
     const score = `${Number(result?.score || 0)}/${Number(result?.total || 0)}`;
     node.innerHTML = `<b>Check recorded: ${score}</b> — ${result?.passed ? 'Pass. Evidence is now available.' : 'Not yet passed. Targeted remediation has been recorded.'}`;
-    const button = document.getElementById('canonical-score');
+    const button = document.getElementById('canon-score') || document.getElementById('canonical-score');
     if (button?.parentNode) button.parentNode.insertBefore(node, button.nextSibling);
   }
   function handleClick(event) {
-    const target = event.target?.closest?.('#canonical-score');
+    const target = event.target?.closest?.('#canon-score, #canonical-score');
     if (!target) return;
     const store = getStore();
     const week = currentWeek();
     if (!store || !week) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    const result = store.recordAssessmentResult({ weekId: String(week), result: { responses: collectResponses(week), date: new Date().toISOString() } });
+    const result = store.recordAssessmentResult({
+      weekId: String(week),
+      result: { responses: collectResponses(week), date: new Date().toISOString() }
+    });
     if (!result?.ok) {
       window.alert(result?.reason || 'Check could not be recorded.');
       return;
