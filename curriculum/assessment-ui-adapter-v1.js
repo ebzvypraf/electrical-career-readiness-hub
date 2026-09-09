@@ -1,6 +1,7 @@
-/* Electrical Career Readiness Hub — production UI adapter v8.
+/* Electrical Career Readiness Hub — production UI adapter v9.
  * Canonical learner UI adapter. Learn records learner exposure;
- * Apply captures structured task completion; Evidence enforces upstream prerequisites;
+ * Apply captures structured task completion; Check uses the authored assessment
+ * catalog when available; Evidence enforces upstream prerequisites;
  * Journal writes through the canonical state store and legacy progress is synchronized on boot.
  */
 (function () {
@@ -37,7 +38,7 @@
   function complete(week,stage){const id=String(week),ctx=state.contextByWeek?.[id]||{};const result=store.completeStage({weekId:id,stage,context:ctx});if(!result.ok){alert(result.reason||`Cannot complete ${label(stage)}.`);return;}state=result.state;$('modal').classList.remove('show');render();}
   function renderAll(){render();}
   function bindJournalForm(){const btn=$('saveLog');if(!btn)return;btn.onclick=()=>{const date=$('jdate').value,hours=+$('jhours').value||0,study=$('jstudy').value.trim(),learn=$('jlearn').value.trim(),hard=$('jhard').value.trim(),nextAction=$('jnext').value.trim();if(!date||(!study&&!learn&&!hard&&!nextAction&&hours<=0))return alert('Add a date and study information.');const result=store.addJournalEntry({date,hours,study,learn,hard,next:nextAction,nextAction});if(!result.ok)return alert(result.reason||'Journal entry could not be saved.');state=result.state;['jhours','jstudy','jlearn','jhard','jnext'].forEach(id=>$(id).value='');render();go('journal');};}
-  async function boot(){try{const mod=await import('./canonical-catalog-v1.js');catalog=await mod.loadCanonicalCatalog();assessments=Object.fromEntries(Object.entries(catalog).map(([id,m])=>[id,m.check?.questions||[]]));const st=await import('./learning-state-store-v1.js');store=st.createLearningStateStore({catalog});const legacyState=legacy();if(legacyState.weeks||legacyState.journal||legacyState.evidence||legacyState.notes||legacyState.checks){state=store.syncLegacyState(legacyState);}else{state=store.getState();}store.subscribe(s=>{state=s;render();});nav();bindJournalForm();go('home');}catch(e){console.error('[ECRH canonical adapter]',e);}}
+  async function boot(){try{const mod=await import('./canonical-catalog-v1.js');catalog=await mod.loadCanonicalCatalog();assessments=await mod.loadAssessmentCatalog(undefined,catalog);const st=await import('./learning-state-store-v1.js');store=st.createLearningStateStore({catalog});const legacyState=legacy();if(legacyState.weeks||legacyState.journal||legacyState.evidence||legacyState.notes||legacyState.checks){state=store.syncLegacyState(legacyState);}else{state=store.getState();}store.subscribe(s=>{state=s;render();});nav();bindJournalForm();go('home');}catch(e){console.error('[ECRH canonical adapter]',e);}}
   boot();
   window.ECRHCanonical={ready:true,getState:()=>state,openLesson,store:()=>store};
 })();
