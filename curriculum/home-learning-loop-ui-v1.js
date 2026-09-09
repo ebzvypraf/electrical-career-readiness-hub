@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — Home learning-loop status v1.
+/* Electrical Career Readiness Hub — Home learning-loop status v2.
  * Surfaces the canonical active-week Learn → Apply → Check → Evidence state on Home.
  * Additive UI only; canonical learning-state store remains the source of truth.
  */
@@ -35,6 +35,13 @@
     return { status: context.learnViewedAt ? 'ready' : 'pending', label: context.learnViewedAt ? 'Viewed' : 'Pending' };
   }
 
+  function openNextStage(weekId, stage) {
+    const stageIndex = STAGES.indexOf(stage);
+    if (stageIndex < 0) return;
+    const trigger = document.querySelector(`[data-open="${Number(weekId) - 1}:${stageIndex}"]`);
+    if (trigger) trigger.click();
+  }
+
   function render() {
     const home = document.getElementById('home');
     const s = store();
@@ -53,11 +60,14 @@
       grid.insertBefore(panel, grid.children[1] || null);
     }
     const readiness = STAGES.map(stage => stageState(state, weekId, stage));
-    const signature = `${weekId}|${readiness.map(x => `${x.status}:${x.label}`).join('|')}|${state.hubSignals?.portfolio?.evidenceCount || 0}`;
+    const nextStage = STAGES.find((stage, i) => readiness[i].status !== 'complete') || null;
+    const signature = `${weekId}|${readiness.map(x => `${x.status}:${x.label}`).join('|')}|${state.hubSignals?.portfolio?.evidenceCount || 0}|${nextStage || 'complete'}`;
     if (panel.dataset.signature === signature) return;
     panel.dataset.signature = signature;
-    const activeStage = state.hubSignals?.nextBestAction?.label || STAGES.find((stage, i) => readiness[i].status !== 'complete') || 'Complete';
-    panel.innerHTML = `<div class="k">Learning loop</div><h2>Week ${esc(weekId)} — ${esc(week.title || 'Current learning module')}</h2><p class="muted">Your progress is tracked through one connected learning loop. Complete each stage in order; Evidence becomes reusable career proof.</p><div class="summary">${STAGES.map((stage, index) => { const x = readiness[index]; const cls = x.status === 'complete' || x.status === 'ready' ? 'ok' : ''; return `<div class="goal"><b>${index + 1}. ${LABELS[stage]}</b><small><span class="pill ${cls}">${esc(x.label)}</span></small></div>`; }).join('')}</div><div class="mission" style="margin-top:10px"><b>Next: ${esc(activeStage)}</b><div class="muted">${esc(state.hubSignals?.nextBestAction?.prompt || week.integration?.homeAction || `Continue ${activeStage.toLowerCase()} for this week.`)}</div></div>`;
+    const activeStage = state.hubSignals?.nextBestAction?.label || nextStage || 'Complete';
+    panel.innerHTML = `<div class="k">Learning loop</div><h2>Week ${esc(weekId)} — ${esc(week.title || 'Current learning module')}</h2><p class="muted">Your progress is tracked through one connected learning loop. Complete each stage in order; Evidence becomes reusable career proof.</p><div class="summary">${STAGES.map((stage, index) => { const x = readiness[index]; const cls = x.status === 'complete' || x.status === 'ready' ? 'ok' : ''; return `<div class="goal"><b>${index + 1}. ${LABELS[stage]}</b><small><span class="pill ${cls}">${esc(x.label)}</span></small></div>`; }).join('')}</div><div class="mission" style="margin-top:10px"><b>Next: ${esc(activeStage)}</b><div class="muted">${esc(state.hubSignals?.nextBestAction?.prompt || week.integration?.homeAction || `Continue ${activeStage.toLowerCase()} for this week.`)}</div>${nextStage ? `<button class="btn primary" id="home-learning-loop-open" style="margin-top:10px">Open ${esc(LABELS[nextStage])}</button>` : ''}</div>`;
+    const openButton = document.getElementById('home-learning-loop-open');
+    if (openButton && nextStage) openButton.onclick = () => openNextStage(weekId, nextStage);
   }
 
   function boot() {
