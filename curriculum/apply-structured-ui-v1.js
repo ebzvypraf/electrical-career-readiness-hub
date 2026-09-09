@@ -22,7 +22,7 @@
     const modal = document.getElementById('modalCard');
     const weekId = currentWeekId();
     const store = getStore();
-    if (!modal || !weekId || !store || modal.dataset.applyStructuredV1 === weekId) return;
+    if (!modal || !weekId || !store || (modal.dataset.applyStructuredV1 === weekId && modal.querySelector('#apply-task-checks'))) return;
 
     const state = store.getState?.() || {};
     const existing = state.contextByWeek?.[weekId]?.applicationEvidence || {};
