@@ -8,10 +8,13 @@
  *
  * v1.2.1 also treats a legacy/current assessmentResult as a one-attempt
  * assessment trail when assessmentHistory has not yet been materialized.
+ *
+ * v1.2.2 uses the persisted per-attempt recovery flag when available so a
+ * later ordinary pass is not incorrectly treated as a recovery.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.1';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.2';
 
 function text(value) { return String(value ?? '').trim(); }
 
@@ -21,9 +24,10 @@ function assessmentTrail(context = {}) {
     : (context?.assessmentResult ? [context.assessmentResult] : []);
   const latest = history.at(-1) || context?.assessmentResult || null;
   const priorFailure = history.slice(0, -1).some(item => item?.passed === false);
+  const hasPersistedRecovery = history.some(item => typeof item?.recovered === 'boolean');
   return {
     attempts: history.length,
-    recovered: Boolean(history.length > 1 && latest?.passed && priorFailure),
+    recovered: hasPersistedRecovery ? latest?.recovered === true : Boolean(history.length > 1 && latest?.passed && priorFailure),
     latestPassed: Boolean(latest?.passed),
     latestPercentage: Number.isFinite(Number(latest?.percentage)) ? Number(latest.percentage) : null
   };
