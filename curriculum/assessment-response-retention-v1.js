@@ -1,12 +1,12 @@
-/* Electrical Career Readiness Hub — assessment response retention v1.
- * Restores the learner's latest Check responses when the canonical Check modal
+/* Electrical Career Readiness Hub — assessment response retention v2.
+ * Restores the learner's latest canonical Check responses when the Check modal
  * is reopened, so failed attempts and recovery work can be reviewed and retried
  * without losing the learner's previous reasoning.
  */
 (function () {
   'use strict';
-  const getState = () => window.ECRHCanonical?.getState?.() || null;
-  const escId = value => String(value ?? '').replace(/[^0-9A-Za-z_-]/g, '');
+  const getState = () => window.ECRHCanonical?.store?.getState?.() || null;
+
   function restoreLatestResponses() {
     const card = document.getElementById('modalCard');
     if (!card) return;
@@ -18,19 +18,22 @@
     const responses = result?.responses;
     if (!responses || typeof responses !== 'object') return;
 
+    const lookup = (id, index) => {
+      const candidates = [String(id || ''), String(index), `q${Number(index) + 1}`];
+      return Object.keys(responses).find(key => candidates.includes(String(key)));
+    };
+
     card.querySelectorAll('input[type="radio"]').forEach(input => {
       const name = String(input.name || '');
-      const questionIndex = name.match(/^cq(\d+)$/)?.[1];
-      if (questionIndex == null) return;
-      const keys = Object.keys(responses);
-      const key = keys.find(candidate => candidate === questionIndex || candidate === `q${Number(questionIndex) + 1}` || escId(candidate) === escId(questionIndex));
+      const index = name.match(/^canonical-q(\d+)$/)?.[1];
+      if (index == null) return;
+      const key = lookup('', index);
       if (key != null && Number(responses[key]) === Number(input.value)) input.checked = true;
     });
 
-    card.querySelectorAll('textarea[id^="ca"]').forEach(textarea => {
-      const questionIndex = String(textarea.id).slice(2);
-      const keys = Object.keys(responses);
-      const key = keys.find(candidate => candidate === questionIndex || candidate === `q${Number(questionIndex) + 1}` || escId(candidate) === escId(questionIndex));
+    card.querySelectorAll('textarea[id^="canonical-answer-"]').forEach(textarea => {
+      const index = String(textarea.id).slice('canonical-answer-'.length);
+      const key = lookup('', index);
       if (key != null && !textarea.value) textarea.value = String(responses[key] ?? '');
     });
   }
