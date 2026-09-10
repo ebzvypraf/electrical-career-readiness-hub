@@ -1,5 +1,5 @@
 /*
- * Electrical Career Readiness Hub — canonical progression runtime v6.
+ * Electrical Career Readiness Hub — canonical progression runtime v7.
  * Bridges the existing production shell to the canonical 24-week catalog and
  * authoritative Learn → Apply → Check → Evidence transaction.
  */
@@ -42,6 +42,12 @@ function syncCanonicalFromLegacy() {
   syncingFromLegacy = true;
   try { store.syncLegacyState(readState()); } finally { syncingFromLegacy = false; }
 }
+function evidenceGateForWeek(weekNumber, index, state = readState()) {
+  const week = catalog[String(weekNumber)] || {};
+  const context = contextForWeek(state, index);
+  const evidence = context.evidence || {};
+  return normalizeEvidence(week, { ...evidence, applicationEvidence: context.applicationEvidence, checkResult: context.assessmentResult, context });
+}
 function renderModal(force = false) {
   if (rendering) return;
   const target = stageFromModal(); if (!target || !catalog[String(target.week)]) return;
@@ -62,14 +68,19 @@ function renderModal(force = false) {
       body += `<button class="btn primary" style="margin-top:12px" id="canonical-score">Score check</button>`;
       if (check) body += `<div class="result ${check.passed ? '' : 'warn'}"><b>Last score: ${esc(check.score)}/${esc(check.total)}</b> — ${check.passed ? 'Pass. Evidence is available.' : 'Not yet passed.'}</div>`;
     }
+    let evidenceGate = null;
     if (target.stage === 'evidence') {
+      evidenceGate = evidenceGateForWeek(target.week, index, state);
       const criteria = Array.isArray(week.evidence?.criteria) ? week.evidence.criteria : [];
       const savedCriteria = evidence?.criteria && typeof evidence.criteria === 'object' ? evidence.criteria : {};
       const criteriaMarkup = criteria.map((criterion, n) => `<label class="rubric-row"><span>${n + 1}. ${esc(criterion)}</span><span><input type="checkbox" class="canonical-criterion" data-criterion="criterion_${n + 1}" ${savedCriteria[`criterion_${n + 1}`] === true ? 'checked' : ''}> Confirmed</span></label>`).join('');
-      body = `<div class="learning-hero"><b>Evidence requirement</b><p>${esc(week.evidence?.prompt || '')}</p><div class="rubric">${criteriaMarkup || '<div class="rubric-row"><span>No additional rubric criteria authored for this week.</span><span class="tag">Required</span></div>'}</div></div>${evidence ? `<div class="saved"><b>Evidence saved</b><p>${esc(evidence.title)}</p><div>${esc(evidence.description)}</div><small>Apply → Check linkage: ${esc(evidence.applyLink || 'pending')} → ${esc(evidence.checkLink || 'pending')}</small></div>` : ''}<div class="evidence-form"><label>Evidence title<input id="canonical-et" value="${esc(evidence?.title || '')}" placeholder="e.g. sanitized design review record"></label><label>What does it prove?<textarea id="canonical-ed" placeholder="Explain your contribution, reasoning and verification.">${esc(evidence?.description || '')}</textarea></label><button class="btn primary" id="canonical-save-evidence">Save & link evidence</button></div>`;
+      const gateMessage = evidenceGate.demonstrated ? '<b>Evidence gate satisfied.</b> Apply and Check are linked and the evidence meets the authored requirements.' : `<b>Evidence is still a draft.</b><ul>${(evidenceGate.missingPrerequisites || ['Complete the required upstream stages before claiming demonstrated Evidence.']).map(item => `<li>${esc(item)}</li>`).join('')}</ul>`;
+      body = `<div class="learning-hero"><b>Evidence requirement</b><p>${esc(week.evidence?.prompt || '')}</p><div class="rubric">${criteriaMarkup || '<div class="rubric-row"><span>No additional rubric criteria authored for this week.</span><span class="tag">Required</span></div>'}</div></div><div class="mission" style="margin-top:10px">${gateMessage}</div>${evidence ? `<div class="saved"><b>Evidence saved</b><p>${esc(evidence.title)}</p><div>${esc(evidence.description)}</div><small>Apply → Check linkage: ${esc(evidence.applyLink || 'pending')} → ${esc(evidence.checkLink || 'pending')}</small></div>` : ''}<div class="evidence-form"><label>Evidence title<input id="canonical-et" value="${esc(evidence?.title || '')}" placeholder="e.g. sanitized design review record"></label><label>What does it prove?<textarea id="canonical-ed" placeholder="Explain your contribution, reasoning and verification.">${esc(evidence?.description || '')}</textarea></label><button class="btn primary" id="canonical-save-evidence">Save & link evidence</button></div>`;
     }
     const completed = Boolean(progress[target.stage]);
-    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px"><div><div class="k">Week ${target.week} • ${target.stage.charAt(0).toUpperCase() + target.stage.slice(1)}</div><h2>${esc(week.title)}</h2><span class="pill">${esc(week.phase)}</span></div><button class="btn" id="canonical-close">Close</button></div>${body}<div class="mission" style="margin-top:12px"><b>Stage gate</b><p class="muted">${completed ? 'Completed.' : 'Complete the required work honestly before marking this stage complete.'}</p></div><button class="btn primary" id="canonical-complete">${completed ? 'Completed — review' : 'Mark stage complete'}</button>`;
+    const evidenceBlocked = target.stage === 'evidence' && !evidenceGate?.demonstrated;
+    const completeLabel = completed ? 'Completed — review' : (evidenceBlocked ? 'Complete Apply + Check + Evidence first' : 'Mark stage complete');
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px"><div><div class="k">Week ${target.week} • ${target.stage.charAt(0).toUpperCase() + target.stage.slice(1)}</div><h2>${esc(week.title)}</h2><span class="pill">${esc(week.phase)}</span></div><button class="btn" id="canonical-close">Close</button></div>${body}<div class="mission" style="margin-top:12px"><b>Stage gate</b><p class="muted">${completed ? 'Completed.' : (evidenceBlocked ? 'Evidence can be saved as a draft, but the stage cannot be completed until Apply, Check and Evidence are all demonstrated.' : 'Complete the required work honestly before marking this stage complete.')}</p></div><button class="btn primary" id="canonical-complete" ${evidenceBlocked ? 'disabled aria-disabled="true"' : ''}>${completeLabel}</button>`;
     document.getElementById('canonical-close').onclick = () => window.ECRH?.close?.();
     document.getElementById('canonical-complete').onclick = () => window.ECRH?.complete?.(index, STAGES.indexOf(target.stage));
     if (target.stage === 'apply') document.getElementById('canonical-save-note').onclick = () => { const next = readState(); next.notes = next.notes || {}; next.notes[index] = document.getElementById('canonical-note').value.trim(); writeState(next); syncCanonicalFromLegacy(); renderModal(true); };
@@ -107,6 +118,10 @@ function installCompletionBridge() {
     const weekId = String(Number(index) + 1), stage = STAGES[Number(stageIndex)];
     if (!catalog[weekId] || !stage) return originalComplete?.(index, stageIndex);
     const context = contextForWeek(readState(), index);
+    if (stage === 'evidence') {
+      const gate = normalizeEvidence(catalog[weekId], { ...(context.evidence || {}), applicationEvidence: context.applicationEvidence, checkResult: context.assessmentResult, context });
+      if (!gate.demonstrated) { alert(`Evidence stage is not ready. ${gate.missingPrerequisites?.join(' ') || 'Complete Apply, pass Check, and satisfy the Evidence criteria first.'}`); return; }
+    }
     const result = store?.completeStage({ weekId, stage, context }) || commitStageCompletion({ catalog, progressByWeek: progressFromState(readState()), weekId, stage, context, contextByWeek: Object.fromEntries(Array.from({ length: 24 }, (_, i) => [String(i + 1), contextForWeek(readState(), i)])) });
     if (!result.ok) { alert(result.reason); return; }
     if (result.state?.progressByWeek) syncLegacyFromCanonical(result.state);
