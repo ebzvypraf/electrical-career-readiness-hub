@@ -21,10 +21,14 @@
  * v1.2.5 normalizes numeric evidence quality before prioritizing a skill gap,
  * so canonical numeric evidence scores receive the same adaptive weighting
  * as qualitative evidence labels.
+ *
+ * v1.2.6 carries the canonical proof-chain state into adaptive actions so
+ * Home, Skills, Journal, and Portfolio can consume the same Apply → Check →
+ * Evidence context without recreating it locally.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.5';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.6';
 
 function text(value) { return String(value ?? '').trim(); }
 
@@ -62,6 +66,20 @@ function skillTransferContext(hubSignals, skill) {
   return { demonstratedWeeks, evidenceQuality, transferReady };
 }
 
+function proofChainContext(context = {}) {
+  const chain = context?.evidence?.proofChain;
+  if (!chain || typeof chain !== 'object') {
+    return { hasProofChain: false, applyLinked: false, checkLinked: false, evidenceCaptured: false, demonstrated: false };
+  }
+  return {
+    hasProofChain: true,
+    applyLinked: Boolean(chain.apply?.linked),
+    checkLinked: Boolean(chain.check?.linked),
+    evidenceCaptured: Boolean(chain.evidence?.captured),
+    demonstrated: Boolean(chain.evidence?.demonstratedCapability)
+  };
+}
+
 export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contextByWeek = {}, hubSignals = {} } = {}) {
   const ids = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
 
@@ -70,6 +88,7 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
     if (!remediation || !['required', 'in-progress', 'ready-to-retry'].includes(remediation.status)) return null;
     const week = catalog[id];
     const stage = remediation.status === 'ready-to-retry' ? 'check' : 'learn';
+    const proof = proofChainContext(contextByWeek?.[id]);
     return {
       priority: remediation.status === 'ready-to-retry' ? 10 : 20,
       weekId: id,
@@ -82,6 +101,7 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
       reason: 'An unresolved assessment gap should be addressed before new course progression.',
       adaptive: true,
       source: 'remediation',
+      proofChain: proof,
       engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION
     };
   }).filter(Boolean).sort((a, b) => a.priority - b.priority || Number(a.weekId) - Number(b.weekId));
@@ -100,6 +120,7 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
     const recoveryBonus = trail.recovered ? 1 : 0;
     const transfer = skillTransferContext(hubSignals, gap.skill);
     const transferBonus = transfer.transferReady ? 2 : 0;
+    const proof = proofChainContext(contextByWeek?.[weekId]);
     const gapReadiness = Number.isFinite(Number(gap.readiness)) ? Number(gap.readiness) : 100;
     const priority = Math.max(0, gapReadiness) - evidenceBonus - recoveryBonus - transferBonus + index * 0.01;
     const recoveryNote = trail.recovered
@@ -135,18 +156,38 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
         evidenceQuality: transfer.evidenceQuality
       },
       evidenceQuality,
+      proofChain: proof,
       engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION
     };
   }).filter(Boolean).sort((a, b) => a.priority - b.priority || Number(a.weekId) - Number(b.weekId));
   if (gapCandidates.length) return gapCandidates[0];
 
   const next = hubSignals?.nextBestAction || null;
-  if (next?.weekId && next?.stage) return { ...next, adaptive: false, source: 'sequential', engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION };
+  if (next?.weekId && next?.stage) {
+    return {
+      ...next,
+      adaptive: false,
+      source: 'sequential',
+      proofChain: proofChainContext(contextByWeek?.[next.weekId]),
+      engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION
+    };
+  }
   for (const id of ids) {
     const progress = progressByWeek?.[id] || {};
     const stage = STAGES.find(candidate => !progress[candidate]);
     if (stage && isStageUnlocked(progressByWeek, id, stage)) {
-      return { weekId: id, week: catalog[id]?.title || `Week ${id}`, stage, label: STAGE_LABELS[stage], prompt: '', reason: 'Continue the canonical course sequence.', adaptive: false, source: 'sequential', engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION };
+      return {
+        weekId: id,
+        week: catalog[id]?.title || `Week ${id}`,
+        stage,
+        label: STAGE_LABELS[stage],
+        prompt: '',
+        reason: 'Continue the canonical course sequence.',
+        adaptive: false,
+        source: 'sequential',
+        proofChain: proofChainContext(contextByWeek?.[id]),
+        engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION
+      };
     }
   }
   return null;
