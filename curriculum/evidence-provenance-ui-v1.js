@@ -1,14 +1,22 @@
-/* Electrical Career Readiness Hub — evidence provenance UI v1.
+/* Electrical Career Readiness Hub — evidence provenance UI v2.
  * Makes the Learn -> Apply -> Check -> Evidence chain visible in Portfolio.
  * This is presentation-only: canonical state and evidence gates remain authoritative.
+ * Store compatibility: resolve the current canonical store object while retaining
+ * support for older function-style store exposure.
  */
 (function () {
   'use strict';
 
   const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
   const canonical = () => window.ECRHCanonical;
+  const getStore = () => {
+    try {
+      const candidate = canonical()?.store;
+      return typeof candidate === 'function' ? candidate() : candidate || null;
+    } catch (_) { return null; }
+  };
   const getState = () => {
-    try { return canonical()?.store?.()?.getState?.() || null; } catch (_) { return null; }
+    try { return getStore()?.getState?.() || null; } catch (_) { return null; }
   };
 
   function render() {
