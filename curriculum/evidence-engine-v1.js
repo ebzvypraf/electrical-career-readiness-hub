@@ -18,25 +18,31 @@ function buildRecoveryProvenance(checkResult, context = {}) {
     ? context.assessmentHistory
     : (Array.isArray(checkResult?.assessmentHistory) ? checkResult.assessmentHistory : []);
   const remediation = context?.remediation || null;
-  const recovered = Boolean(
-    checkResult?.recovered ||
-    (checkResult?.passed && remediation?.status === 'complete' && history.length > 1)
-  );
-  const priorFailed = history.slice(0, -1).filter(item => item?.passed === false).at(-1) || null;
+  const hasPersistedRecovery = typeof checkResult?.recovered === 'boolean';
+  const recovered = hasPersistedRecovery
+    ? checkResult.recovered
+    : Boolean(checkResult?.passed && remediation?.status === 'complete' && history.length > 1);
+  const currentAttemptDate = text(checkResult?.date);
+  const currentAttempt = history.length
+    ? history.find(item => text(item?.date) === currentAttemptDate) || history.at(-1)
+    : null;
+  const priorFailed = recovered
+    ? history.slice(0, -1).filter(item => item?.passed === false).at(-1) || null
+    : null;
   const recoveredQuestionIds = Array.isArray(priorFailed?.missedQuestionIds)
     ? priorFailed.missedQuestionIds.slice()
     : [];
-  const recoveredConcepts = Array.isArray(remediation?.concepts)
+  const recoveredConcepts = recovered && Array.isArray(remediation?.concepts)
     ? remediation.concepts.map(text).filter(Boolean)
     : [];
   return {
     recovered,
     attempts: history.length || (checkResult ? Number(checkResult.attemptNumber) || 1 : 0),
-    priorFailedAttempt: Boolean(priorFailed) || Boolean(checkResult?.recovered),
+    priorFailedAttempt: Boolean(recovered && priorFailed) || Boolean(checkResult?.recovered),
     recoveredQuestionIds,
     recoveredConcepts,
     remediationStatus: text(remediation?.status),
-    reinforcementNote: text(remediation?.notes)
+    reinforcementNote: recovered ? text(remediation?.notes) : ''
   };
 }
 
