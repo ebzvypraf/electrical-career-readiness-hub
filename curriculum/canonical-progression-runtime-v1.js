@@ -1,5 +1,5 @@
 /*
- * Electrical Career Readiness Hub — canonical progression runtime v5.
+ * Electrical Career Readiness Hub — canonical progression runtime v6.
  * Bridges the existing production shell to the canonical 24-week catalog and
  * authoritative Learn → Apply → Check → Evidence transaction.
  */
@@ -81,7 +81,7 @@ function scoreCheck(weekNumber) {
   const questions = questionsFor(weekNumber), responses = {};
   questions.forEach((q, index) => { const choice = document.querySelector(`input[name="canonical-q${index}"]:checked`), answer = document.getElementById(`canonical-answer-${index}`); responses[q.id || `q${index + 1}`] = choice ? choice.value : (answer ? answer.value : ''); });
   const result = scoreQuestionSet(questions, responses), state = readState(); state.checks = state.checks || {};
-  state.checks[weekNumber - 1] = { ...result, passed: Boolean(canCompleteCheck(result)), completionReady: Boolean(canCompleteCheck(result)), date: new Date().toISOString() };
+  state.checks[weekNumber - 1] = { ...result, responses, passed: Boolean(canCompleteCheck(result)), completionReady: Boolean(canCompleteCheck(result)), date: new Date().toISOString() };
   writeState(state); syncCanonicalFromLegacy(); renderModal(true);
 }
 function saveEvidence(weekNumber, index) {
@@ -126,7 +126,7 @@ async function boot() {
     store.subscribe(next => { if (!syncingFromLegacy) syncLegacyFromCanonical(next); });
     window.addEventListener('storage', event => { if (event.key === STATE_KEY && !publishingToLegacy) syncCanonicalFromLegacy(); });
     installCompletionBridge();
-    window.ECRHCanonical = { ready: true, catalog, assessments, store, commitStageCompletion, scoreCheck, saveEvidence };
+    window.ECRHCanonical = { ready: true, catalog, assessments, store, commitStageCompletion, scoreCheck, saveEvidence, getState: () => store?.getState?.() || null };
     installObserver();
     if (document.getElementById('modal')?.classList.contains('show')) renderModal(true);
   } catch (error) { console.warn('Canonical progression runtime unavailable:', error); }
