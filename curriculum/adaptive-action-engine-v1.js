@@ -17,10 +17,14 @@
  *
  * v1.2.4 consumes the canonical learning-engine demonstratedCapability
  * aggregate when the legacy skills alias is not present.
+ *
+ * v1.2.5 normalizes numeric evidence quality before prioritizing a skill gap,
+ * so canonical numeric evidence scores receive the same adaptive weighting
+ * as qualitative evidence labels.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.4';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.5';
 
 function text(value) { return String(value ?? '').trim(); }
 
@@ -47,8 +51,8 @@ function normalizeEvidenceQuality(value) {
 
 function skillTransferContext(hubSignals, skill) {
   const sources = [
-    ...(Array.isArray(hubSignals?.skills) ? hubSignals.skills : []),
-    ...(Array.isArray(hubSignals?.demonstratedCapability) ? hubSignals.demonstratedCapability : [])
+    ...(Array.isArray(hubSignals?.demonstratedCapability) ? hubSignals.demonstratedCapability : []),
+    ...(Array.isArray(hubSignals?.skills) ? hubSignals.skills : [])
   ];
   const summary = sources.find(item => text(item?.skill).toLowerCase() === text(skill).toLowerCase()) || null;
   if (!summary) return { demonstratedWeeks: 0, evidenceQuality: 0, transferReady: false };
@@ -91,8 +95,8 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
     if (!isStageUnlocked(progressByWeek, weekId, stage)) return null;
 
     const trail = assessmentTrail(contextByWeek?.[weekId]);
-    const evidenceQuality = text(contextByWeek?.[weekId]?.evidence?.evidenceQuality) || 'insufficient';
-    const evidenceBonus = evidenceQuality === 'high' ? 0 : evidenceQuality === 'developing' ? 1 : 2;
+    const evidenceQuality = normalizeEvidenceQuality(contextByWeek?.[weekId]?.evidence?.evidenceQuality);
+    const evidenceBonus = evidenceQuality >= 80 ? 0 : evidenceQuality >= 60 ? 1 : 2;
     const recoveryBonus = trail.recovered ? 1 : 0;
     const transfer = skillTransferContext(hubSignals, gap.skill);
     const transferBonus = transfer.transferReady ? 2 : 0;
