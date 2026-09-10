@@ -23,11 +23,12 @@ function buildRecoveryProvenance(checkResult, context = {}) {
     ? checkResult.recovered
     : Boolean(checkResult?.passed && remediation?.status === 'complete' && history.length > 1);
   const currentAttemptDate = text(checkResult?.date);
-  const currentAttempt = history.length
-    ? history.find(item => text(item?.date) === currentAttemptDate) || history.at(-1)
-    : null;
+  const currentAttemptIndex = history.length
+    ? history.findIndex(item => text(item?.date) === currentAttemptDate)
+    : -1;
+  const priorAttempts = currentAttemptIndex >= 0 ? history.slice(0, currentAttemptIndex) : history.slice(0, -1);
   const priorFailed = recovered
-    ? history.slice(0, -1).filter(item => item?.passed === false).at(-1) || null
+    ? priorAttempts.filter(item => item?.passed === false).at(-1) || null
     : null;
   const recoveredQuestionIds = Array.isArray(priorFailed?.missedQuestionIds)
     ? priorFailed.missedQuestionIds.slice()
@@ -82,6 +83,36 @@ export function normalize(module, input) {
   const quality = demonstrated && linkageComplete ? 'high' : (demonstrated || (fieldsComplete && prerequisitesSatisfied && !upstreamChangedAfterEvidence) ? 'developing' : 'insufficient');
   const context = evidence.context || {};
   const recoveryProvenance = buildRecoveryProvenance(checkResult, context);
+  const proofChain = {
+    apply: {
+      linked: Boolean(applyLink),
+      link: applyLink,
+      capturedAt: applicationEvidence?.capturedAt || null,
+      deliverable: text(applicationEvidence?.deliverable),
+      decisions: text(applicationEvidence?.decisions),
+      assumptions: text(applicationEvidence?.assumptions),
+      verification: text(applicationEvidence?.verification)
+    },
+    check: {
+      linked: Boolean(checkLink),
+      link: checkLink,
+      passed: checkPassed,
+      score: checkResult?.score ?? null,
+      total: checkResult?.total ?? null,
+      percentage: checkResult?.percentage ?? null,
+      attemptNumber: checkResult?.attemptNumber ?? null,
+      date: checkResult?.date || null,
+      recovered: recoveryProvenance.recovered
+    },
+    evidence: {
+      capturedAt: evidence.capturedAt || null,
+      title,
+      quality,
+      criteriaSatisfied: criterionResults.filter(c => c.satisfied).length,
+      criteriaTotal: criterionResults.length,
+      demonstrated
+    }
+  };
   return {
     week: module && Number(module.week) || null, title, description,
     competency: Array.isArray(module && module.skillTargets) ? module.skillTargets.slice() : (Array.isArray(module && module.skills) ? module.skills.slice() : []),
@@ -89,7 +120,7 @@ export function normalize(module, input) {
     reviewStatus, evidenceQuality: quality, criteria: criterionResults, fieldsComplete, allCriteriaSatisfied,
     applicationEvidence, checkResult, applyReady, checkPassed, prerequisitesSatisfied, missingPrerequisites, demonstrated,
     upstreamChangedAfterEvidence, evidenceCapturedAt: evidence.capturedAt || null,
-    recoveryProvenance, capturedAt: text(evidence.capturedAt) || null
+    recoveryProvenance, proofChain, capturedAt: text(evidence.capturedAt) || null
   };
 }
 
@@ -98,10 +129,10 @@ export function canComplete(module, input) { return normalize(module, input).dem
 export function buildSignals(module, evidence) {
   const e = normalize(module, evidence);
   return {
-    home: { week: e.week, evidenceReady: e.demonstrated, evidenceQuality: e.evidenceQuality, prerequisitesSatisfied: e.prerequisitesSatisfied, missingPrerequisites: e.missingPrerequisites, recovered: e.recoveryProvenance.recovered, linkageComplete: e.linkageComplete, upstreamChangedAfterEvidence: e.upstreamChangedAfterEvidence },
+    home: { week: e.week, evidenceReady: e.demonstrated, evidenceQuality: e.evidenceQuality, prerequisitesSatisfied: e.prerequisitesSatisfied, missingPrerequisites: e.missingPrerequisites, recovered: e.recoveryProvenance.recovered, linkageComplete: e.linkageComplete, upstreamChangedAfterEvidence: e.upstreamChangedAfterEvidence, proofChain: e.proofChain },
     skills: e.competency.map(skill => ({ skill, demonstratedCapability: e.demonstrated, evidenceQuality: e.evidenceQuality, week: e.week, recoveryAssisted: e.recoveryProvenance.recovered, recoveryConcepts: e.recoveryProvenance.recoveredConcepts, evidenceLinkageComplete: e.linkageComplete })),
     journal: { week: e.week, reflection: e.reflection, nextAction: e.nextAction, recovery: e.recoveryProvenance, applyLink: e.applyLink, checkLink: e.checkLink, upstreamChangedAfterEvidence: e.upstreamChangedAfterEvidence },
-    portfolio: { week: e.week, title: e.title, description: e.description, competency: e.competency, reflection: e.reflection, nextAction: e.nextAction, applyLink: e.applyLink, checkLink: e.checkLink, linkageComplete: e.linkageComplete, reviewStatus: e.reviewStatus, evidenceQuality: e.evidenceQuality, criteria: e.criteria, capturedAt: e.capturedAt, upstreamChangedAfterEvidence: e.upstreamChangedAfterEvidence, recoveryProvenance: e.recoveryProvenance }
+    portfolio: { week: e.week, title: e.title, description: e.description, competency: e.competency, reflection: e.reflection, nextAction: e.nextAction, applyLink: e.applyLink, checkLink: e.checkLink, linkageComplete: e.linkageComplete, reviewStatus: e.reviewStatus, evidenceQuality: e.evidenceQuality, criteria: e.criteria, capturedAt: e.capturedAt, upstreamChangedAfterEvidence: e.upstreamChangedAfterEvidence, recoveryProvenance: e.recoveryProvenance, proofChain: e.proofChain, demonstratedCapability: e.demonstrated }
   };
 }
 
