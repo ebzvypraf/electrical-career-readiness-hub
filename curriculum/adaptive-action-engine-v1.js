@@ -11,10 +11,13 @@
  *
  * v1.2.2 uses the persisted per-attempt recovery flag when available so a
  * later ordinary pass is not incorrectly treated as a recovery.
+ *
+ * v1.2.3 normalizes qualitative evidence strength so Skills signals such as
+ * "high" are treated consistently with numeric evidence-quality scores.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.2';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.3';
 
 function text(value) { return String(value ?? '').trim(); }
 
@@ -33,11 +36,17 @@ function assessmentTrail(context = {}) {
   };
 }
 
+function normalizeEvidenceQuality(value) {
+  if (Number.isFinite(Number(value))) return Number(value);
+  const label = text(value).toLowerCase();
+  return ({ high: 100, strong: 100, developing: 60, medium: 60, moderate: 60, insufficient: 0, low: 0 }[label] ?? 0);
+}
+
 function skillTransferContext(hubSignals, skill) {
   const summary = (hubSignals?.skills || []).find(item => text(item?.skill).toLowerCase() === text(skill).toLowerCase()) || null;
   if (!summary) return { demonstratedWeeks: 0, evidenceQuality: 0, transferReady: false };
   const demonstratedWeeks = Number(summary.demonstratedWeeks) || 0;
-  const evidenceQuality = Number(summary.evidenceQuality) || 0;
+  const evidenceQuality = normalizeEvidenceQuality(summary.evidenceQuality);
   const transferReady = demonstratedWeeks > 0 && evidenceQuality >= 80;
   return { demonstratedWeeks, evidenceQuality, transferReady };
 }
@@ -45,7 +54,6 @@ function skillTransferContext(hubSignals, skill) {
 export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contextByWeek = {}, hubSignals = {} } = {}) {
   const ids = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
 
-  // 1. A failed Check with unfinished remediation always outranks normal progression.
   const remediationCandidates = ids.map(id => {
     const remediation = contextByWeek?.[id]?.remediation;
     if (!remediation || !['required', 'in-progress', 'ready-to-retry'].includes(remediation.status)) return null;
@@ -68,9 +76,6 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
   }).filter(Boolean).sort((a, b) => a.priority - b.priority || Number(a.weekId) - Number(b.weekId));
   if (remediationCandidates.length) return remediationCandidates[0];
 
-  // 2. Prefer the highest-value competency gap. If that skill has already
-  //    been demonstrated strongly elsewhere, frame the next unlocked stage as
-  //    transfer practice rather than repeating the same generic instruction.
   const gaps = Array.isArray(hubSignals?.prioritySkillGaps) ? hubSignals.prioritySkillGaps : [];
   const gapCandidates = gaps.map((gap, index) => {
     const weekId = text(gap.recommendedWeekId);
@@ -124,7 +129,6 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
   }).filter(Boolean).sort((a, b) => a.priority - b.priority || Number(a.weekId) - Number(b.weekId));
   if (gapCandidates.length) return gapCandidates[0];
 
-  // 3. Fall back to the canonical sequential stage order.
   const next = hubSignals?.nextBestAction || null;
   if (next?.weekId && next?.stage) return { ...next, adaptive: false, source: 'sequential', engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION };
   for (const id of ids) {
