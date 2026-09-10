@@ -19,6 +19,7 @@ import './assessment-history-ui-v1.js';
 import './assessment-recovery-trail-bridge-v1.js';
 import './recovery-provenance-bridge-v1.js';
 import './assessment-store-bridge-v1.js';
+import './assessment-response-retention-v1.js';
 import './skills-canonical-ui-v1.js';
 import './home-learning-loop-ui-v1.js';
 import './portfolio-review-enhancer-v1.js';
