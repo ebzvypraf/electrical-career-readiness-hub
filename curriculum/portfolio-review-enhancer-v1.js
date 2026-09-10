@@ -1,6 +1,6 @@
-/* Electrical Career Readiness Hub — Portfolio Review enhancer v2.
+/* Electrical Career Readiness Hub — Portfolio Review enhancer v3.
  * Keeps self-review controls synchronized with the canonical portfolio state
- * when the underlying evidence list is rendered or updated.
+ * and exposes the canonical Apply -> Check -> Evidence proof chain for review-ready artifacts.
  */
 (function () {
   'use strict';
@@ -21,6 +21,29 @@
   function criteriaComplete(entry) {
     const criteria = Array.isArray(entry.criteria) ? entry.criteria : [];
     return criteria.length === 0 || criteria.every(function (criterion) { return criterion && criterion.satisfied === true; });
+  }
+
+  function proofChainMarkup(entry) {
+    const chain = entry.proofChain || {};
+    const apply = chain.apply || {};
+    const check = chain.check || {};
+    const evidence = chain.evidence || {};
+    const applyProof = [
+      apply.deliverable ? '<div><b>Deliverable:</b> ' + esc(apply.deliverable) + '</div>' : '',
+      apply.decisions ? '<div><b>Decisions:</b> ' + esc(apply.decisions) + '</div>' : '',
+      apply.assumptions ? '<div><b>Assumptions:</b> ' + esc(apply.assumptions) + '</div>' : '',
+      apply.verification ? '<div><b>Verification:</b> ' + esc(apply.verification) + '</div>' : ''
+    ].join('');
+    const checkScore = Number.isFinite(Number(check.percentage)) ? String(check.percentage) + '%' : (Number.isFinite(Number(check.score)) && Number.isFinite(Number(check.total)) ? String(check.score) + '/' + String(check.total) : 'Passed');
+    const checkProof = check.passed ? '<div><b>Result:</b> Passed (' + esc(checkScore) + ')' + (check.recovered ? ' · Recovery demonstrated' : '') + '</div>' : '<div><b>Result:</b> Check result not available</div>';
+    const criteriaText = Number.isFinite(Number(evidence.criteriaTotal)) && Number(evidence.criteriaTotal) > 0 ? String(evidence.criteriaSatisfied || 0) + '/' + String(evidence.criteriaTotal) + ' criteria satisfied' : 'Core evidence captured';
+    return '<div data-proof-chain-panel="1" class="learning-card" style="margin-top:12px">' +
+      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b>Proof chain</b><div class="muted">Review-ready trace from practical application to assessed learning to demonstrated evidence.</div></div><span class="pill ' + (entry.demonstratedCapability ? 'ok' : '') + '">' + (entry.demonstratedCapability ? 'Capability demonstrated' : esc(entry.evidenceQuality || 'Developing')) + '</span></div>' +
+      '<div style="display:grid;gap:10px;margin-top:12px">' +
+      '<div><b>1 · Apply</b><div class="muted">' + (applyProof || (apply.linked ? 'Apply record linked.' : 'Apply record link not captured.')) + '</div></div>' +
+      '<div><b>2 · Check</b><div class="muted">' + checkProof + '</div></div>' +
+      '<div><b>3 · Evidence</b><div class="muted"><b>' + esc(evidence.title || entry.title || 'Evidence captured') + '</b> · ' + esc(criteriaText) + (evidence.quality ? ' · Quality: ' + esc(evidence.quality) : '') + '</div></div>' +
+      '</div></div>';
   }
 
   function reviewMarkup(entry) {
@@ -64,6 +87,15 @@
     cards.forEach(function (card, index) {
       const entry = items[index];
       if (!entry) return;
+      let proof = card.querySelector('[data-proof-chain-panel]');
+      if (!proof) {
+        card.insertAdjacentHTML('beforeend', proofChainMarkup(entry));
+      } else {
+        const next = document.createElement('div');
+        next.innerHTML = proofChainMarkup(entry);
+        const replacement = next.firstElementChild;
+        if (replacement) proof.replaceWith(replacement);
+      }
       let review = card.querySelector('[data-portfolio-review-panel]');
       if (!review) {
         review = document.createElement('div');
@@ -76,7 +108,9 @@
         id: entry.id,
         status: entry.reviewStatus || 'draft',
         criteria: entry.criteria || [],
-        competency: entry.competency || []
+        competency: entry.competency || [],
+        proofChain: entry.proofChain || {},
+        demonstratedCapability: Boolean(entry.demonstratedCapability)
       });
       if (review.dataset.signature === signature) return;
       review.dataset.signature = signature;
