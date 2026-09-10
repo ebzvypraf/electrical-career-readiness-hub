@@ -1,6 +1,7 @@
-/* Electrical Career Readiness Hub — Journal learning-link enhancer v2.
+/* Electrical Career Readiness Hub — Journal learning-link enhancer v3.
  * Connects Journal to the canonical Learn → Apply → Check → Evidence state
- * without replacing the production renderer.
+ * and exposes the same proof-chain milestones used by Portfolio.
+ * This enhances the existing production renderer; it does not replace it.
  */
 (function () {
   'use strict';
@@ -9,7 +10,31 @@
   const stageOptions = ['learn','apply','check','evidence'];
   const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 
-  function renderLearningLoop(state, panel) {
+  function weekContext(state, weekId) {
+    return weekId ? (state?.contextByWeek?.[String(weekId)] || {}) : {};
+  }
+
+  function proofStatus(state, weekId) {
+    const id = String(weekId || '');
+    const progress = state?.progressByWeek?.[id] || {};
+    const context = weekContext(state, id);
+    const evidence = context.evidence || {};
+    const check = context.assessmentResult || {};
+    const apply = context.applicationEvidence || {};
+    return {
+      learn: Boolean(progress.learn),
+      apply: Boolean(progress.apply && apply.deliverable),
+      check: Boolean(progress.check && check.passed),
+      evidence: Boolean(progress.evidence && (evidence.title || evidence.demonstrated)),
+      applyLink: String(evidence.applyLink || '').trim(),
+      checkLink: String(evidence.checkLink || '').trim(),
+      evidenceQuality: String(evidence.evidenceQuality || '').trim(),
+      demonstrated: Boolean(evidence.demonstrated),
+      recovery: Boolean(evidence.recoveryProvenance?.recovered || check.recovered)
+    };
+  }
+
+  function renderLearningLoop(state, panel, chainPanel) {
     if (!panel || !state) return;
     const signals = state.hubSignals || {};
     const action = signals.nextBestAction || null;
@@ -23,6 +48,26 @@
       ? topSkills.map(item => `<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px"><span>${esc(item.skill)}</span><strong>${esc(item.readiness)}% · ${esc(item.evidenceCount)} evidence week${Number(item.evidenceCount) === 1 ? '' : 's'}</strong></div>`).join('')
       : '<div style="font-size:12px;color:var(--muted)">Complete Evidence stages to build demonstrated capability signals.</div>';
     panel.innerHTML = `<div style="font-size:13px;font-weight:900;margin-bottom:6px">Canonical learning loop</div><div style="display:grid;gap:8px">${actionHtml}<div style="display:grid;gap:4px;padding-top:4px"><div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">Capability signal</div>${skillHtml}</div></div>`;
+
+    if (chainPanel) {
+      const weekId = $('jweek')?.value || '';
+      if (!weekId) {
+        chainPanel.innerHTML = '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">Evidence chain</div><div style="font-size:12px;color:var(--muted)">Select a week to see its Learn → Apply → Check → Evidence proof status.</div>';
+        return;
+      }
+      const status = proofStatus(state, weekId);
+      const mark = value => value ? 'Complete' : 'Open';
+      const stageRows = [
+        ['Learn', status.learn],
+        ['Apply', status.apply],
+        ['Check', status.check],
+        ['Evidence', status.evidence]
+      ].map(([label, value]) => `<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px"><span>${label}</span><strong>${mark(value)}</strong></div>`).join('');
+      const linkage = status.evidence
+        ? `<div style="font-size:12px;color:var(--muted)">Links: ${esc(status.applyLink || 'Apply pending')} → ${esc(status.checkLink || 'Check pending')}</div><div style="font-size:12px;color:var(--muted)">Quality: ${esc(status.evidenceQuality || 'not rated')}${status.recovery ? ' · recovery-assisted' : ''}${status.demonstrated ? ' · demonstrated' : ''}</div>`
+        : '<div style="font-size:12px;color:var(--muted)">Complete the upstream stages before capturing Portfolio Evidence.</div>';
+      chainPanel.innerHTML = `<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">Week ${esc(weekId)} evidence chain</div><div style="display:grid;gap:4px">${stageRows}</div>${linkage}`;
+    }
   }
 
   function enhance() {
@@ -45,12 +90,20 @@
     wrap.appendChild(label('Learning link', week)); wrap.appendChild(label('Stage', stage)); wrap.appendChild(label('Reflection', refl)); wrap.appendChild(label('Next action', next));
     form.insertBefore(wrap, save);
 
+    const chainPanel = document.createElement('div');
+    chainPanel.className = 'journal-evidence-chain';
+    chainPanel.style.cssText = 'display:grid;gap:8px;margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff';
+    form.parentNode.insertBefore(chainPanel, form.nextSibling);
+
     const panel = document.createElement('div');
     panel.className = 'journal-learning-loop';
     panel.style.cssText = 'display:grid;gap:8px;margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff';
-    form.parentNode.insertBefore(panel, form.nextSibling);
+    form.parentNode.insertBefore(panel, chainPanel.nextSibling);
+
     const store = api()?.store;
-    if (store?.subscribe) store.subscribe(state => renderLearningLoop(state, panel));
+    const rerender = state => renderLearningLoop(state, panel, chainPanel);
+    if (store?.subscribe) store.subscribe(rerender);
+    week.addEventListener('change', () => rerender(store?.getState?.() || null));
 
     save.addEventListener('click', function (event) {
       const store = api()?.store; if (!store) return;
@@ -72,6 +125,7 @@
       if (!result.ok) return alert(result.reason || 'Could not save reflection.');
       ['jhours','jstudy','jlearn','jhard','jnext','jreflection','jnextAction'].forEach(id => { const n=$(id); if(n) n.value=''; });
       week.value=''; stage.value='';
+      rerender(store.getState());
     }, true);
   }
   const observer = new MutationObserver(enhance);
