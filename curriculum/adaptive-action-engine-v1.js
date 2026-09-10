@@ -25,10 +25,14 @@
  * v1.2.6 carries the canonical proof-chain state into adaptive actions so
  * Home, Skills, Journal, and Portfolio can consume the same Apply → Check →
  * Evidence context without recreating it locally.
+ *
+ * v1.2.7 adds an explicit proof-chain status and next-proof-stage contract to
+ * every adaptive action so downstream surfaces can explain what is complete
+ * and what evidence-producing step should happen next.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.6';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.7';
 
 function text(value) { return String(value ?? '').trim(); }
 
@@ -80,6 +84,34 @@ function proofChainContext(context = {}) {
   };
 }
 
+function proofChainStatus(context = {}) {
+  const proof = proofChainContext(context);
+  const nextProofStage = !proof.applyLinked ? 'apply'
+    : !proof.checkLinked ? 'check'
+    : !proof.evidenceCaptured ? 'evidence'
+    : !proof.demonstrated ? 'evidence'
+    : null;
+  const completedStages = [proof.applyLinked, proof.checkLinked, proof.evidenceCaptured, proof.demonstrated].filter(Boolean).length;
+  return {
+    ...proof,
+    completedStages,
+    totalStages: 4,
+    complete: completedStages === 4,
+    nextProofStage,
+    nextProofLabel: nextProofStage ? STAGE_LABELS[nextProofStage] || 'Evidence' : 'Complete'
+  };
+}
+
+function actionContract(context = {}) {
+  const status = proofChainStatus(context);
+  return {
+    proofStatus: status.complete ? 'demonstrated' : status.nextProofStage ? 'in-progress' : 'not-started',
+    proofProgress: `${status.completedStages}/${status.totalStages}`,
+    nextProofStage: status.nextProofStage,
+    nextProofLabel: status.nextProofLabel
+  };
+}
+
 export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contextByWeek = {}, hubSignals = {} } = {}) {
   const ids = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
 
@@ -88,7 +120,7 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
     if (!remediation || !['required', 'in-progress', 'ready-to-retry'].includes(remediation.status)) return null;
     const week = catalog[id];
     const stage = remediation.status === 'ready-to-retry' ? 'check' : 'learn';
-    const proof = proofChainContext(contextByWeek?.[id]);
+    const proof = proofChainStatus(contextByWeek?.[id]);
     return {
       priority: remediation.status === 'ready-to-retry' ? 10 : 20,
       weekId: id,
@@ -102,6 +134,7 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
       adaptive: true,
       source: 'remediation',
       proofChain: proof,
+      ...actionContract(contextByWeek?.[id]),
       engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION
     };
   }).filter(Boolean).sort((a, b) => a.priority - b.priority || Number(a.weekId) - Number(b.weekId));
@@ -120,7 +153,7 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
     const recoveryBonus = trail.recovered ? 1 : 0;
     const transfer = skillTransferContext(hubSignals, gap.skill);
     const transferBonus = transfer.transferReady ? 2 : 0;
-    const proof = proofChainContext(contextByWeek?.[weekId]);
+    const proof = proofChainStatus(contextByWeek?.[weekId]);
     const gapReadiness = Number.isFinite(Number(gap.readiness)) ? Number(gap.readiness) : 100;
     const priority = Math.max(0, gapReadiness) - evidenceBonus - recoveryBonus - transferBonus + index * 0.01;
     const recoveryNote = trail.recovered
@@ -157,6 +190,7 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
       },
       evidenceQuality,
       proofChain: proof,
+      ...actionContract(contextByWeek?.[weekId]),
       engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION
     };
   }).filter(Boolean).sort((a, b) => a.priority - b.priority || Number(a.weekId) - Number(b.weekId));
@@ -168,7 +202,8 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
       ...next,
       adaptive: false,
       source: 'sequential',
-      proofChain: proofChainContext(contextByWeek?.[next.weekId]),
+      proofChain: proofChainStatus(contextByWeek?.[next.weekId]),
+      ...actionContract(contextByWeek?.[next.weekId]),
       engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION
     };
   }
@@ -185,7 +220,8 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
         reason: 'Continue the canonical course sequence.',
         adaptive: false,
         source: 'sequential',
-        proofChain: proofChainContext(contextByWeek?.[id]),
+        proofChain: proofChainStatus(contextByWeek?.[id]),
+        ...actionContract(contextByWeek?.[id]),
         engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION
       };
     }
