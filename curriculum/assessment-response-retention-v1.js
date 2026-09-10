@@ -1,7 +1,7 @@
-/* Electrical Career Readiness Hub — assessment response retention v2.
- * Restores the learner's latest canonical Check responses when the Check modal
- * is reopened, so failed attempts and recovery work can be reviewed and retried
- * without losing the learner's previous reasoning.
+/* Electrical Career Readiness Hub — assessment response retention v3.
+ * Restores the learner's latest canonical Check responses when the production
+ * Check modal is reopened, so failed attempts and recovery work can be reviewed
+ * and retried without losing previous reasoning.
  */
 (function () {
   'use strict';
@@ -18,22 +18,20 @@
     const responses = result?.responses;
     if (!responses || typeof responses !== 'object') return;
 
-    const lookup = (id, index) => {
-      const candidates = [String(id || ''), String(index), `q${Number(index) + 1}`];
-      return Object.keys(responses).find(key => candidates.includes(String(key)));
-    };
+    const keys = Object.keys(responses);
+    const findKey = index => keys.find(key => String(key) === String(index) || String(key) === `q${Number(index) + 1}`);
 
     card.querySelectorAll('input[type="radio"]').forEach(input => {
       const name = String(input.name || '');
-      const index = name.match(/^canonical-q(\d+)$/)?.[1];
+      const index = name.match(/^cq(\d+)$/)?.[1];
       if (index == null) return;
-      const key = lookup('', index);
+      const key = findKey(index);
       if (key != null && Number(responses[key]) === Number(input.value)) input.checked = true;
     });
 
-    card.querySelectorAll('textarea[id^="canonical-answer-"]').forEach(textarea => {
-      const index = String(textarea.id).slice('canonical-answer-'.length);
-      const key = lookup('', index);
+    card.querySelectorAll('textarea[id^="ca"]').forEach(textarea => {
+      const index = String(textarea.id).slice(2);
+      const key = findKey(index);
       if (key != null && !textarea.value) textarea.value = String(responses[key] ?? '');
     });
   }
