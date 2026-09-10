@@ -1,11 +1,12 @@
 /*
- * Electrical Career Readiness Hub — canonical progression runtime v4.
+ * Electrical Career Readiness Hub — canonical progression runtime v5.
  * Bridges the existing production shell to the canonical 24-week catalog and
  * authoritative Learn → Apply → Check → Evidence transaction.
  */
 import { loadCanonicalCatalog, loadAssessmentCatalog } from './canonical-catalog-v1.js';
 import { commitStageCompletion } from './learning-engine-v2.js';
 import { scoreQuestionSet, canCompleteCheck } from './assessment-engine-v1.js';
+import { normalize as normalizeEvidence } from './evidence-engine-v1.js';
 import { createLearningStateStore } from './learning-state-store-v1.js';
 
 const STATE_KEY = 'ecrh-v35';
@@ -49,7 +50,8 @@ function renderModal(force = false) {
   rendering = true; lastModalKey = modalKey;
   try {
     const state = readState(), week = catalog[String(target.week)], index = target.week - 1;
-    const progress = state.weeks?.[index] || {}, evidence = store?.getState?.()?.contextByWeek?.[String(target.week)]?.evidence || state.evidence?.[index], check = store?.getState?.()?.contextByWeek?.[String(target.week)]?.assessmentResult || state.checks?.[index];
+    const context = store?.getState?.()?.contextByWeek?.[String(target.week)] || {};
+    const progress = state.weeks?.[index] || {}, evidence = context.evidence || state.evidence?.[index], check = context.assessmentResult || state.checks?.[index];
     let body = '';
     if (target.stage === 'learn') body = `<div class="learning-hero"><b>Objective</b><p>${esc(week.objective)}</p></div><div class="learning-card"><h3>${esc(week.learn?.heading || 'What to understand')}</h3><ul>${(week.learn?.concepts || week.learn?.bullets || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul><p><b>Senior reasoning:</b> ${esc(week.learn?.seniorReasoning || week.learn?.takeaway || '')}</p></div>`;
     if (target.stage === 'apply') body = `<div class="learning-hero"><b>Scenario</b><p>${esc(week.apply?.scenario || '')}</p></div><div class="learning-grid"><div class="learning-card"><h3>Do this</h3><ol>${(week.apply?.tasks || []).map(x => `<li>${esc(x)}</li>`).join('')}</ol></div><div class="learning-card"><h3>Deliverable</h3><p>${esc(week.apply?.deliverable || '')}</p><span class="tag">Practical</span> <span class="tag">Sanitized</span> <span class="tag">Reviewable</span></div></div><div class="evidence-form"><label>Application notes<textarea id="canonical-note" placeholder="Record decisions, assumptions, interfaces and verification.">${esc(state.notes?.[index] || '')}</textarea></label><button class="btn" id="canonical-save-note">Save application notes</button></div>`;
@@ -60,14 +62,19 @@ function renderModal(force = false) {
       body += `<button class="btn primary" style="margin-top:12px" id="canonical-score">Score check</button>`;
       if (check) body += `<div class="result ${check.passed ? '' : 'warn'}"><b>Last score: ${esc(check.score)}/${esc(check.total)}</b> — ${check.passed ? 'Pass. Evidence is available.' : 'Not yet passed.'}</div>`;
     }
-    if (target.stage === 'evidence') body = `<div class="learning-hero"><b>Evidence requirement</b><p>${esc(week.evidence?.prompt || '')}</p><div class="rubric">${(week.evidence?.criteria || []).map((x, n) => `<div class="rubric-row"><span>${n + 1}. ${esc(x)}</span><span class="tag">Required</span></div>`).join('')}</div></div>${evidence ? `<div class="saved"><b>Evidence saved</b><p>${esc(evidence.title)}</p><div>${esc(evidence.description)}</div></div>` : ''}<div class="evidence-form"><label>Evidence title<input id="canonical-et" value="${esc(evidence?.title || '')}" placeholder="e.g. sanitized design review record"></label><label>What does it prove?<textarea id="canonical-ed" placeholder="Explain your contribution, reasoning and verification.">${esc(evidence?.description || '')}</textarea></label><button class="btn primary" id="canonical-save-evidence">Save & link evidence</button></div>`;
+    if (target.stage === 'evidence') {
+      const criteria = Array.isArray(week.evidence?.criteria) ? week.evidence.criteria : [];
+      const savedCriteria = evidence?.criteria && typeof evidence.criteria === 'object' ? evidence.criteria : {};
+      const criteriaMarkup = criteria.map((criterion, n) => `<label class="rubric-row"><span>${n + 1}. ${esc(criterion)}</span><span><input type="checkbox" class="canonical-criterion" data-criterion="criterion_${n + 1}" ${savedCriteria[`criterion_${n + 1}`] === true ? 'checked' : ''}> Confirmed</span></label>`).join('');
+      body = `<div class="learning-hero"><b>Evidence requirement</b><p>${esc(week.evidence?.prompt || '')}</p><div class="rubric">${criteriaMarkup || '<div class="rubric-row"><span>No additional rubric criteria authored for this week.</span><span class="tag">Required</span></div>'}</div></div>${evidence ? `<div class="saved"><b>Evidence saved</b><p>${esc(evidence.title)}</p><div>${esc(evidence.description)}</div><small>Apply → Check linkage: ${esc(evidence.applyLink || 'pending')} → ${esc(evidence.checkLink || 'pending')}</small></div>` : ''}<div class="evidence-form"><label>Evidence title<input id="canonical-et" value="${esc(evidence?.title || '')}" placeholder="e.g. sanitized design review record"></label><label>What does it prove?<textarea id="canonical-ed" placeholder="Explain your contribution, reasoning and verification.">${esc(evidence?.description || '')}</textarea></label><button class="btn primary" id="canonical-save-evidence">Save & link evidence</button></div>`;
+    }
     const completed = Boolean(progress[target.stage]);
     card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px"><div><div class="k">Week ${target.week} • ${target.stage.charAt(0).toUpperCase() + target.stage.slice(1)}</div><h2>${esc(week.title)}</h2><span class="pill">${esc(week.phase)}</span></div><button class="btn" id="canonical-close">Close</button></div>${body}<div class="mission" style="margin-top:12px"><b>Stage gate</b><p class="muted">${completed ? 'Completed.' : 'Complete the required work honestly before marking this stage complete.'}</p></div><button class="btn primary" id="canonical-complete">${completed ? 'Completed — review' : 'Mark stage complete'}</button>`;
     document.getElementById('canonical-close').onclick = () => window.ECRH?.close?.();
     document.getElementById('canonical-complete').onclick = () => window.ECRH?.complete?.(index, STAGES.indexOf(target.stage));
     if (target.stage === 'apply') document.getElementById('canonical-save-note').onclick = () => { const next = readState(); next.notes = next.notes || {}; next.notes[index] = document.getElementById('canonical-note').value.trim(); writeState(next); syncCanonicalFromLegacy(); renderModal(true); };
     if (target.stage === 'check') document.getElementById('canonical-score').onclick = () => scoreCheck(target.week);
-    if (target.stage === 'evidence') document.getElementById('canonical-save-evidence').onclick = () => { const title = document.getElementById('canonical-et').value.trim(), description = document.getElementById('canonical-ed').value.trim(); if (!title || !description) { alert('Add an evidence title and description first.'); return; } const next = readState(); next.evidence = next.evidence || {}; next.evidence[index] = { title, description, date: new Date().toISOString() }; writeState(next); syncCanonicalFromLegacy(); renderModal(true); };
+    if (target.stage === 'evidence') document.getElementById('canonical-save-evidence').onclick = () => saveEvidence(target.week, index);
   } finally { rendering = false; }
 }
 function scoreCheck(weekNumber) {
@@ -76,6 +83,23 @@ function scoreCheck(weekNumber) {
   const result = scoreQuestionSet(questions, responses), state = readState(); state.checks = state.checks || {};
   state.checks[weekNumber - 1] = { ...result, passed: Boolean(canCompleteCheck(result)), completionReady: Boolean(canCompleteCheck(result)), date: new Date().toISOString() };
   writeState(state); syncCanonicalFromLegacy(); renderModal(true);
+}
+function saveEvidence(weekNumber, index) {
+  const week = catalog[String(weekNumber)] || {};
+  const title = document.getElementById('canonical-et')?.value.trim() || '';
+  const description = document.getElementById('canonical-ed')?.value.trim() || '';
+  if (!title || !description) { alert('Add an evidence title and description first.'); return; }
+  const criteria = {};
+  document.querySelectorAll('.canonical-criterion').forEach(node => { criteria[String(node.dataset.criterion)] = Boolean(node.checked); });
+  const current = contextForWeek(readState(), index);
+  const applyLink = current.applicationEvidence ? `apply:${weekNumber}` : '';
+  const checkLink = current.assessmentResult?.date ? `check:${weekNumber}:${current.assessmentResult.date}` : '';
+  const evidenceInput = { title, description, ...criteria, criteria, applyLink, checkLink, capturedAt: new Date().toISOString(), applicationEvidence: current.applicationEvidence, checkResult: current.assessmentResult, context: current };
+  const normalized = normalizeEvidence(week, evidenceInput);
+  const result = store?.updateStageContext?.(weekNumber, { evidence: normalized });
+  if (!result?.ok) { alert('Unable to save canonical Evidence.'); return; }
+  const next = readState(); next.evidence = next.evidence || {}; next.evidence[index] = { ...normalized, date: normalized.capturedAt }; writeState(next);
+  syncCanonicalFromLegacy(); renderModal(true);
 }
 function installCompletionBridge() {
   if (installed || !window.ECRH) return; installed = true; originalComplete = window.ECRH.complete;
@@ -102,7 +126,7 @@ async function boot() {
     store.subscribe(next => { if (!syncingFromLegacy) syncLegacyFromCanonical(next); });
     window.addEventListener('storage', event => { if (event.key === STATE_KEY && !publishingToLegacy) syncCanonicalFromLegacy(); });
     installCompletionBridge();
-    window.ECRHCanonical = { ready: true, catalog, assessments, store, commitStageCompletion, scoreCheck };
+    window.ECRHCanonical = { ready: true, catalog, assessments, store, commitStageCompletion, scoreCheck, saveEvidence };
     installObserver();
     if (document.getElementById('modal')?.classList.contains('show')) renderModal(true);
   } catch (error) { console.warn('Canonical progression runtime unavailable:', error); }
