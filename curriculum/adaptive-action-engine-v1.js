@@ -14,10 +14,13 @@
  *
  * v1.2.3 normalizes qualitative evidence strength so Skills signals such as
  * "high" are treated consistently with numeric evidence-quality scores.
+ *
+ * v1.2.4 consumes the canonical learning-engine demonstratedCapability
+ * aggregate when the legacy skills alias is not present.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.3';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.2.4';
 
 function text(value) { return String(value ?? '').trim(); }
 
@@ -43,9 +46,13 @@ function normalizeEvidenceQuality(value) {
 }
 
 function skillTransferContext(hubSignals, skill) {
-  const summary = (hubSignals?.skills || []).find(item => text(item?.skill).toLowerCase() === text(skill).toLowerCase()) || null;
+  const sources = [
+    ...(Array.isArray(hubSignals?.skills) ? hubSignals.skills : []),
+    ...(Array.isArray(hubSignals?.demonstratedCapability) ? hubSignals.demonstratedCapability : [])
+  ];
+  const summary = sources.find(item => text(item?.skill).toLowerCase() === text(skill).toLowerCase()) || null;
   if (!summary) return { demonstratedWeeks: 0, evidenceQuality: 0, transferReady: false };
-  const demonstratedWeeks = Number(summary.demonstratedWeeks) || 0;
+  const demonstratedWeeks = Number(summary.demonstratedWeeks ?? summary.evidenceCount) || 0;
   const evidenceQuality = normalizeEvidenceQuality(summary.evidenceQuality);
   const transferReady = demonstratedWeeks > 0 && evidenceQuality >= 80;
   return { demonstratedWeeks, evidenceQuality, transferReady };
