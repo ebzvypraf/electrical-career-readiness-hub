@@ -1,5 +1,5 @@
 /*
- * Electrical Career Readiness Hub — recovery provenance bridge v1.1.
+ * Electrical Career Readiness Hub — recovery provenance bridge v1.2.
  * Carries a successful remediation/retry into the canonical Evidence and
  * Portfolio records so Skills/Home/Journal can distinguish recovered capability.
  *
@@ -21,15 +21,19 @@
   function buildProvenance(context) {
     const history = Array.isArray(context?.assessmentHistory) ? context.assessmentHistory : [];
     const remediation = context?.remediation || null;
-    const recovered = Boolean(context?.assessmentResult?.passed && remediation?.status === 'complete' && history.length > 1);
+    const latestAttempt = history.at(-1) || null;
+    const hasPersistedRecovery = Object.prototype.hasOwnProperty.call(latestAttempt || {}, 'recovered');
+    const recovered = hasPersistedRecovery
+      ? Boolean(latestAttempt?.recovered)
+      : Boolean(context?.assessmentResult?.passed && remediation?.status === 'complete' && history.length > 1);
     const priorFailed = history.slice(0, -1).filter(item => item?.passed === false).at(-1) || null;
     return {
       recovered,
       attempts: history.length,
       priorFailedAttempt: Boolean(priorFailed),
-      recoveredQuestionIds: Array.isArray(priorFailed?.missedQuestionIds) ? priorFailed.missedQuestionIds.slice() : [],
-      recoveredConcepts: Array.isArray(remediation?.concepts) ? remediation.concepts.map(clean).filter(Boolean) : [],
-      reinforcementNote: clean(remediation?.notes),
+      recoveredQuestionIds: recovered && Array.isArray(priorFailed?.missedQuestionIds) ? priorFailed.missedQuestionIds.slice() : [],
+      recoveredConcepts: recovered && Array.isArray(remediation?.concepts) ? remediation.concepts.map(clean).filter(Boolean) : [],
+      reinforcementNote: recovered ? clean(remediation?.notes) : '',
       recordedAt: new Date().toISOString()
     };
   }
@@ -65,7 +69,7 @@
     };
 
     installed = true;
-    window.ECRHRecoveryProvenance = { version: '1.1.0', buildProvenance };
+    window.ECRHRecoveryProvenance = { version: '1.2.0', buildProvenance };
     return true;
   }
 
