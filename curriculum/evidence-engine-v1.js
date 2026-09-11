@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — Evidence Engine v1
+/* Electrical Career Readiness Hub — Evidence Engine v1.2.
  * Canonical Evidence -> Portfolio -> Skills -> Home/Journal contract.
  * Browser-safe, dependency-free, and importable by the canonical state store.
  */
@@ -81,8 +81,8 @@ export function normalize(module, input) {
   const checkLinkValid = Boolean(expectedCheckPrefix && checkLink.startsWith(expectedCheckPrefix) && checkLink.length > expectedCheckPrefix.length);
   const linkageComplete = Boolean(applyLink && checkLink);
   const linkageValid = applyLinkValid && checkLinkValid;
-  if (!linkageValid && (applyLink || checkLink)) missingPrerequisites.push('Re-link Evidence to the canonical Apply and Check records for this week.');
-  const demonstrated = fieldsComplete && allCriteriaSatisfied && prerequisitesSatisfied && !upstreamChangedAfterEvidence;
+  if (!linkageValid) missingPrerequisites.push('Link Evidence to the canonical Apply and Check records for this week before claiming demonstrated capability.');
+  const demonstrated = fieldsComplete && allCriteriaSatisfied && prerequisitesSatisfied && linkageValid && !upstreamChangedAfterEvidence;
   let reviewStatus = text(evidence.reviewStatus);
   if (![STATUS.DRAFT, STATUS.REVIEW, STATUS.DEMONSTRATED].includes(reviewStatus)) reviewStatus = demonstrated ? STATUS.DEMONSTRATED : STATUS.DRAFT;
   if (!demonstrated && reviewStatus === STATUS.DEMONSTRATED) reviewStatus = STATUS.REVIEW;
