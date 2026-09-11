@@ -6,7 +6,9 @@ import './journal-portfolio-signals-ui-v1.js';
 import './evidence-impact-ui-v1.js';
 import './skill-gap-action-ui-v1.js';
 import './apply-gate-bridge-v1.js';
-export const ASSESSMENT_FEEDBACK_VERSION = '1.1.0';
+export const ASSESSMENT_FEEDBACK_VERSION = '1.2.0';
+
+const FALLBACK_CONCEPTS = ['design', 'check', 'verify', 'confirm', 'coordinate', 'input', 'interface', 'assumption', 'standard', 'issue', 'safety', 'compliance', 'trace', 'impact'];
 
 function clean(value) { return String(value ?? '').trim(); }
 
@@ -26,6 +28,16 @@ function buildApplicationContext(applicationEvidence = {}) {
   };
 }
 
+function deriveConcepts(question = {}) {
+  const authored = Array.isArray(question?.requiredConcepts)
+    ? question.requiredConcepts.map(clean).filter(Boolean)
+    : [];
+  if (authored.length) return authored;
+
+  const answerText = clean(question?.answer || question?.why).toLowerCase();
+  return FALLBACK_CONCEPTS.filter(term => answerText.includes(term));
+}
+
 export function buildAssessmentFeedback(questions = [], result = {}) {
   const qs = Array.isArray(questions) ? questions : [];
   const results = Array.isArray(result?.results) ? result.results : [];
@@ -33,7 +45,7 @@ export function buildAssessmentFeedback(questions = [], result = {}) {
   const byId = new Map(qs.map((q, i) => [clean(q?.id) || `q${i + 1}`, q]));
   const reinforcement = failed.map(item => {
     const q = byId.get(clean(item?.id));
-    const concepts = Array.isArray(q?.requiredConcepts) ? q.requiredConcepts.map(clean).filter(Boolean) : [];
+    const concepts = deriveConcepts(q);
     return { questionId: clean(item?.id), prompt: clean(q?.prompt || q?.q), concepts, explanation: clean(q?.answer || q?.why) || 'Review the related learning material, then explain the reasoning in your own words before retrying the check.' };
   });
   const applicationContext = buildApplicationContext(result?.applicationEvidence || result?.context?.applicationEvidence || {});
