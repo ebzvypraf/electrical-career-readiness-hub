@@ -8,11 +8,16 @@ if (!Array.isArray(catalog.weeks) || catalog.weeks.length !== 24) {
   throw new Error(`Expected 24 assessment weeks; found ${catalog.weeks?.length ?? 0}.`);
 }
 
+const weekNumbers = new Set();
 const ids = new Set();
 for (const week of catalog.weeks) {
   if (!Number.isInteger(week.week) || week.week < 1 || week.week > 24) {
     throw new Error(`Invalid week number: ${week.week}`);
   }
+  if (weekNumbers.has(week.week)) {
+    throw new Error(`Duplicate assessment week number: ${week.week}`);
+  }
+  weekNumbers.add(week.week);
   if (!Array.isArray(week.questions) || week.questions.length !== 5) {
     throw new Error(`Week ${week.week} must contain exactly 5 authored questions.`);
   }
@@ -28,6 +33,12 @@ for (const week of catalog.weeks) {
     if (!Number.isInteger(question.correctIndex) || question.correctIndex < 0 || question.correctIndex >= question.options.length) {
       throw new Error(`${question.id}: correctIndex is outside the option range.`);
     }
+  }
+}
+
+for (let week = 1; week <= 24; week += 1) {
+  if (!weekNumbers.has(week)) {
+    throw new Error(`Missing assessment week: ${week}`);
   }
 }
 
