@@ -1,11 +1,11 @@
-/* Electrical Career Readiness Hub — Apply gate bridge v1.
+/* Electrical Career Readiness Hub — Apply gate bridge v1.1.
  * Bridges the structured Apply evidence record into the canonical stage gate
- * without inventing learner-authored notes. The learning engine historically
- * accepted applicationNotes as its Apply completion signal; structured Apply
- * evidence is now the authoritative source for that gate in the UI runtime.
+ * without allowing legacy applicationNotes to bypass the structured contract.
  */
 (function () {
   'use strict';
+
+  const APPLY_GATE_BRIDGE_VERSION = '1.1.0';
 
   const ready = evidence => Boolean(
     evidence &&
@@ -38,10 +38,22 @@
             }
           });
         }
+        // Neutralize legacy notes when structured Apply evidence is incomplete.
+        // This preserves the canonical return contract while preventing a stale
+        // free-form note from satisfying the historical Apply gate.
+        return original({
+          ...args,
+          context: {
+            ...(args.context || {}),
+            applicationEvidence: evidence || null,
+            applicationNotes: ''
+          }
+        });
       }
       return original(args);
     };
     store.__applyGateBridgeV1 = true;
+    store.__applyGateBridgeVersion = APPLY_GATE_BRIDGE_VERSION;
     return true;
   }
 
