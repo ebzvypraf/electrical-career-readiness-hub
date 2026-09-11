@@ -6,9 +6,15 @@ import './journal-portfolio-signals-ui-v1.js';
 import './evidence-impact-ui-v1.js';
 import './skill-gap-action-ui-v1.js';
 import './apply-gate-bridge-v1.js';
-export const ASSESSMENT_FEEDBACK_VERSION = '1.2.0';
+export const ASSESSMENT_FEEDBACK_VERSION = '1.3.0';
 
-const FALLBACK_CONCEPTS = ['design', 'check', 'verify', 'confirm', 'coordinate', 'input', 'interface', 'assumption', 'standard', 'issue', 'safety', 'compliance', 'trace', 'impact'];
+const FALLBACK_CONCEPTS = [
+  'design', 'check', 'verify', 'confirm', 'coordinate', 'input', 'interface',
+  'assumption', 'standard', 'issue', 'safety', 'compliance', 'trace', 'impact',
+  'traceability', 'revision', 'reference', 'earthing', 'hazardous', 'protection',
+  'cable', 'MCC', 'PLC', 'I/O', 'voltage', 'BIM', 'redline', 'deliverable',
+  'maintainability', 'commissioning'
+];
 
 function clean(value) { return String(value ?? '').trim(); }
 
@@ -34,8 +40,17 @@ function deriveConcepts(question = {}) {
     : [];
   if (authored.length) return authored;
 
-  const answerText = clean(question?.answer || question?.why).toLowerCase();
-  return FALLBACK_CONCEPTS.filter(term => answerText.includes(term));
+  const sourceText = [
+    question?.prompt,
+    question?.answer,
+    question?.why,
+    question?.explanation
+  ].map(clean).filter(Boolean).join(' ').toLowerCase();
+
+  return FALLBACK_CONCEPTS.filter(term => {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(sourceText);
+  });
 }
 
 export function buildAssessmentFeedback(questions = [], result = {}) {
@@ -46,7 +61,7 @@ export function buildAssessmentFeedback(questions = [], result = {}) {
   const reinforcement = failed.map(item => {
     const q = byId.get(clean(item?.id));
     const concepts = deriveConcepts(q);
-    return { questionId: clean(item?.id), prompt: clean(q?.prompt || q?.q), concepts, explanation: clean(q?.answer || q?.why) || 'Review the related learning material, then explain the reasoning in your own words before retrying the check.' };
+    return { questionId: clean(item?.id), prompt: clean(q?.prompt || q?.q), concepts, explanation: clean(q?.answer || q?.why || q?.explanation) || 'Review the related learning material, then explain the reasoning in your own words before retrying the check.' };
   });
   const applicationContext = buildApplicationContext(result?.applicationEvidence || result?.context?.applicationEvidence || {});
   const applicationPrompt = applicationContext.available
