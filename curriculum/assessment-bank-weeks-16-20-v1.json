@@ -1,47 +1,42 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "purpose": "Authored deterministic multiple-choice assessments for Weeks 16-20 of the Learn → Apply → Check → Evidence pathway.",
   "grading": "Each question uses one module-authored correctIndex. Choice scoring is deterministic; all questions in the set must be correct to pass.",
   "weeks": [
-    {
-      "week": 16,
-      "questions": [
-        {"id":"w16q1","prompt":"An MCC physically fits, but cable termination access is poor. What is the strongest senior response?","options":["Accept it because the equipment fits.","Treat access and maintainability as design constraints and revise the arrangement before issue.","Move the issue to the construction team without documenting it."],"correctIndex":1},
-        {"id":"w16q2","prompt":"A new MCC feeder is added. Which set of records should be coordinated?","options":["Only the MCC GA.","The GA, SLD, cable schedule, protection information, interfaces and revision/change records.","Only the equipment tag."],"correctIndex":1},
-        {"id":"w16q3","prompt":"When should a switchboard layout assumption be escalated?","options":["Only when the drawing no longer looks balanced.","When it affects safety, equipment interface, maintainability, compliance or a vendor/engineer approval boundary.","Never; layout assumptions are always drafting-only matters."],"correctIndex":1}
-      ]
-    },
-    {
-      "week": 17,
-      "questions": [
-        {"id":"w17q1","prompt":"A field instrument exists on the P&ID but not in the electrical I/O list. What is the strongest response?","options":["Add a guessed I/O point and continue.","Record the interface discrepancy, trace the controlled source and coordinate the intended signal before finalizing documentation.","Ignore it because the P&ID is not an electrical drawing."],"correctIndex":1},
-        {"id":"w17q2","prompt":"Why should power and signal interfaces remain clearly separated?","options":["They have different design, segregation, termination and verification considerations.","It makes drawings use more symbols.","They can never share a panel."],"correctIndex":0},
-        {"id":"w17q3","prompt":"What should be confirmed before assigning a PLC termination?","options":["Only the device colour.","Signal type, source, destination, I/O ownership, termination arrangement and approved control philosophy.","Only the nearest terminal number."],"correctIndex":1}
-      ]
-    },
-    {
-      "week": 18,
-      "questions": [
-        {"id":"w18q1","prompt":"A cable length is uncertain and voltage drop is close to the project limit. What is the strongest response?","options":["Use the shortest likely length and finalize the cable.","Confirm the route/length, document the assumption and reassess before final selection.","Ignore the uncertainty because the result is only slightly over the limit."],"correctIndex":1},
-        {"id":"w18q2","prompt":"Which inputs should be traceable in a cable-sizing calculation?","options":["Load/current, length, installation method, correction factors/conditions, allowable voltage drop and design assumptions.","Cable colour and drawing scale only.","Only the preferred manufacturer."],"correctIndex":0},
-        {"id":"w18q3","prompt":"When should a calculation result be escalated?","options":["Never if the spreadsheet produces a number.","When inputs are incomplete, the result is marginal, or engineering judgement/approval is required.","Only after the drawing is issued."],"correctIndex":1}
-      ]
-    },
-    {
-      "week": 19,
-      "questions": [
-        {"id":"w19q1","prompt":"A drawing looks correct but its cable schedule contradicts it. How should the checker respond?","options":["Accept the drawing because it looks correct.","Raise the traceability issue, identify affected documents and require resolution before issue.","Correct the schedule silently without recording the change."],"correctIndex":1},
-        {"id":"w19q2","prompt":"What distinguishes an effective checking comment?","options":["It is as short as possible, even if unclear.","It identifies the issue, consequence or required clarification clearly enough for the designer to act.","It only states that something is wrong."],"correctIndex":1},
-        {"id":"w19q3","prompt":"When is a package not ready for closure?","options":["When significant technical, safety, compliance, interface or traceability issues remain unresolved.","Whenever a checker has any comment, regardless of severity.","Only when the title block is incomplete."],"correctIndex":0}
-      ]
-    },
-    {
-      "week": 20,
-      "questions": [
-        {"id":"w20q1","prompt":"A redline is unclear but could affect cable routing. What is the strongest response?","options":["Interpret it using the most convenient routing.","Raise a clarification before incorporation and record the potential downstream impact.","Delete the markup and continue."],"correctIndex":1},
-        {"id":"w20q2","prompt":"Why assess change impact before editing a redline?","options":["Because one change can affect multiple drawings, schedules, references and design assumptions.","Because revisions are only administrative.","Because every drawing must be completely redrawn."],"correctIndex":0},
-        {"id":"w20q3","prompt":"What closes a revision properly?","options":["Only changing the revision letter.","Incorporating the change, checking affected documents, updating revision information and recording unresolved items.","Printing the marked-up drawing."],"correctIndex":1}
-      ]
-    }
+    {"week":16,"questions":[
+      {"id":"w16q1","prompt":"An MCC physically fits, but cable termination access is poor. What is the strongest senior response?","options":["Accept it because the equipment fits.","Treat access and maintainability as design constraints and revise the arrangement before issue.","Move the issue to the construction team without documenting it."],"correctIndex":1},
+      {"id":"w16q2","prompt":"A new MCC feeder is added. Which set of records should be coordinated?","options":["Only the MCC GA.","The GA, SLD, cable schedule, protection information, interfaces and revision/change records.","Only the equipment tag."],"correctIndex":1},
+      {"id":"w16q3","prompt":"When should a switchboard layout assumption be escalated?","options":["Only when the drawing no longer looks balanced.","When it affects safety, equipment interface, maintainability, compliance or a vendor/engineer approval boundary.","Never; layout assumptions are always drafting-only matters."],"correctIndex":1},
+      {"id":"w16q4","prompt":"A board extension changes available cable termination space. What should be checked before issue?","options":["Only the overall board width.","Termination access, cable entry, bend space, equipment interfaces and affected documentation.","Only the title block revision."],"correctIndex":1},
+      {"id":"w16q5","prompt":"What is the strongest evidence of a coordinated switchboard layout?","options":["A visually tidy GA only.","A checked layout showing interfaces, access constraints, coordinated tags and traceable dispositions for outstanding issues.","A screenshot of the 3D model with no revision context."],"correctIndex":1}
+    ]},
+    {"week":17,"questions":[
+      {"id":"w17q1","prompt":"A field instrument exists on the P&ID but not in the electrical I/O list. What is the strongest response?","options":["Add a guessed I/O point and continue.","Record the interface discrepancy, trace the controlled source and coordinate the intended signal before finalizing documentation.","Ignore it because the P&ID is not an electrical drawing."],"correctIndex":1},
+      {"id":"w17q2","prompt":"Why should power and signal interfaces remain clearly separated?","options":["They have different design, segregation, termination and verification considerations.","It makes drawings use more symbols.","They can never share a panel."],"correctIndex":0},
+      {"id":"w17q3","prompt":"What should be confirmed before assigning a PLC termination?","options":["Only the device colour.","Signal type, source, destination, I/O ownership, termination arrangement and approved control philosophy.","Only the nearest terminal number."],"correctIndex":1},
+      {"id":"w17q4","prompt":"A control signal appears on two different I/O lists with conflicting destinations. What should happen?","options":["Pick the destination that is easiest to draw.","Reconcile the authoritative control philosophy and interface ownership before finalizing the termination documentation.","Duplicate the signal on both lists without clarification."],"correctIndex":1},
+      {"id":"w17q5","prompt":"What makes an I/O documentation change issue-ready?","options":["Only assigning a terminal number.","Traceable source/destination, signal definition, ownership, termination and confirmation against the approved control basis.","A completed title block regardless of content."],"correctIndex":1}
+    ]},
+    {"week":18,"questions":[
+      {"id":"w18q1","prompt":"A cable length is uncertain and voltage drop is close to the project limit. What is the strongest response?","options":["Use the shortest likely length and finalize the cable.","Confirm the route/length, document the assumption and reassess before final selection.","Ignore the uncertainty because the result is only slightly over the limit."],"correctIndex":1},
+      {"id":"w18q2","prompt":"Which inputs should be traceable in a cable-sizing calculation?","options":["Load/current, length, installation method, correction factors/conditions, allowable voltage drop and design assumptions.","Cable colour and drawing scale only.","Only the preferred manufacturer."],"correctIndex":0},
+      {"id":"w18q3","prompt":"When should a calculation result be escalated?","options":["Never if the spreadsheet produces a number.","When inputs are incomplete, the result is marginal, or engineering judgement/approval is required.","Only after the drawing is issued."],"correctIndex":1},
+      {"id":"w18q4","prompt":"A cable installation method changes after the original sizing check. What is the correct response?","options":["Keep the original result because the cable size is already selected.","Reassess the calculation using the revised installation conditions and update affected documentation.","Change only the cable note without recalculating."],"correctIndex":1},
+      {"id":"w18q5","prompt":"What makes a cable-sizing result suitable for senior review?","options":["A final cable size with no assumptions.","Traceable inputs, method, governing criteria, assumptions, result and clear indication of any approval or verification boundary.","Only a screenshot of a spreadsheet cell."],"correctIndex":1}
+    ]},
+    {"week":19,"questions":[
+      {"id":"w19q1","prompt":"A drawing looks correct but its cable schedule contradicts it. How should the checker respond?","options":["Accept the drawing because it looks correct.","Raise the traceability issue, identify affected documents and require resolution before issue.","Correct the schedule silently without recording the change."],"correctIndex":1},
+      {"id":"w19q2","prompt":"What distinguishes an effective checking comment?","options":["It is as short as possible, even if unclear.","It identifies the issue, consequence or required clarification clearly enough for the designer to act.","It only states that something is wrong."],"correctIndex":1},
+      {"id":"w19q3","prompt":"When is a package not ready for closure?","options":["When significant technical, safety, compliance, interface or traceability issues remain unresolved.","Whenever a checker has any comment, regardless of severity.","Only when the title block is incomplete."],"correctIndex":0},
+      {"id":"w19q4","prompt":"A checker finds several comments caused by one missing design input. What is the strongest response?","options":["Close each comment independently without addressing the cause.","Identify the common missing input, resolve or escalate it, then reassess the affected comments and documents.","Remove the comments to keep the review concise."],"correctIndex":1},
+      {"id":"w19q5","prompt":"What should a senior checker preserve when accepting a correction?","options":["Only the corrected drawing.","The issue disposition and enough traceability to show what changed, why it was accepted and what was rechecked.","Nothing once the PDF is exported."],"correctIndex":1}
+    ]},
+    {"week":20,"questions":[
+      {"id":"w20q1","prompt":"A redline is unclear but could affect cable routing. What is the strongest response?","options":["Interpret it using the most convenient routing.","Raise a clarification before incorporation and record the potential downstream impact.","Delete the markup and continue."],"correctIndex":1},
+      {"id":"w20q2","prompt":"Why assess change impact before editing a redline?","options":["Because one change can affect multiple drawings, schedules, references and design assumptions.","Because revisions are only administrative.","Because every drawing must be completely redrawn."],"correctIndex":0},
+      {"id":"w20q3","prompt":"What closes a revision properly?","options":["Only changing the revision letter.","Incorporating the change, checking affected documents, updating revision information and recording unresolved items.","Printing the marked-up drawing."],"correctIndex":1},
+      {"id":"w20q4","prompt":"A redline changes an equipment tag used across several documents. What should happen?","options":["Update only the marked-up drawing.","Trace the tag across affected documents and update them consistently through the controlled revision workflow.","Leave the other documents unchanged until construction."],"correctIndex":1},
+      {"id":"w20q5","prompt":"What is the strongest evidence that a redline change was fully incorporated?","options":["The redline is no longer visible.","The change is incorporated, affected references/schedules are reconciled, revision records are updated and the resulting package has been checked.","The file has a new filename."],"correctIndex":1}
+    ]}
   ]
 }

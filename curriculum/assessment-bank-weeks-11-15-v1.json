@@ -1,47 +1,42 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "purpose": "Authored multiple-choice assessment options for Weeks 11-15 of the production Learn → Apply → Check → Evidence flow.",
   "grading": "Each question uses one module-authored correctIndex. Choice scoring is deterministic; unanswered or incorrect choices do not pass.",
   "weeks": [
-    {
-      "week": 11,
-      "questions": [
-        {"id":"w11q1","prompt":"A drawing requires an earthing conductor size but the fault-duty/design basis is not provided. What is the strongest response?","options":["Choose a typical size and issue the drawing.","Record the missing design input and escalate before finalizing the size.","Remove the earthing connection from the drawing."],"correctIndex":1},
-        {"id":"w11q2","prompt":"What is the strongest reason to show bonding interfaces clearly?","options":["To make the drawing look complete.","To make safety-related continuity and interfaces traceable for review and installation.","To avoid needing any design basis."],"correctIndex":1},
-        {"id":"w11q3","prompt":"Which item should remain explicit in a senior-level assumption register?","options":["Unverified fault level or design input affecting the earthing design.","The fact that the drawing has a title block.","A preferred lineweight setting."],"correctIndex":0}
-      ]
-    },
-    {
-      "week": 12,
-      "questions": [
-        {"id":"w12q1","prompt":"A cable ladder conflicts with a mechanical duct. What should happen first?","options":["Move the duct or ladder immediately without coordination.","Record the clash, identify affected interfaces and coordinate the responsible disciplines.","Delete the ladder from the electrical drawing."],"correctIndex":1},
-        {"id":"w12q2","prompt":"Why should access zones be considered during coordination?","options":["They affect maintainability and can make an otherwise geometrically possible layout unusable.","They are only relevant to civil drawings.","They are cosmetic preferences."],"correctIndex":0},
-        {"id":"w12q3","prompt":"What makes a coordination action traceable?","options":["A verbal agreement with no record.","An identified issue, affected interface, action, owner and status.","A screenshot with no annotations."],"correctIndex":1}
-      ]
-    },
-    {
-      "week": 13,
-      "questions": [
-        {"id":"w13q1","prompt":"A 3D model looks correct but the equipment schedule has a different tag. What is the strongest response?","options":["Assume the model is correct.","Treat it as a data discrepancy and reconcile the controlled source before issue.","Delete the schedule entry."],"correctIndex":1},
-        {"id":"w13q2","prompt":"What is a key difference between a 3D visual check and a coordination check?","options":["Coordination also considers information ownership, interfaces, access and downstream documentation.","There is no difference.","A coordination check only examines colours."],"correctIndex":0},
-        {"id":"w13q3","prompt":"Why should federated references be controlled?","options":["To make file names longer.","Because model revision/status affects the coordination context and can invalidate checks.","References never affect coordination."],"correctIndex":1}
-      ]
-    },
-    {
-      "week": 14,
-      "questions": [
-        {"id":"w14q1","prompt":"Two objects technically intersect but the intersection is intentional and accepted. How should it be handled?","options":["Keep escalating it forever.","Classify it appropriately and record the accepted condition if required by the workflow.","Delete one object."],"correctIndex":1},
-        {"id":"w14q2","prompt":"What makes a clash high priority?","options":["It has the most colourful geometry.","It has a credible installation, safety, access or coordination impact requiring action.","It is the first item in the report."],"correctIndex":1},
-        {"id":"w14q3","prompt":"What is needed to close a clash properly?","options":["Changing its status without checking the model.","A documented resolution and confirmation that the affected coordination condition is resolved.","Deleting the clash report."],"correctIndex":1}
-      ]
-    },
-    {
-      "week": 15,
-      "questions": [
-        {"id":"w15q1","prompt":"No approved hazardous-area classification is available. What is the strongest response?","options":["Assume the area is non-hazardous.","Identify the missing classification/design basis and hold affected equipment decisions pending confirmation.","Choose standard equipment and issue."],"correctIndex":1},
-        {"id":"w15q2","prompt":"Why can hazardous-area classification affect electrical drawings?","options":["It can influence equipment suitability, installation methods, interfaces and required documentation.","It only changes the title block.","It has no relationship to electrical design."],"correctIndex":0},
-        {"id":"w15q3","prompt":"What is the safest approach when a classification interpretation is outside your defined responsibility?","options":["Make the interpretation and hide it as a drafting assumption.","Escalate to the responsible competent person and document the dependency.","Ignore the classification."],"correctIndex":1}
-      ]
-    }
+    {"week":11,"questions":[
+      {"id":"w11q1","prompt":"A drawing requires an earthing conductor size but the fault-duty/design basis is not provided. What is the strongest response?","options":["Choose a typical size and issue the drawing.","Record the missing design input and escalate before finalizing the size.","Remove the earthing connection from the drawing."],"correctIndex":1},
+      {"id":"w11q2","prompt":"What is the strongest reason to show bonding interfaces clearly?","options":["To make the drawing look complete.","To make safety-related continuity and interfaces traceable for review and installation.","To avoid needing any design basis."],"correctIndex":1},
+      {"id":"w11q3","prompt":"Which item should remain explicit in a senior-level assumption register?","options":["Unverified fault level or design input affecting the earthing design.","The fact that the drawing has a title block.","A preferred lineweight setting."],"correctIndex":0},
+      {"id":"w11q4","prompt":"An earthing layout references a grid connection that is absent from the latest civil drawing. What should happen before issue?","options":["Assume the connection remains unchanged.","Verify the current interface and document the confirmed location or required clarification.","Remove the grid reference from the electrical drawing."],"correctIndex":1},
+      {"id":"w11q5","prompt":"Why should an earthing drawing distinguish design intent from drafting assumptions?","options":["So reviewers can identify what is verified and what still requires engineering confirmation.","So the drawing contains more notes.","Because drafting assumptions automatically become design approvals."],"correctIndex":0}
+    ]},
+    {"week":12,"questions":[
+      {"id":"w12q1","prompt":"A cable ladder conflicts with a mechanical duct. What should happen first?","options":["Move the duct or ladder immediately without coordination.","Record the clash, identify affected interfaces and coordinate the responsible disciplines.","Delete the ladder from the electrical drawing."],"correctIndex":1},
+      {"id":"w12q2","prompt":"Why should access zones be considered during coordination?","options":["They affect maintainability and can make an otherwise geometrically possible layout unusable.","They are only relevant to civil drawings.","They are cosmetic preferences."],"correctIndex":0},
+      {"id":"w12q3","prompt":"What makes a coordination action traceable?","options":["A verbal agreement with no record.","An identified issue, affected interface, action, owner and status.","A screenshot with no annotations."],"correctIndex":1},
+      {"id":"w12q4","prompt":"A coordinated cable route changes equipment access clearance. What is the strongest next step?","options":["Keep the route because the clash is resolved.","Recheck the access requirement and affected equipment interfaces before accepting the change.","Move the equipment without recording the impact."],"correctIndex":1},
+      {"id":"w12q5","prompt":"Which evidence best demonstrates that a coordination issue was actually closed?","options":["A clash marked resolved with no supporting record.","The agreed disposition plus confirmation that the affected drawings/model condition were updated and checked.","A message saying 'fixed'."],"correctIndex":1}
+    ]},
+    {"week":13,"questions":[
+      {"id":"w13q1","prompt":"A 3D model looks correct but the equipment schedule has a different tag. What is the strongest response?","options":["Assume the model is correct.","Treat it as a data discrepancy and reconcile the controlled source before issue.","Delete the schedule entry."],"correctIndex":1},
+      {"id":"w13q2","prompt":"What is a key difference between a 3D visual check and a coordination check?","options":["Coordination also considers information ownership, interfaces, access and downstream documentation.","There is no difference.","A coordination check only examines colours."],"correctIndex":0},
+      {"id":"w13q3","prompt":"Why should federated references be controlled?","options":["To make file names longer.","Because model revision/status affects the coordination context and can invalidate checks.","References never affect coordination."],"correctIndex":1},
+      {"id":"w13q4","prompt":"A model element has the right geometry but outdated electrical data. What should be prioritized?","options":["Keep it because geometry is the only important information.","Reconcile the authoritative data source and update the model or schedule through the controlled workflow.","Change the data informally without recording the source."],"correctIndex":1},
+      {"id":"w13q5","prompt":"What is the strongest senior response when two coordinated models use different revision states?","options":["Compare them without noting the difference.","Establish the approved coordination snapshot/revision and repeat affected checks against that controlled context.","Use whichever model opens first."],"correctIndex":1}
+    ]},
+    {"week":14,"questions":[
+      {"id":"w14q1","prompt":"Two objects technically intersect but the intersection is intentional and accepted. How should it be handled?","options":["Keep escalating it forever.","Classify it appropriately and record the accepted condition if required by the workflow.","Delete one object."],"correctIndex":1},
+      {"id":"w14q2","prompt":"What makes a clash high priority?","options":["It has the most colourful geometry.","It has a credible installation, safety, access or coordination impact requiring action.","It is the first item in the report."],"correctIndex":1},
+      {"id":"w14q3","prompt":"What is needed to close a clash properly?","options":["Changing its status without checking the model.","A documented resolution and confirmation that the affected coordination condition is resolved.","Deleting the clash report."],"correctIndex":1},
+      {"id":"w14q4","prompt":"A low-severity clash reveals a repeated modelling error across several areas. What should a senior designer do?","options":["Close it because each individual clash is low severity.","Address the repeated cause and add a prevention/checking action rather than only fixing one occurrence.","Ignore the pattern because it is not a technical issue."],"correctIndex":1},
+      {"id":"w14q5","prompt":"What should be retained when a coordination clash is accepted as an intentional condition?","options":["Nothing; accepted clashes need no traceability.","The rationale, responsible acceptance and affected coordination context where the workflow requires it.","Only the original clash screenshot."],"correctIndex":1}
+    ]},
+    {"week":15,"questions":[
+      {"id":"w15q1","prompt":"No approved hazardous-area classification is available. What is the strongest response?","options":["Assume the area is non-hazardous.","Identify the missing classification/design basis and hold affected equipment decisions pending confirmation.","Choose standard equipment and issue."],"correctIndex":1},
+      {"id":"w15q2","prompt":"Why can hazardous-area classification affect electrical drawings?","options":["It can influence equipment suitability, installation methods, interfaces and required documentation.","It only changes the title block.","It has no relationship to electrical design."],"correctIndex":0},
+      {"id":"w15q3","prompt":"What is the safest approach when a classification interpretation is outside your defined responsibility?","options":["Make the interpretation and hide it as a drafting assumption.","Escalate to the responsible competent person and document the dependency.","Ignore the classification."],"correctIndex":1},
+      {"id":"w15q4","prompt":"A vendor datasheet uses a different hazardous-area designation than the project classification. What should be done before selecting the equipment?","options":["Accept the vendor designation automatically.","Reconcile the classifications and confirm suitability against the approved project basis.","Remove the classification from the equipment schedule."],"correctIndex":1},
+      {"id":"w15q5","prompt":"Why is traceability especially important for hazardous-area decisions?","options":["Because classification and equipment suitability can affect safety, compliance and installation requirements.","Because hazardous-area notes make drawings longer.","Because every hazardous-area decision is only a drafting preference."],"correctIndex":0}
+    ]}
   ]
 }
