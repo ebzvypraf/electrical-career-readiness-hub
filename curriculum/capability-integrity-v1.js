@@ -1,7 +1,7 @@
-/* Electrical Career Readiness Hub — verified capability contract v1.3.
+/* Electrical Career Readiness Hub — verified capability contract v1.4.
  * Single proof-backed read-model for Course, Home, Skills, Journal and Portfolio.
  * Capability is never upgraded from stage flags or a free-form link alone.
- * A demonstrated Evidence item becomes stale when a newer Check attempt exists.
+ * A demonstrated Evidence item becomes stale when newer Apply or Check work exists.
  */
 function normalizeWeekId(value) {
   const id = String(value ?? '').trim();
@@ -49,12 +49,18 @@ function evidenceIsVerified(entry, state, catalog) {
   if (!weekId || !catalog?.[weekId]) return false;
   if (entry.linkageComplete !== true) return false;
   if (entry.applyLink !== `apply:${weekId}`) return false;
+
+  const currentApply = state?.contextByWeek?.[weekId]?.applicationEvidence || null;
+  if (!currentApply || !currentApply.tasksComplete || !String(currentApply.deliverable || '').trim() || !String(currentApply.decisions || '').trim() || !String(currentApply.assumptions || '').trim() || !String(currentApply.verification || '').trim()) return false;
+
   if (!hasPassedLinkedCheck(state, weekId, entry.checkLink)) return false;
   if (!isLatestCheck(state, weekId, entry.checkLink)) return false;
   const linked = linkedCheck(state, weekId, entry.checkLink);
   const capturedAt = Date.parse(String(entry.capturedAt || entry.date || ''));
   const linkedAt = Date.parse(String(linked?.date || ''));
+  const applyAt = Date.parse(String(currentApply.capturedAt || ''));
   if (Number.isFinite(capturedAt) && Number.isFinite(linkedAt) && linkedAt > capturedAt) return false;
+  if (Number.isFinite(capturedAt) && Number.isFinite(applyAt) && applyAt > capturedAt) return false;
   const criteria = Array.isArray(entry.criteria) ? entry.criteria : [];
   if (!criteria.length || criteria.some(item => item?.satisfied !== true)) return false;
   return true;
