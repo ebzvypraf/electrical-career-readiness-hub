@@ -1,13 +1,12 @@
 /*
  * Electrical Career Readiness Hub — adaptive next-action engine v1.
  * Chooses the highest-value learner action from canonical state signals.
- * v1.3 adds explicit stale-Evidence recovery so upstream Apply/Check changes
- * route the learner back through the exact proof-producing step before new
- * course progression.
+ * v1.3.1 adds explicit stale-Evidence recovery routing so upstream Apply/Check changes
+ * produce a deterministic resumable action contract for Course/Home consumers.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.3.0';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.3.1';
 
 function text(value) { return String(value ?? '').trim(); }
 
@@ -101,6 +100,24 @@ function actionContract(context = {}) {
   };
 }
 
+function recoveryRoute(weekId, stage, context = {}) {
+  const evidence = context?.evidence || {};
+  const priorLineageId = text(evidence?.lineage?.lineageId || evidence?.supersedesLineageId) || null;
+  const reason = text(evidence?.invalidationReason) || 'upstream-changed';
+  const trail = assessmentTrail(context);
+  return {
+    actionId: `recovery:${weekId}:${stage}:${priorLineageId || 'no-lineage'}`,
+    mode: 'proof-recovery',
+    weekId: String(weekId),
+    resumeStage: stage,
+    priorLineageId,
+    invalidationReason: reason,
+    checkAttempts: trail.attempts,
+    latestCheckPassed: trail.latestPassed,
+    resumeLabel: stage === 'evidence' ? 'Recapture Evidence' : stage === 'check' ? 'Re-establish Check' : 'Re-establish Apply'
+  };
+}
+
 function staleEvidenceCandidates(ids, catalog, progressByWeek, contextByWeek) {
   return ids.map(id => {
     const context = contextByWeek?.[id] || {};
@@ -135,6 +152,7 @@ function staleEvidenceCandidates(ids, catalog, progressByWeek, contextByWeek) {
         checkAttempts: trail.attempts,
         latestCheckPassed: trail.latestPassed
       },
+      recoveryRoute: recoveryRoute(id, stage, context),
       proofChain: proof,
       ...actionContract(context),
       engineVersion: ADAPTIVE_ACTION_ENGINE_VERSION
@@ -211,4 +229,4 @@ export function chooseNextBestAction({ catalog = {}, progressByWeek = {}, contex
   return null;
 }
 
-if (typeof window !== 'undefined') window.ECRHAdaptiveAction = { chooseNextBestAction };
+if (typeof window !== 'undefined') window.ECRHAdaptiveAction = { chooseNextBestAction, recoveryRoute };
