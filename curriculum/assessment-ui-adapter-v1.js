@@ -1,28 +1,40 @@
-/* Electrical Career Readiness Hub — canonical UI entrypoint v13.
- * Keep the stable production entrypoint and add the missing failed-Check
- * reinforcement interaction on top of the canonical Course runtime.
+/* Electrical Career Readiness Hub — canonical UI entrypoint v14.
+ * Keep the stable production entrypoint and expose one proof-backed capability
+ * read model through the canonical store before downstream surfaces render it.
  */
 (async function () {
   'use strict';
   try {
     await import('./canonical-course-runtime-v1.js');
     await import('./canonical-shell-bridge-v1.js');
+    const { buildVerifiedCapability } = await import('./capability-integrity-v1.js');
     const started = Date.now();
     while (!window.ECRHCanonical?.openStage && Date.now() - started < 5000) await new Promise(r => setTimeout(r, 50));
-    const originalOpenStage = window.ECRHCanonical?.openStage;
+    const api = window.ECRHCanonical;
+    const store = api?.store;
+    if (!api || !store) return;
+    if (!store.getVerifiedCapability) {
+      store.getVerifiedCapability = () => buildVerifiedCapability({ state: store.getState(), catalog: api.catalog || {} });
+      const originalGetState = store.getState.bind(store);
+      store.getState = () => {
+        const current = originalGetState();
+        return { ...current, verifiedCapability: buildVerifiedCapability({ state: current, catalog: api.catalog || {} }) };
+      };
+    }
+    const originalOpenStage = api.openStage;
     if (!originalOpenStage) return;
-    window.ECRHCanonical.openStage = function (weekId, stage) {
+    api.openStage = function (weekId, stage) {
       originalOpenStage(weekId, stage);
       if (stage !== 'check') return;
       setTimeout(() => {
-        const store = window.ECRHCanonical?.store;
-        const context = store?.getState?.()?.contextByWeek?.[String(weekId)] || {};
+        const currentStore = window.ECRHCanonical?.store;
+        const context = currentStore?.getState?.()?.contextByWeek?.[String(weekId)] || {};
         const remediation = context.remediation;
         const card = document.getElementById('modalCard');
         const button = document.getElementById('canonicalCheck');
         if (!card || !button || !context.assessmentResult || context.assessmentResult.passed || !remediation || remediation.status === 'complete') return;
         if (document.getElementById('adapterRemediation')) return;
-        const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+        const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
         const concepts = Array.isArray(remediation.concepts) && remediation.concepts.length ? remediation.concepts : ['the failed Check items'];
         const actions = Array.isArray(remediation.actions) && remediation.actions.length ? remediation.actions : ['Review the missed concepts and explain the correct senior-level reasoning in your own words.'];
         const panel = document.createElement('div');
@@ -33,12 +45,12 @@
         document.getElementById('adapterCompleteRemediation').onclick = () => {
           const notes = document.getElementById('adapterRemediationNotes')?.value.trim() || '';
           if (!notes) return alert('Add a short reinforcement note before retrying the Check.');
-          const current = store.getState()?.contextByWeek?.[String(weekId)] || {};
+          const current = currentStore.getState()?.contextByWeek?.[String(weekId)] || {};
           if (current.remediation?.status === 'required') {
-            const start = store.startRemediation(weekId);
+            const start = currentStore.startRemediation(weekId);
             if (!start.ok) return alert(start.reason || 'Could not start reinforcement.');
           }
-          const done = store.completeRemediation({ weekId: String(weekId), notes });
+          const done = currentStore.completeRemediation({ weekId: String(weekId), notes });
           if (!done.ok) return alert(done.reason || 'Reinforcement could not be completed.');
           document.getElementById('canonicalClose')?.click();
           setTimeout(() => window.ECRHCanonical.openStage(String(weekId), 'check'), 0);
