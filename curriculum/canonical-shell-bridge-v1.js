@@ -1,6 +1,7 @@
-/* Electrical Career Readiness Hub — canonical shell bridge v1.3.
+/* Electrical Career Readiness Hub — canonical shell bridge v1.4.
  * Keeps Home/Skills/Journal/Portfolio navigation and legacy forms attached to
  * the canonical learning state after the Course runtime takes ownership.
+ * Capability displays use verified proof-chain evidence rather than stage flags alone.
  */
 (function () {
   'use strict';
@@ -10,6 +11,25 @@
     if (!api?.store) return tries ? setTimeout(() => wait(tries - 1), 100) : null;
     const store = api.store;
     const state = () => store.getState();
+    const verifiedEvidence = (s) => (Array.isArray(s?.portfolioEntries) ? s.portfolioEntries : []).filter(entry => entry && entry.reviewStatus === 'demonstrated' && entry.linkageValid === true && entry.upstreamChangedAfterEvidence !== true);
+    const capabilityIntegrity = (s) => {
+      const entries = verifiedEvidence(s);
+      const bySkill = new Map();
+      entries.forEach(entry => {
+        const weekId = String(entry.week ?? '');
+        const source = s.contextByWeek?.[weekId]?.evidence || {};
+        const competencies = Array.isArray(source.competency) ? source.competency : (Array.isArray(entry.competency) ? entry.competency : []);
+        competencies.forEach(skill => {
+          const key = String(skill).trim(); if (!key) return;
+          const item = bySkill.get(key) || { evidenceCount: 0, qualityTotal: 0, weeks: new Set() };
+          item.evidenceCount += 1;
+          item.qualityTotal += entry.evidenceQuality === 'high' ? 100 : (entry.evidenceQuality === 'developing' ? 60 : 0);
+          item.weeks.add(weekId);
+          bySkill.set(key, item);
+        });
+      });
+      return { entries, bySkill };
+    };
     const renderJournal = () => {
       const el = document.getElementById('logs'); if (!el) return;
       const entries = state().journalEntries || [];
@@ -33,14 +53,16 @@
       }).join('') : '<div class="empty">No Portfolio evidence yet. Complete Apply → Check → Evidence in the Course.</div>';
       if (readiness) {
         const cap = s.hubSignals?.demonstratedCapability || {};
-        const evidenceCount = Number(cap.evidenceCount ?? entries.filter(x => x.reviewStatus === 'demonstrated').length) || 0;
-        const quality = Number(cap.evidenceQuality ?? 0) || 0;
+        const integrity = capabilityIntegrity(s);
+        const verifiedCount = integrity.entries.length;
+        const quality = verifiedCount ? Math.round(integrity.entries.reduce((sum, entry) => sum + (entry.evidenceQuality === 'high' ? 100 : (entry.evidenceQuality === 'developing' ? 60 : 0)), 0) / verifiedCount) : 0;
         const checks = Number(cap.knowledgeChecks ?? 0) || 0;
-        const score = Number(cap.score ?? Math.round((evidenceCount ? Math.min(100, evidenceCount * 10 + quality * 0.5) : 0))) || 0;
+        const baseScore = Number(cap.score ?? 0) || 0;
+        const score = verifiedCount ? Math.min(baseScore, Math.round(Math.min(100, verifiedCount * 10 + quality * 0.5))) : 0;
         const target = Number(cap.target ?? 100) || 100;
         const coverage = cap.coverage || {};
-        const readinessLabel = cap.readiness || (score >= target ? 'ready' : (evidenceCount ? 'developing' : 'not started'));
-        readiness.innerHTML = `<div class="mission"><b>${esc(String(readinessLabel).replace(/-/g,' '))}</b><div class="bar" style="margin:9px 0"><span style="width:${Math.max(0,Math.min(100,score))}%"></span></div><div class="muted">${Math.round(score)}% capability signal • ${evidenceCount} demonstrated week(s) • ${checks} knowledge check(s)</div></div><div class="goal"><b>Evidence quality</b><small>${Math.round(quality)}% aggregate quality</small></div><div class="goal"><b>Stage coverage</b><small>Learn ${coverage.learn || 0}% • Apply ${coverage.apply || 0}% • Check ${coverage.check || 0}% • Evidence ${coverage.evidence || 0}%</small></div>${cap.recommendedWeekId ? `<div class="goal"><b>Recommended next</b><small>Week ${esc(cap.recommendedWeekId)} • ${esc(cap.recommendedStage || 'Continue the learning path')}</small></div>` : ''}`;
+        const readinessLabel = score >= target ? 'verified-ready' : (verifiedCount ? 'verified-developing' : 'proof-required');
+        readiness.innerHTML = `<div class="mission"><b>${esc(readinessLabel.replace(/-/g,' '))}</b><div class="bar" style="margin:9px 0"><span style="width:${Math.max(0,Math.min(100,score))}%"></span></div><div class="muted">${Math.round(score)}% verified capability signal • ${verifiedCount} verified evidence item(s) • ${checks} knowledge check(s)</div></div><div class="goal"><b>Verified evidence quality</b><small>${quality}% across valid proof-chain evidence</small></div><div class="goal"><b>Stage coverage</b><small>Learn ${coverage.learn || 0}% • Apply ${coverage.apply || 0}% • Check ${coverage.check || 0}% • Evidence ${coverage.evidence || 0}%</small></div>${cap.recommendedWeekId ? `<div class="goal"><b>Recommended next</b><small>Week ${esc(cap.recommendedWeekId)} • ${esc(cap.recommendedStage || 'Continue the learning path')}</small></div>` : ''}`;
       }
     };
     const renderSkills = () => {
@@ -48,15 +70,18 @@
       const list = document.getElementById('skills');
       const advice = document.getElementById('advice');
       const capabilities = Array.isArray(s.hubSignals?.demonstratedCapability) ? s.hubSignals.demonstratedCapability : [];
+      const integrity = capabilityIntegrity(s);
       if (list) list.innerHTML = capabilities.length ? capabilities.map(cap => {
         const readiness = Math.max(0, Math.min(100, Number(cap.readiness) || 0));
-        const demonstrated = Number(cap.evidenceCount) || 0;
         const checks = Number(cap.knowledgeChecks) || 0;
-        const quality = Number(cap.evidenceQuality) || 0;
+        const verifiedData = integrity.bySkill.get(String(cap.skill));
+        const demonstrated = verifiedData?.evidenceCount || 0;
+        const quality = verifiedData ? Math.round(verifiedData.qualityTotal / Math.max(1, verifiedData.evidenceCount)) : 0;
         const verified = demonstrated > 0 && quality >= 80;
-        const label = verified ? 'Demonstrated' : (readiness >= 60 ? 'Developing' : 'Needs practice');
+        const displayReadiness = verified ? Math.max(readiness, Math.min(100, Math.round((demonstrated * 20) + (quality * 0.4)))) : Math.min(readiness, 59);
+        const label = verified ? 'Demonstrated' : (displayReadiness >= 60 ? 'Developing' : 'Needs practice');
         const coverage = cap.coverage || {};
-        return `<article class="skillrow"><div class="skillhead"><b>${esc(cap.skill)}</b><span class="pill ${verified ? 'ok' : ''}">${label}</span></div><div class="bar"><span style="width:${readiness}%"></span></div><small class="muted">${readiness}% readiness • ${demonstrated} demonstrated week(s) • ${checks} passed Check(s) • ${quality}% evidence quality</small><small class="muted">Coverage: Learn ${coverage.learn || 0}% • Apply ${coverage.apply || 0}% • Check ${coverage.check || 0}% • Evidence ${coverage.evidence || 0}%</small></article>`;
+        return `<article class="skillrow"><div class="skillhead"><b>${esc(cap.skill)}</b><span class="pill ${verified ? 'ok' : ''}">${label}</span></div><div class="bar"><span style="width:${displayReadiness}%"></span></div><small class="muted">${displayReadiness}% verified readiness • ${demonstrated} verified evidence item(s) • ${checks} passed Check(s) • ${quality}% verified evidence quality</small><small class="muted">Coverage: Learn ${coverage.learn || 0}% • Apply ${coverage.apply || 0}% • Check ${coverage.check || 0}% • Evidence ${coverage.evidence || 0}%</small></article>`;
       }).join('') : '<div class="empty">Complete the learning stages to build a canonical competency profile.</div>';
       if (advice) {
         const gaps = Array.isArray(s.hubSignals?.prioritySkillGaps) ? s.hubSignals.prioritySkillGaps : [];
