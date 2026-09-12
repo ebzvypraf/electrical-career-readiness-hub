@@ -1,7 +1,8 @@
-/* Electrical Career Readiness Hub — canonical shell bridge v1.4.
+/* Electrical Career Readiness Hub — canonical shell bridge v1.5.
  * Keeps Home/Skills/Journal/Portfolio navigation and legacy forms attached to
  * the canonical learning state after the Course runtime takes ownership.
- * Capability displays use verified proof-chain evidence rather than stage flags alone.
+ * Capability displays use the persisted canonical proof chain rather than
+ * relying on a transient linkageValid field that may not survive normalization.
  */
 (function () {
   'use strict';
@@ -11,14 +12,21 @@
     if (!api?.store) return tries ? setTimeout(() => wait(tries - 1), 100) : null;
     const store = api.store;
     const state = () => store.getState();
-    const verifiedEvidence = (s) => (Array.isArray(s?.portfolioEntries) ? s.portfolioEntries : []).filter(entry => entry && entry.reviewStatus === 'demonstrated' && entry.linkageValid === true && entry.upstreamChangedAfterEvidence !== true);
+    const verifiedEvidence = (s) => (Array.isArray(s?.portfolioEntries) ? s.portfolioEntries : []).filter(entry => {
+      if (!entry || entry.reviewStatus !== 'demonstrated' || entry.upstreamChangedAfterEvidence === true) return false;
+      const weekId = String(entry.week ?? '');
+      const applyValid = entry.linkageValid === true || (entry.linkageComplete === true && entry.applyLink === `apply:${weekId}`);
+      const checkValid = entry.linkageValid === true || (entry.linkageComplete === true && entry.checkLink?.startsWith(`check:${weekId}:`) && entry.checkLink.length > `check:${weekId}:`.length);
+      return applyValid && checkValid;
+    });
     const capabilityIntegrity = (s) => {
       const entries = verifiedEvidence(s);
       const bySkill = new Map();
       entries.forEach(entry => {
         const weekId = String(entry.week ?? '');
         const source = s.contextByWeek?.[weekId]?.evidence || {};
-        const competencies = Array.isArray(source.competency) ? source.competency : (Array.isArray(entry.competency) ? entry.competency : []);
+        const catalogSkills = Array.isArray(api.catalog?.[weekId]?.skills) ? api.catalog[weekId].skills : [];
+        const competencies = catalogSkills.length ? catalogSkills : (Array.isArray(source.competency) ? source.competency : (Array.isArray(entry.competency) ? entry.competency : []));
         competencies.forEach(skill => {
           const key = String(skill).trim(); if (!key) return;
           const item = bySkill.get(key) || { evidenceCount: 0, qualityTotal: 0, weeks: new Set() };
@@ -48,7 +56,7 @@
         const satisfied = criteria.filter(c => c?.satisfied).length;
         const quality = x.evidenceQuality || (x.reviewStatus === 'demonstrated' ? 'high' : 'developing');
         const recovery = x.recoveryProvenance?.recovered ? ' • recovered after reinforcement' : '';
-        const linkage = x.linkageValid ? 'Linked proof chain' : (x.linkageComplete ? 'Links captured — validation needed' : 'Proof links incomplete');
+        const linkage = x.linkageValid || (x.linkageComplete && x.applyLink && x.checkLink) ? 'Linked proof chain' : (x.linkageComplete ? 'Links captured — validation needed' : 'Proof links incomplete');
         return `<article class="evidence"><div style="display:flex;justify-content:space-between;gap:8px"><div><b>Week ${esc(x.week ?? '—')} — ${esc(x.title || 'Untitled evidence')}</b><div class="muted">${esc(x.description || 'No description recorded.')}</div></div><span class="pill ${x.reviewStatus === 'demonstrated' ? 'ok' : ''}">${esc(quality)}</span></div><small class="muted">${esc(linkage)}${criteria.length ? ` • Criteria ${satisfied}/${criteria.length}` : ''}${recovery}</small><div class="muted" style="margin-top:6px">Reflection: ${esc(x.reflection || '—')}<br>Next: ${esc(x.nextAction || '—')}</div></article>`;
       }).join('') : '<div class="empty">No Portfolio evidence yet. Complete Apply → Check → Evidence in the Course.</div>';
       if (readiness) {
