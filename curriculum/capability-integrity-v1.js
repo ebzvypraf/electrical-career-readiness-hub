@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — verified capability contract v1.1.
+/* Electrical Career Readiness Hub — verified capability contract v1.2.
  * Single proof-backed read-model for Course, Home, Skills, Journal and Portfolio.
  * Capability is never upgraded from stage flags or a free-form link alone.
  */
@@ -77,4 +77,21 @@ export function buildVerifiedCapability({ state = {}, catalog = {} } = {}) {
     skills,
     verified: entries.length > 0
   };
+}
+
+/* Install the proof-backed read model at the canonical store boundary.
+ * Both getState() and subscribe() expose the same enriched contract so
+ * downstream surfaces cannot accidentally consume an unenriched snapshot.
+ */
+export function installVerifiedCapability(store, catalog = {}) {
+  if (!store || typeof store.getState !== 'function') return store;
+  if (store.__verifiedCapabilityInstalled) return store;
+  const originalGetState = store.getState.bind(store);
+  const enrich = current => ({ ...current, verifiedCapability: buildVerifiedCapability({ state: current, catalog }) });
+  store.getState = () => enrich(originalGetState());
+  const originalSubscribe = typeof store.subscribe === 'function' ? store.subscribe.bind(store) : null;
+  if (originalSubscribe) store.subscribe = listener => originalSubscribe(current => listener(enrich(current)));
+  store.getVerifiedCapability = () => buildVerifiedCapability({ state: originalGetState(), catalog });
+  Object.defineProperty(store, '__verifiedCapabilityInstalled', { value: true, enumerable: false });
+  return store;
 }
