@@ -1,37 +1,56 @@
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Learning Engine Validation</title><style>body{font:15px system-ui;max-width:900px;margin:40px auto;padding:0 18px;background:#f5f7fb;color:#172238}main{background:#fff;border:1px solid #e4e9f0;border-radius:14px;padding:24px}li{margin:8px 0}.ok{color:#047857}.warn{color:#b45309}</style></head>
-<body><main><h1>Learning Engine v2 Validation</h1><p>This production-side harness validates curriculum loading, stage gates, progress calculation, legacy-progress migration, cross-surface signals and the Course UI adapter without replacing the existing Hub shell.</p><ul id="results"><li>Running validation…</li></ul></main><script type="module">
+<body><main><h1>Learning Engine v2 Validation</h1><p>This production-side harness validates curriculum loading, stage gates, progress calculation, legacy-progress migration, cross-surface signals, the Course UI adapter, and adaptive proof recovery without replacing the existing Hub shell.</p><ul id="results"><li>Running validation…</li></ul></main><script type="module">
 import {CURRICULUM_URLS,loadCatalog,totalProgress,nextStage,applyStageCompletion,migrateLegacyProgress,mergeLearningProgress} from './learning-engine-v2.js';
 import {buildCourseState,stageDescription} from './course-ui-adapter-v1.js';
+import {chooseNextBestAction,ADAPTIVE_ACTION_ENGINE_VERSION} from './adaptive-action-engine-v1.js';
 const out=document.querySelector('#results'); const rows=[];
+const row=(ok,label,message)=>rows.push(`<li class="${ok?'ok':'warn'}"><b>${label}</b>: ${ok?'PASS':'FAIL'} — ${message}</li>`);
 try{
  const catalog=await loadCatalog(CURRICULUM_URLS);
  const ids=Object.keys(catalog);
- rows.push(`<li class="ok"><b>Catalog load</b>: PASS — ${ids.length} curriculum weeks loaded (${ids.join(', ')}).</li>`);
+ row(ids.length===24,'Catalog load',`${ids.length} curriculum weeks loaded (${ids.join(', ')}).`);
  for(const id of ids){
   const week=catalog[id];
   const ok=!!week.title&&!!week.learn&&!!week.apply&&!!week.check&&!!week.evidence;
-  rows.push(`<li class="${ok?'ok':'warn'}"><b>Week ${id}</b>: ${ok?'PASS':'INCOMPLETE'} — ${week.title}; ${week.check.questions?.length||0} check question(s); ${week.evidence.criteria?.length||0} evidence criterion/criteria.</li>`);
+  row(ok,`Week ${id}`,`${week.title}; ${week.check.questions?.length||0} check question(s); ${week.evidence.criteria?.length||0} evidence criterion/criteria.`);
  }
  const state={...Object.fromEntries(ids.map(id=>[id,{learn:false,apply:false,check:false,evidence:false}]))};
  state['1'].learn=true; state['2'].learn=true; state['2'].apply=true;
- rows.push(`<li class="ok"><b>Progress</b>: PASS — ${totalProgress(state)} / ${ids.length*4} stages completed.</li>`);
- const n=nextStage(state,ids); rows.push(`<li class="ok"><b>Next-stage resolver</b>: PASS — Week ${n.weekId}, ${n.stage}.</li>`);
- const blocked=applyStageCompletion(state,'1','apply',{}); rows.push(`<li class="ok"><b>Apply gate</b>: ${blocked.ok?'FAIL':'PASS'} — notes are required before Apply completion.</li>`);
- const locked=applyStageCompletion(state,'1','check',{score:2,total:3}); rows.push(`<li class="ok"><b>Stage order</b>: ${locked.ok?'FAIL':'PASS'} — Check cannot be completed before Apply.</li>`);
- const applied=applyStageCompletion(state,'1','apply',{applicationNotes:'sample engineering notes'}); rows.push(`<li class="ok"><b>Apply completion</b>: ${applied.ok?'PASS':'FAIL'} — learner notes unlock completion.</li>`);
- const checked=applyStageCompletion({...state,'1':{...state['1'],apply:true}},'1','check',{score:2,total:3}); rows.push(`<li class="ok"><b>Check gate</b>: ${checked.ok?'PASS':'FAIL'} — passing reasoning score accepted.</li>`);
+ row(totalProgress(state)===3,'Progress',`${totalProgress(state)} / ${ids.length*4} stages completed.`);
+ const n=nextStage(state,ids); row(n.weekId==='1'&&n.stage==='apply','Next-stage resolver',`Week ${n.weekId}, ${n.stage}.`);
+ const blocked=applyStageCompletion(state,'1','apply',{}); row(!blocked.ok,'Apply gate','notes are required before Apply completion.');
+ const locked=applyStageCompletion(state,'1','check',{score:2,total:3}); row(!locked.ok,'Stage order','Check cannot be completed before Apply.');
+ const applied=applyStageCompletion(state,'1','apply',{applicationNotes:'sample engineering notes'}); row(applied.ok,'Apply completion','learner notes unlock completion.');
+ const checked=applyStageCompletion({...state,'1':{...state['1'],apply:true}},'1','check',{score:2,total:3}); row(checked.ok,'Check gate','passing reasoning score accepted.');
  const legacy=[{learn:true,apply:false,check:false,evidence:false},{learn:true,apply:true,check:false,evidence:false}];
  const migrated=migrateLegacyProgress(legacy,ids); const migrationOk=migrated['1'].learn&&migrated['2'].apply&&!migrated['3'].learn;
- rows.push(`<li class="${migrationOk?'ok':'warn'}"><b>Legacy migration</b>: ${migrationOk?'PASS':'FAIL'} — array-shaped v3.6.0 progress maps to canonical week IDs without inventing later completion.</li>`);
+ row(migrationOk,'Legacy migration','array-shaped v3.6.0 progress maps to canonical week IDs without inventing later completion.');
  const merged=mergeLearningProgress(migrated,{'2':{check:true}},ids); const mergeOk=merged['1'].learn&&merged['2'].apply&&merged['2'].check;
- rows.push(`<li class="${mergeOk?'ok':'warn'}"><b>Progress merge</b>: ${mergeOk?'PASS':'FAIL'} — canonical and incoming progress combine without losing prior stage state.</li>`);
+ row(mergeOk,'Progress merge','canonical and incoming progress combine without losing prior stage state.');
  const course=buildCourseState(catalog,state);
  const week2=course.model.find(w=>w.weekId==='2');
  const real=week2&&week2.title&&week2.stages.every(s=>s.description&&!s.description.includes('generic'));
- rows.push(`<li class="${real?'ok':'warn'}"><b>Course adapter</b>: ${real?'PASS':'FAIL'} — Week 2 is represented by canonical curriculum content with four stage descriptors.</li>`);
- rows.push(`<li class="${stageDescription(catalog['3'],'learn')?'ok':'warn'}"><b>Stage presentation</b>: ${stageDescription(catalog['3'],'learn')?'PASS':'FAIL'} — adapter can derive week-aware Learn guidance.</li>`);
-}catch(e){rows.push(`<li class="warn"><b>Validation</b>: FAIL — ${e.message}</li>`)}
+ row(real,'Course adapter','Week 2 is represented by canonical curriculum content with four stage descriptors.');
+ row(Boolean(stageDescription(catalog['3'],'learn')),'Stage presentation','adapter can derive week-aware Learn guidance.');
+ const unlocked={...Object.fromEntries(ids.map(id=>[id,{learn:true,apply:true,check:true,evidence:true}]))};
+ unlocked['1']={learn:true,apply:true,check:true,evidence:true};
+ const staleAfterPassedCheck={
+  evidence:{reviewStatus:'draft',invalidationReason:'new-check-attempt',upstreamChangedAfterEvidence:true,proofChain:{apply:{linked:true},check:{linked:true},evidence:{captured:true,demonstratedCapability:true}}},
+  assessmentHistory:[{passed:true,percentage:88}]
+ };
+ const recovered=chooseNextBestAction({catalog,progressByWeek:unlocked,contextByWeek:{'1':staleAfterPassedCheck},hubSignals:{}});
+ row(recovered?.source==='stale-evidence-recovery'&&recovered?.stage==='evidence'&&recovered?.recovery?.required===true,'Stale Evidence recovery',`adaptive engine ${ADAPTIVE_ACTION_ENGINE_VERSION} routes a stale proof with a current passing Check to Evidence recapture.`);
+ const staleBeforeCheck={
+  evidence:{reviewStatus:'draft',invalidationReason:'apply-changed',upstreamChangedAfterEvidence:true,proofChain:{apply:{linked:true},check:{linked:false},evidence:{captured:true,demonstratedCapability:true}}},
+  assessmentHistory:[{passed:false,percentage:55}]
+ };
+ const recheck=chooseNextBestAction({catalog,progressByWeek:unlocked,contextByWeek:{'1':staleBeforeCheck},hubSignals:{}});
+ row(recheck?.source==='stale-evidence-recovery'&&recheck?.stage==='check','Stale Apply/Check recovery','adaptive engine routes invalidated proof to the missing Check before Evidence recapture.');
+ const normalContext={evidence:{proofChain:{apply:{linked:true},check:{linked:true},evidence:{captured:true,demonstratedCapability:true}}},assessmentHistory:[{passed:true,percentage:90}]};
+ const normal=chooseNextBestAction({catalog,progressByWeek:unlocked,contextByWeek:{'1':normalContext},hubSignals:{prioritySkillGaps:[{skill:'Protection',recommendedWeekId:'1',recommendedStage:'learn',readiness:40}]}});
+ row(normal?.source!=='stale-evidence-recovery','Fresh proof unaffected','valid current proof does not trigger stale-Evidence recovery.');
+}catch(e){row(false,'Validation',e.message)}
 out.innerHTML=rows.join('');
 </script></body></html>
