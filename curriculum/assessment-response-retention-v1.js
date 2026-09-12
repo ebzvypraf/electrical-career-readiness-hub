@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — assessment response retention v3.
+/* Electrical Career Readiness Hub — assessment response retention v4.
  * Restores the learner's latest canonical Check responses when the production
  * Check modal is reopened, so failed attempts and recovery work can be reviewed
  * and retried without losing previous reasoning.
@@ -23,15 +23,16 @@
 
     card.querySelectorAll('input[type="radio"]').forEach(input => {
       const name = String(input.name || '');
-      const index = name.match(/^cq(\d+)$/)?.[1];
+      const index = name.match(/^(?:canonical-q|cq)(\d+)$/)?.[1];
       if (index == null) return;
       const key = findKey(index);
-      if (key != null && Number(responses[key]) === Number(input.value)) input.checked = true;
+      if (key != null && String(responses[key]) === String(input.value)) input.checked = true;
     });
 
-    card.querySelectorAll('textarea[id^="ca"]').forEach(textarea => {
-      const index = String(textarea.id).slice(2);
-      const key = findKey(index);
+    card.querySelectorAll('textarea[id]').forEach(textarea => {
+      const match = String(textarea.id).match(/^(?:canonical-answer-|ca)(\d+)$/);
+      if (!match) return;
+      const key = findKey(match[1]);
       if (key != null && !textarea.value) textarea.value = String(responses[key] ?? '');
     });
   }
