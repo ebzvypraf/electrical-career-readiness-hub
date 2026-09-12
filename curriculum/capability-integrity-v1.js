@@ -1,6 +1,7 @@
-/* Electrical Career Readiness Hub — verified capability contract v1.2.
+/* Electrical Career Readiness Hub — verified capability contract v1.3.
  * Single proof-backed read-model for Course, Home, Skills, Journal and Portfolio.
  * Capability is never upgraded from stage flags or a free-form link alone.
+ * A demonstrated Evidence item becomes stale when a newer Check attempt exists.
  */
 function normalizeWeekId(value) {
   const id = String(value ?? '').trim();
@@ -13,17 +14,33 @@ function assessmentAttemptIdFromLink(checkLink, weekId) {
   return String(checkLink).slice(prefix.length).trim();
 }
 
-function hasPassedLinkedCheck(state, weekId, checkLink) {
-  const attemptId = assessmentAttemptIdFromLink(checkLink, weekId);
-  if (!attemptId) return false;
+function attemptId(attempt, weekId) {
+  const date = String(attempt?.date || '').replace(/[^0-9A-Za-z_-]/g, '');
+  return date ? `check-${weekId}-${date}` : '';
+}
+
+function linkedCheck(state, weekId, checkLink) {
+  const linkedId = assessmentAttemptIdFromLink(checkLink, weekId);
+  if (!linkedId) return null;
   const history = Array.isArray(state?.contextByWeek?.[weekId]?.assessmentHistory)
     ? state.contextByWeek[weekId].assessmentHistory
     : [];
-  return history.some(attempt => {
-    const date = String(attempt?.date || '').replace(/[^0-9A-Za-z_-]/g, '');
-    const generatedId = `check-${weekId}-${date}`;
-    return generatedId === attemptId && attempt?.passed === true && attempt?.completionReady === true;
-  });
+  return history.find(attempt => attemptId(attempt, weekId) === linkedId) || null;
+}
+
+function hasPassedLinkedCheck(state, weekId, checkLink) {
+  const linked = linkedCheck(state, weekId, checkLink);
+  return Boolean(linked?.passed === true && linked?.completionReady === true);
+}
+
+function isLatestCheck(state, weekId, checkLink) {
+  const history = Array.isArray(state?.contextByWeek?.[weekId]?.assessmentHistory)
+    ? state.contextByWeek[weekId].assessmentHistory
+    : [];
+  if (!history.length) return false;
+  const linked = linkedCheck(state, weekId, checkLink);
+  const latest = history[history.length - 1];
+  return Boolean(linked && latest && attemptId(linked, weekId) === attemptId(latest, weekId));
 }
 
 function evidenceIsVerified(entry, state, catalog) {
@@ -33,6 +50,11 @@ function evidenceIsVerified(entry, state, catalog) {
   if (entry.linkageComplete !== true) return false;
   if (entry.applyLink !== `apply:${weekId}`) return false;
   if (!hasPassedLinkedCheck(state, weekId, entry.checkLink)) return false;
+  if (!isLatestCheck(state, weekId, entry.checkLink)) return false;
+  const linked = linkedCheck(state, weekId, entry.checkLink);
+  const capturedAt = Date.parse(String(entry.capturedAt || entry.date || ''));
+  const linkedAt = Date.parse(String(linked?.date || ''));
+  if (Number.isFinite(capturedAt) && Number.isFinite(linkedAt) && linkedAt > capturedAt) return false;
   const criteria = Array.isArray(entry.criteria) ? entry.criteria : [];
   if (!criteria.length || criteria.some(item => item?.satisfied !== true)) return false;
   return true;
