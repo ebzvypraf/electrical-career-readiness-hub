@@ -215,7 +215,7 @@ function renderPortfolioCanonical() {
   const entries = state().portfolioEntries || [];
   grid.innerHTML = entries.length ? entries.map(e => `<div class="evidence"><span class="pill ok">Week ${e.week ?? '—'}</span><h3>${esc(e.title)}</h3><div class="muted">${esc(e.description)}</div><small class="muted">${esc(e.evidenceQuality || e.reviewStatus || 'recorded')}</small></div>`).join('') : '<div class="empty">Complete Apply, Check and Evidence to build portfolio proof.</div>';
   const h = state().hubSignals || {};
-  readiness.innerHTML = `<div class="goal"><b>${h.evidenceCompletionRate || 0}%</b><small>Evidence completion across 24 weeks</small></div><div class="goal"><b>${h.knowledgeChecksPassed || 0}</b><small>Knowledge checks passed</small></div><div class="goal"><b>${h.studyMomentum?.reflectionCount || 0}</b><small>Learning reflections</small></div>`;
+  if (readiness) readiness.innerHTML = `<div class="goal"><b>${h.evidenceCompletionRate || 0}%</b><small>Evidence completion across 24 weeks</small></div><div class="goal"><b>${h.knowledgeChecksPassed || 0}</b><small>Knowledge checks passed</small></div><div class="goal"><b>${h.studyMomentum?.reflectionCount || 0}</b><small>Learning reflections</small></div>`;
 }
 
 function refresh() {
@@ -236,13 +236,11 @@ async function init() {
     const modules = document.getElementById('modules');
     if (modules) {
       const observer = new MutationObserver(() => {
-        if (!rendering && Object.keys(catalog).length && modules.dataset.canonicalOwner !== 'true') refresh();
+        if (!rendering && Object.keys(catalog).length && !modules.querySelector('[data-canonical-week]')) refresh();
       });
       observer.observe(modules, { childList:true, subtree:true });
       modules.dataset.canonicalOwner = 'true';
     }
-    const originalGo = window.ECRH?.go;
-    void originalGo;
   } catch (error) {
     console.error('Canonical Course runtime failed', error);
     const el = document.getElementById('modules');
