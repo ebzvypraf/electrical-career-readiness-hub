@@ -1,5 +1,5 @@
 /*
- * Electrical Career Readiness Hub — learner flow integrity v1.3.
+ * Electrical Career Readiness Hub — learner flow integrity v1.4.
  * Read-only smoke tests for the canonical 24-week learning journey.
  * Validates the simulated engine contract, remediation recovery propagation,
  * and the learner's persisted canonical state without mutating progress.
@@ -115,7 +115,7 @@ export function runLearnerFlowSmokeTest(weekIds = [], state = null) {
 }
 
 function render() {
-  const state = window.ECRHCanonical?.getState?.();
+  const state = window.ECRHCanonical?.store?.getState?.();
   const weekIds = Object.keys(state?.progressByWeek || {}).sort((a, b) => Number(a) - Number(b));
   if (!weekIds.length) return;
   const report = runLearnerFlowSmokeTest(weekIds, state);
