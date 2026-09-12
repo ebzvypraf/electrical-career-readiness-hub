@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — canonical shell bridge v1.1.
+/* Electrical Career Readiness Hub — canonical shell bridge v1.2.
  * Keeps Home/Skills/Journal/Portfolio navigation and legacy forms attached to
  * the canonical learning state after the Course runtime takes ownership.
  */
@@ -18,11 +18,37 @@
         return `<div class="goal"><b>${esc(x.date || '')} — ${Number(x.hours || 0)} h</b>${context ? `<small class="muted">${context}</small>` : ''}<div class="muted">${esc(x.study || '—')}<br>Learned: ${esc(x.learn || '—')}<br>Reflection: ${esc(x.reflection || '—')}<br>Next: ${esc(x.nextAction || x.next || '—')}</div></div>`;
       }).join('') || '<div class="empty">No reflections yet.</div>';
     };
+    const renderPortfolio = () => {
+      const s = state();
+      const el = document.getElementById('portfolioGrid');
+      const readiness = document.getElementById('readiness');
+      const entries = Array.isArray(s.portfolioEntries) ? s.portfolioEntries.slice().sort((a,b) => Number(b.week || 0) - Number(a.week || 0)) : [];
+      if (el) el.innerHTML = entries.length ? entries.map(x => {
+        const criteria = Array.isArray(x.criteria) ? x.criteria : [];
+        const satisfied = criteria.filter(c => c?.satisfied).length;
+        const quality = x.evidenceQuality || (x.reviewStatus === 'demonstrated' ? 'high' : 'developing');
+        const recovery = x.recoveryProvenance?.recovered ? ' • recovered after reinforcement' : '';
+        const linkage = x.linkageValid ? 'Linked proof chain' : (x.linkageComplete ? 'Links captured — validation needed' : 'Proof links incomplete');
+        return `<article class="evidence"><div style="display:flex;justify-content:space-between;gap:8px"><div><b>Week ${esc(x.week ?? '—')} — ${esc(x.title || 'Untitled evidence')}</b><div class="muted">${esc(x.description || 'No description recorded.')}</div></div><span class="pill ${x.reviewStatus === 'demonstrated' ? 'ok' : ''}">${esc(quality)}</span></div><small class="muted">${esc(linkage)}${criteria.length ? ` • Criteria ${satisfied}/${criteria.length}` : ''}${recovery}</small><div class="muted" style="margin-top:6px">Reflection: ${esc(x.reflection || '—')}<br>Next: ${esc(x.nextAction || '—')}</div></article>`;
+      }).join('') : '<div class="empty">No Portfolio evidence yet. Complete Apply → Check → Evidence in the Course.</div>';
+      if (readiness) {
+        const cap = s.hubSignals?.demonstratedCapability || {};
+        const evidenceCount = Number(cap.evidenceCount ?? entries.filter(x => x.reviewStatus === 'demonstrated').length) || 0;
+        const quality = Number(cap.evidenceQuality ?? 0) || 0;
+        const checks = Number(cap.knowledgeChecks ?? 0) || 0;
+        const score = Number(cap.score ?? Math.round((evidenceCount ? Math.min(100, evidenceCount * 10 + quality * 0.5) : 0))) || 0;
+        const target = Number(cap.target ?? 100) || 100;
+        const coverage = cap.coverage || {};
+        const readinessLabel = cap.readiness || (score >= target ? 'ready' : (evidenceCount ? 'developing' : 'not started'));
+        readiness.innerHTML = `<div class="mission"><b>${esc(String(readinessLabel).replace(/-/g,' '))}</b><div class="bar" style="margin:9px 0"><span style="width:${Math.max(0,Math.min(100,score))}%"></span></div><div class="muted">${Math.round(score)}% capability signal • ${evidenceCount} demonstrated week(s) • ${checks} knowledge check(s)</div></div><div class="goal"><b>Evidence quality</b><small>${Math.round(quality)}% aggregate quality</small></div><div class="goal"><b>Stage coverage</b><small>Learn ${coverage.learn || 0}% • Apply ${coverage.apply || 0}% • Check ${coverage.check || 0}% • Evidence ${coverage.evidence || 0}%</small></div>${cap.recommendedWeekId ? `<div class="goal"><b>Recommended next</b><small>Week ${esc(cap.recommendedWeekId)} • ${esc(cap.recommendedStage || 'Continue the learning path')}</small></div>` : ''}`;
+      }
+    };
     const go = id => {
       document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === id));
       document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.page === id));
       api.refresh();
       if (id === 'journal') renderJournal();
+      if (id === 'portfolio') renderPortfolio();
     };
     document.querySelectorAll('[data-page]').forEach(b => b.onclick = () => go(b.dataset.page));
     const save = document.getElementById('saveLog');
@@ -51,8 +77,10 @@
     store.subscribe(() => {
       api.refresh();
       renderJournal();
+      renderPortfolio();
     });
     renderJournal();
+    renderPortfolio();
     window.ECRHCanonical.shellReady = true;
   };
   wait();
