@@ -1,6 +1,7 @@
-/* Electrical Career Readiness Hub — canonical UI entrypoint v15.
+/* Electrical Career Readiness Hub — canonical UI entrypoint v16.
  * Keep the stable production entrypoint and install the proof-backed capability
  * read model at the canonical store boundary before downstream surfaces render it.
+ * v16 synchronizes Home, Skills, Journal and Portfolio guidance from canonical state.
  */
 (async function () {
   'use strict';
@@ -14,6 +15,49 @@
     const store = api?.store;
     if (!api || !store) return;
     installVerifiedCapability(store, api.catalog || {});
+
+    const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
+    const syncDownstreamSurfaces = (state = {}) => {
+      const action = state?.nextBestAction || state?.hubSignals?.nextBestAction || null;
+      const capability = state?.verifiedCapability || store.getVerifiedCapability?.() || null;
+      const ledger = Array.isArray(state?.evidenceLedger) ? state.evidenceLedger : [];
+      if (action) {
+        const title = document.getElementById('nextTitle');
+        const type = document.getElementById('nextType');
+        const coach = document.getElementById('coach');
+        const coachText = document.getElementById('coachText');
+        if (title) title.textContent = action.week || `Week ${action.weekId || ''}`;
+        if (type) type.textContent = action.label || action.nextProofLabel || action.stage || 'Learn';
+        if (coach) coach.textContent = action.proofStatus === 'demonstrated' ? 'Capability demonstrated.' : `Next proof step: ${action.nextProofLabel || action.stage || 'Learn'}.`;
+        if (coachText) coachText.textContent = action.prompt || action.reason || 'Continue the canonical learning sequence.';
+      }
+      const advice = document.getElementById('advice');
+      if (advice && action) {
+        advice.innerHTML = `<div class="mission"><b>${esc(action.label || 'Next best action')}</b><div class="muted">${esc(action.reason || action.prompt || '')}</div><div style="margin-top:6px"><span class="pill">Proof ${esc(action.proofProgress || '0/4')}</span>${action.nextProofLabel ? ` <span class="tag">Next: ${esc(action.nextProofLabel)}</span>` : ''}</div></div>`;
+      }
+      const readiness = document.getElementById('readiness');
+      if (readiness && capability) {
+        const verifiedCount = Number(capability.verifiedEvidenceCount || 0);
+        const skillCount = Array.isArray(capability.skills) ? capability.skills.length : 0;
+        readiness.innerHTML = `<div class="skillrow"><div class="skillhead"><b>Verified evidence</b><b>${verifiedCount}</b></div><div class="muted">${skillCount} skill signal${skillCount === 1 ? '' : 's'} backed by the canonical proof chain.</div>${ledger.length ? `<div class="muted">${ledger.length} ledger record${ledger.length === 1 ? '' : 's'} retained for longitudinal proof history.</div>` : ''}</div>`;
+      }
+      const logs = document.getElementById('logs');
+      if (logs && action && !document.getElementById('canonicalGuidanceJournal')) {
+        const note = document.createElement('div');
+        note.id = 'canonicalGuidanceJournal';
+        note.className = 'mission';
+        note.innerHTML = `<b>Current learning direction</b><div class="muted">${esc(action.prompt || action.reason || `Continue with ${action.nextProofLabel || action.stage || 'the next stage'}.`)}</div>`;
+        logs.before(note);
+      } else if (logs && action) {
+        const note = document.getElementById('canonicalGuidanceJournal');
+        const text = note?.querySelector('.muted');
+        if (text) text.textContent = action.prompt || action.reason || `Continue with ${action.nextProofLabel || action.stage || 'the next stage'}.`;
+      }
+    };
+
+    syncDownstreamSurfaces(store.getState?.() || {});
+    store.subscribe?.(syncDownstreamSurfaces);
+
     const originalOpenStage = api.openStage;
     if (!originalOpenStage) return;
     api.openStage = function (weekId, stage) {
@@ -27,7 +71,6 @@
         const button = document.getElementById('canonicalCheck');
         if (!card || !button || !context.assessmentResult || context.assessmentResult.passed || !remediation || remediation.status === 'complete') return;
         if (document.getElementById('adapterRemediation')) return;
-        const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
         const concepts = Array.isArray(remediation.concepts) && remediation.concepts.length ? remediation.concepts : ['the failed Check items'];
         const actions = Array.isArray(remediation.actions) && remediation.actions.length ? remediation.actions : ['Review the missed concepts and explain the correct senior-level reasoning in your own words.'];
         const panel = document.createElement('div');
