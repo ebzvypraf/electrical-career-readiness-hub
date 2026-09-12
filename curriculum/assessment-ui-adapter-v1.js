@@ -1,26 +1,19 @@
-/* Electrical Career Readiness Hub — canonical UI entrypoint v14.
- * Keep the stable production entrypoint and expose one proof-backed capability
- * read model through the canonical store before downstream surfaces render it.
+/* Electrical Career Readiness Hub — canonical UI entrypoint v15.
+ * Keep the stable production entrypoint and install the proof-backed capability
+ * read model at the canonical store boundary before downstream surfaces render it.
  */
 (async function () {
   'use strict';
   try {
     await import('./canonical-course-runtime-v1.js');
     await import('./canonical-shell-bridge-v1.js');
-    const { buildVerifiedCapability } = await import('./capability-integrity-v1.js');
+    const { installVerifiedCapability } = await import('./capability-integrity-v1.js');
     const started = Date.now();
     while (!window.ECRHCanonical?.openStage && Date.now() - started < 5000) await new Promise(r => setTimeout(r, 50));
     const api = window.ECRHCanonical;
     const store = api?.store;
     if (!api || !store) return;
-    if (!store.getVerifiedCapability) {
-      store.getVerifiedCapability = () => buildVerifiedCapability({ state: store.getState(), catalog: api.catalog || {} });
-      const originalGetState = store.getState.bind(store);
-      store.getState = () => {
-        const current = originalGetState();
-        return { ...current, verifiedCapability: buildVerifiedCapability({ state: current, catalog: api.catalog || {} }) };
-      };
-    }
+    installVerifiedCapability(store, api.catalog || {});
     const originalOpenStage = api.openStage;
     if (!originalOpenStage) return;
     api.openStage = function (weekId, stage) {
