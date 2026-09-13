@@ -1,7 +1,8 @@
-/* Electrical Career Readiness Hub — canonical UI entrypoint v19.
+/* Electrical Career Readiness Hub — canonical UI entrypoint v20.
  * Keep the stable production entrypoint and install the proof-backed capability
  * read model at the canonical store boundary before downstream surfaces render it.
- * v19 exposes the read-only canonical learning-state integrity contract.
+ * v20 exposes the read-only canonical learning-state integrity contract with
+ * downstream Home next-action validation.
  */
 (async function () {
   'use strict';
@@ -25,7 +26,9 @@
         contextByWeek: current.contextByWeek || {},
         portfolioEntries: current.portfolioEntries || [],
         journalEntries: current.journalEntries || [],
-        evidenceLedger: current.evidenceLedger || []
+        evidenceLedger: current.evidenceLedger || [],
+        hubSignals: current.hubSignals || {},
+        nextBestAction: current.nextBestAction || current.hubSignals?.nextBestAction || null
       });
       api.learningStateIntegrity = integrity;
       if (!integrity.ok) console.warn('[ECRH learning-state contract]', integrity.issues);
