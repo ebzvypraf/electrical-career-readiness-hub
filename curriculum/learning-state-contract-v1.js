@@ -1,5 +1,7 @@
-/* Electrical Career Readiness Hub — canonical learning state integrity contract v1.
+/* Electrical Career Readiness Hub — canonical learning state integrity contract v2.
  * Read-only invariants for the Learn → Apply → Check → Evidence proof chain.
+ * Also validates downstream Home projection so a committed week cannot leave
+ * the learner pointed at an already-completed stage.
  * The contract never mutates learner state; it exposes actionable diagnostics.
  */
 
@@ -11,7 +13,12 @@ function issue(code, weekId, message, severity = 'error') {
   return { code, weekId: weekId == null ? null : String(weekId), message, severity };
 }
 
-export function validateLearningState({ catalog = {}, progressByWeek = {}, contextByWeek = {}, portfolioEntries = [], journalEntries = [], evidenceLedger = [] } = {}) {
+function applyRecordReady(context = {}) {
+  const a = context?.applicationEvidence;
+  return Boolean(a && a.tasksComplete && a.deliverable && a.decisions && a.assumptions && a.verification);
+}
+
+export function validateLearningState({ catalog = {}, progressByWeek = {}, contextByWeek = {}, portfolioEntries = [], journalEntries = [], evidenceLedger = [], hubSignals = {}, nextBestAction = null } = {}) {
   const issues = [];
   const weeks = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
   const portfolioByWeek = new Map((Array.isArray(portfolioEntries) ? portfolioEntries : []).map(entry => [asWeek(entry?.week), entry]));
@@ -28,6 +35,10 @@ export function validateLearningState({ catalog = {}, progressByWeek = {}, conte
     const assessment = context.assessmentResult || null;
     const history = Array.isArray(context.assessmentHistory) ? context.assessmentHistory : (Array.isArray(assessment?.assessmentHistory) ? assessment.assessmentHistory : []);
 
+    if (progress.apply === true && !applyRecordReady(context)) {
+      issues.push(issue('apply-progress-without-record', weekId, 'Apply is marked complete but the canonical structured Apply record is incomplete.'));
+    }
+
     if (progress.check === true && (!assessment || assessment.passed !== true)) {
       issues.push(issue('check-progress-without-pass', weekId, 'Check is marked complete but the current assessment result is not passed.'));
     }
@@ -40,6 +51,9 @@ export function validateLearningState({ catalog = {}, progressByWeek = {}, conte
     if (progress.evidence === true) {
       completedEvidence += 1;
       if (!evidence && !portfolio) issues.push(issue('evidence-progress-without-record', weekId, 'Evidence is marked complete but no canonical Evidence/Portfolio record exists.'));
+      if (evidence?.upstreamChangedAfterEvidence === true || portfolio?.upstreamChangedAfterEvidence === true) {
+        issues.push(issue('evidence-progress-while-stale', weekId, 'Evidence is marked complete while its upstream Apply/Check proof has been invalidated.'));
+      }
     }
 
     [evidence, portfolio].filter(Boolean).forEach(entry => {
@@ -52,6 +66,7 @@ export function validateLearningState({ catalog = {}, progressByWeek = {}, conte
       if (!entry.applyReady || !entry.checkPassed) issues.push(issue('demonstrated-without-prerequisites', weekId, 'Demonstrated Evidence is missing Apply-ready or Check-passed proof.'));
       if (!applyValid || !checkValid) issues.push(issue('demonstrated-without-valid-lineage', weekId, 'Demonstrated Evidence does not contain a valid canonical Apply → Check linkage.'));
       if (entry.lineage?.lineageId && !ledgerByLineage.has(String(entry.lineage.lineageId)) && !entry.ledgerRecord) issues.push(issue('missing-evidence-ledger-lineage', weekId, 'Demonstrated Evidence has a lineage ID but no retained ledger record.'));
+      if (!portfolio) issues.push(issue('demonstrated-without-portfolio-projection', weekId, 'Demonstrated Evidence exists without a corresponding Portfolio projection.'));
     });
 
     if (portfolio && evidence && portfolio.reviewStatus === 'demonstrated' && evidence.reviewStatus === 'demonstrated') {
@@ -61,10 +76,18 @@ export function validateLearningState({ catalog = {}, progressByWeek = {}, conte
     }
   });
 
+  const currentAction = nextBestAction || hubSignals?.nextBestAction || null;
+  if (currentAction?.weekId != null && currentAction?.stage === 'evidence') {
+    const id = asWeek(currentAction.weekId);
+    if (progressByWeek?.[id]?.evidence === true) {
+      issues.push(issue('home-points-to-completed-evidence', id, 'Home next-best-action still points to Evidence after that week is marked complete.'));
+    }
+  }
+
   const valid = issues.filter(x => x.severity === 'error');
   return {
     ok: valid.length === 0,
-    contractVersion: 'v1',
+    contractVersion: 'v2',
     checkedAt: new Date().toISOString(),
     weeksChecked: weeks.length,
     counts: {
@@ -77,3 +100,7 @@ export function validateLearningState({ catalog = {}, progressByWeek = {}, conte
     issues
   };
 }
+
+const api = { validateLearningState };
+if (typeof module !== 'undefined' && module.exports) module.exports = api;
+if (typeof window !== 'undefined') window.ECRHLearningStateContract = api;
