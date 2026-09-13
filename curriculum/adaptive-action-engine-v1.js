@@ -1,12 +1,12 @@
 /*
  * Electrical Career Readiness Hub — adaptive next-action engine v1.
  * Chooses the highest-value learner action from canonical state signals.
- * v1.3.1 adds explicit stale-Evidence recovery routing so upstream Apply/Check changes
- * produce a deterministic resumable action contract for Course/Home consumers.
+ * v1.3.2 adds an explicit recovery checklist so downstream Home/Course consumers
+ * can render the exact proof inputs required before recapture.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.3.1';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.3.2';
 
 function text(value) { return String(value ?? '').trim(); }
 
@@ -100,6 +100,18 @@ function actionContract(context = {}) {
   };
 }
 
+function recoveryChecklist(context = {}) {
+  const proof = proofChainContext(context);
+  const trail = assessmentTrail(context);
+  return {
+    apply: { required: true, ready: proof.applyLinked, status: proof.applyLinked ? 'ready' : 'required' },
+    check: { required: true, ready: proof.checkLinked && trail.latestPassed, status: proof.checkLinked && trail.latestPassed ? 'ready' : 'required', attempts: trail.attempts, latestPassed: trail.latestPassed },
+    evidence: { required: true, ready: false, status: 'recapture-required' },
+    priorEvidenceStale: proof.stale,
+    readyForRecapture: proof.applyLinked && proof.checkLinked && trail.latestPassed && proof.stale
+  };
+}
+
 function recoveryRoute(weekId, stage, context = {}) {
   const evidence = context?.evidence || {};
   const priorLineageId = text(evidence?.lineage?.lineageId || evidence?.supersedesLineageId) || null;
@@ -114,7 +126,8 @@ function recoveryRoute(weekId, stage, context = {}) {
     invalidationReason: reason,
     checkAttempts: trail.attempts,
     latestCheckPassed: trail.latestPassed,
-    resumeLabel: stage === 'evidence' ? 'Recapture Evidence' : stage === 'check' ? 'Re-establish Check' : 'Re-establish Apply'
+    resumeLabel: stage === 'evidence' ? 'Recapture Evidence' : stage === 'check' ? 'Re-establish Check' : 'Re-establish Apply',
+    checklist: recoveryChecklist(context)
   };
 }
 
