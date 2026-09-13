@@ -1,7 +1,7 @@
-/* Electrical Career Readiness Hub — canonical UI entrypoint v18.
+/* Electrical Career Readiness Hub — canonical UI entrypoint v19.
  * Keep the stable production entrypoint and install the proof-backed capability
  * read model at the canonical store boundary before downstream surfaces render it.
- * v18 renders the adaptive recovery checklist directly in Home and Check.
+ * v19 exposes the read-only canonical learning-state integrity contract.
  */
 (async function () {
   'use strict';
@@ -9,6 +9,7 @@
     await import('./canonical-course-runtime-v1.js');
     await import('./canonical-shell-bridge-v1.js');
     const { installVerifiedCapability } = await import('./capability-integrity-v1.js');
+    const { validateLearningState } = await import('./learning-state-contract-v1.js');
     const started = Date.now();
     while (!window.ECRHCanonical?.openStage && Date.now() - started < 5000) await new Promise(r => setTimeout(r, 50));
     const api = window.ECRHCanonical;
@@ -16,10 +17,27 @@
     if (!api || !store) return;
     installVerifiedCapability(store, api.catalog || {});
 
+    const refreshIntegrity = () => {
+      const current = store.getState?.() || {};
+      const integrity = validateLearningState({
+        catalog: api.catalog || {},
+        progressByWeek: current.progressByWeek || {},
+        contextByWeek: current.contextByWeek || {},
+        portfolioEntries: current.portfolioEntries || [],
+        journalEntries: current.journalEntries || [],
+        evidenceLedger: current.evidenceLedger || []
+      });
+      api.learningStateIntegrity = integrity;
+      if (!integrity.ok) console.warn('[ECRH learning-state contract]', integrity.issues);
+      return integrity;
+    };
+    refreshIntegrity();
+
     const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
     const recoverySummary = action => action?.source === 'stale-evidence-recovery' ? action.recoveryRoute?.checklist || null : null;
     const checklistHtml = checklist => checklist ? `<div class="goal" id="canonicalRecoveryChecklist"><b>Recovery checklist</b><small>Apply: ${checklist.apply?.ready ? 'ready' : 'required'} • Check: ${checklist.check?.ready ? 'ready' : 'required'} • Evidence: ${checklist.evidence?.status === 'recapture-required' ? 'recapture required' : 'ready'}</small>${checklist.priorEvidenceStale ? '<small>Previous Evidence is stale and will be superseded by the new proof.</small>' : ''}</div>` : '';
     const syncDownstreamSurfaces = (state = {}) => {
+      refreshIntegrity();
       const action = state?.nextBestAction || state?.hubSignals?.nextBestAction || null;
       const capability = state?.verifiedCapability || store.getVerifiedCapability?.() || null;
       const ledger = Array.isArray(state?.evidenceLedger) ? state.evidenceLedger : [];
