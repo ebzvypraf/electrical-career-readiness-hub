@@ -1,7 +1,7 @@
-/* Electrical Career Readiness Hub — canonical UI entrypoint v16.
+/* Electrical Career Readiness Hub — canonical UI entrypoint v17.
  * Keep the stable production entrypoint and install the proof-backed capability
  * read model at the canonical store boundary before downstream surfaces render it.
- * v16 synchronizes Home, Skills, Journal and Portfolio guidance from canonical state.
+ * v17 makes the canonical Next Best Action directly resumable from Home.
  */
 (async function () {
   'use strict';
@@ -26,14 +26,24 @@
         const type = document.getElementById('nextType');
         const coach = document.getElementById('coach');
         const coachText = document.getElementById('coachText');
+        const open = document.getElementById('homeOpen');
         if (title) title.textContent = action.week || `Week ${action.weekId || ''}`;
         if (type) type.textContent = action.label || action.nextProofLabel || action.stage || 'Learn';
         if (coach) coach.textContent = action.proofStatus === 'demonstrated' ? 'Capability demonstrated.' : `Next proof step: ${action.nextProofLabel || action.stage || 'Learn'}.`;
         if (coachText) coachText.textContent = action.prompt || action.reason || 'Continue the canonical learning sequence.';
+        if (open) {
+          const stage = action.recoveryRoute?.resumeStage || action.nextProofStage || action.stage;
+          const weekId = action.recoveryRoute?.weekId || action.weekId;
+          const resumable = weekId != null && stage;
+          open.textContent = action.source === 'stale-evidence-recovery'
+            ? `Resume: ${action.recoveryRoute?.resumeLabel || action.nextProofLabel || 'Recovery'}`
+            : 'Open activity';
+          open.dataset.canonicalAction = resumable ? JSON.stringify({ weekId: String(weekId), stage: String(stage) }) : '';
+        }
       }
       const advice = document.getElementById('advice');
       if (advice && action) {
-        advice.innerHTML = `<div class="mission"><b>${esc(action.label || 'Next best action')}</b><div class="muted">${esc(action.reason || action.prompt || '')}</div><div style="margin-top:6px"><span class="pill">Proof ${esc(action.proofProgress || '0/4')}</span>${action.nextProofLabel ? ` <span class="tag">Next: ${esc(action.nextProofLabel)}</span>` : ''}</div></div>`;
+        advice.innerHTML = `<div class="mission"><b>${esc(action.label || 'Next best action')}</b><div class="muted">${esc(action.reason || action.prompt || '')}</div><div style="margin-top:6px"><span class="pill">Proof ${esc(action.proofProgress || '0/4')}</span>${action.nextProofLabel ? ` <span class="tag">Next: ${esc(action.nextProofLabel)}</span>` : ''}${action.source === 'stale-evidence-recovery' ? ' <span class="tag">Recovery</span>' : ''}</div></div>`;
       }
       const readiness = document.getElementById('readiness');
       if (readiness && capability) {
@@ -60,6 +70,27 @@
 
     const originalOpenStage = api.openStage;
     if (!originalOpenStage) return;
+
+    const openCanonicalAction = () => {
+      const current = store.getState?.() || {};
+      const action = current?.nextBestAction || current?.hubSignals?.nextBestAction || null;
+      const weekId = action?.recoveryRoute?.weekId || action?.weekId;
+      const stage = action?.recoveryRoute?.resumeStage || action?.nextProofStage || action?.stage;
+      if (weekId != null && stage) {
+        api.openStage(String(weekId), String(stage));
+        return true;
+      }
+      return false;
+    };
+
+    const homeOpen = document.getElementById('homeOpen');
+    if (homeOpen) {
+      homeOpen.onclick = openCanonicalAction;
+      homeOpen.setAttribute('aria-label', 'Open the canonical next best learning action');
+    }
+    const resume = document.getElementById('resume');
+    if (resume) resume.onclick = openCanonicalAction;
+
     api.openStage = function (weekId, stage) {
       originalOpenStage(weekId, stage);
       if (stage !== 'check') return;
