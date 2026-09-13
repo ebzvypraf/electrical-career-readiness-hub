@@ -1,7 +1,8 @@
-/* Electrical Career Readiness Hub — assessment response retention v4.
+/* Electrical Career Readiness Hub — assessment response retention v5.
  * Restores the learner's latest canonical Check responses when the production
  * Check modal is reopened, so failed attempts and recovery work can be reviewed
  * and retried without losing previous reasoning.
+ * v5 aligns restoration with the canonical Course runtime's question-ID selectors.
  */
 (function () {
   'use strict';
@@ -19,20 +20,30 @@
     if (!responses || typeof responses !== 'object') return;
 
     const keys = Object.keys(responses);
-    const findKey = index => keys.find(key => String(key) === String(index) || String(key) === `q${Number(index) + 1}`);
+    const findKey = token => {
+      const value = String(token ?? '');
+      return keys.find(key => String(key) === value)
+        ?? keys.find(key => String(key).toLowerCase() === value.toLowerCase())
+        ?? (value.match(/^q(\d+)$/i) ? keys.find(key => String(key) === value) : null);
+    };
 
     card.querySelectorAll('input[type="radio"]').forEach(input => {
       const name = String(input.name || '');
-      const index = name.match(/^(?:canonical-q|cq)(\d+)$/)?.[1];
-      if (index == null) return;
-      const key = findKey(index);
+      const canonical = name.match(/^canonical-q-(.+)$/);
+      const legacy = name.match(/^(?:canonical-q|cq)(\d+)$/);
+      const token = canonical?.[1] ?? (legacy ? legacy[1] : null);
+      if (token == null) return;
+      const key = findKey(token) ?? (legacy ? findKey(`q${Number(legacy[1]) + 1}`) : null);
       if (key != null && String(responses[key]) === String(input.value)) input.checked = true;
     });
 
     card.querySelectorAll('textarea[id]').forEach(textarea => {
-      const match = String(textarea.id).match(/^(?:canonical-answer-|ca)(\d+)$/);
-      if (!match) return;
-      const key = findKey(match[1]);
+      const id = String(textarea.id);
+      const canonical = id.match(/^canonical-answer-(.+)$/);
+      const legacy = id.match(/^(?:canonical-answer-|ca)(\d+)$/);
+      const token = canonical?.[1] ?? (legacy ? legacy[1] : null);
+      if (token == null) return;
+      const key = findKey(token) ?? (legacy ? findKey(`q${Number(legacy[1]) + 1}`) : null);
       if (key != null && !textarea.value) textarea.value = String(responses[key] ?? '');
     });
   }
