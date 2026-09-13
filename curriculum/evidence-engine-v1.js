@@ -1,7 +1,8 @@
-/* Electrical Career Readiness Hub — Evidence Engine v1.5.
+/* Electrical Career Readiness Hub — Evidence Engine v1.6.
  * Canonical Evidence -> Portfolio -> Skills -> Home/Journal contract.
  * Adds an explicit serializable ledger record so canonical persistence can retain
  * append/supersession lineage without changing the active Portfolio projection.
+ * Derives canonical Apply/Check links when a trusted upstream record is present.
  */
 import './evidence-ui-enhancer-v1.js';
 import './interview-readiness-enhancer-v1.js';
@@ -41,9 +42,12 @@ export function normalize(module, input) {
   const evidence = input || {}, criteria = Array.isArray(module && module.evidence && module.evidence.criteria) ? module.evidence.criteria : [];
   const criterionResults = criteria.map(function (label, index) { const id = 'criterion_' + (index + 1); return { id, label: text(label), satisfied: evidence[id] === true || evidence[id] === 'true' }; });
   const title = text(evidence.title), description = text(evidence.description), reflection = text(evidence.reflection), nextAction = text(evidence.nextAction);
-  const applyLink = text(evidence.applyLink), checkLink = text(evidence.checkLink), weekNumber = module && Number(module.week) || null;
-  const allCriteriaSatisfied = criterionResults.length === 0 || criterionResults.every(c => c.satisfied), fieldsComplete = REQUIRED.every(field => text(evidence[field]).length > 0);
+  const weekNumber = module && Number(module.week) || null;
   const applicationEvidence = evidence.applicationEvidence || evidence.context && evidence.context.applicationEvidence || null, checkResult = evidence.checkResult || evidence.context && evidence.context.assessmentResult || null;
+  const applyLink = text(evidence.applyLink) || (weekNumber ? `apply:${weekNumber}` : '');
+  const checkAttemptToken = lineageToken(checkResult?.date || '');
+  const checkLink = text(evidence.checkLink) || (weekNumber && checkAttemptToken ? `check:${weekNumber}:${checkAttemptToken}` : '');
+  const allCriteriaSatisfied = criterionResults.length === 0 || criterionResults.every(c => c.satisfied), fieldsComplete = REQUIRED.every(field => text(evidence[field]).length > 0);
   const applyReady = Boolean(applicationEvidence && applicationEvidence.tasksComplete && applicationEvidence.deliverable && applicationEvidence.decisions && applicationEvidence.assumptions && applicationEvidence.verification), checkPassed = Boolean(checkResult && (checkResult.passed || checkResult.completionReady)), prerequisitesSatisfied = applyReady && checkPassed;
   const missingPrerequisites = [];
   if (!applyReady) missingPrerequisites.push('Complete and save the structured Apply record, including all tasks, deliverable, decisions, assumptions, and verification.');
