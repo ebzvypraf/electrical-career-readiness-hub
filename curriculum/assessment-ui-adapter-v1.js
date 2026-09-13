@@ -1,7 +1,7 @@
-/* Electrical Career Readiness Hub — canonical UI entrypoint v17.
+/* Electrical Career Readiness Hub — canonical UI entrypoint v18.
  * Keep the stable production entrypoint and install the proof-backed capability
  * read model at the canonical store boundary before downstream surfaces render it.
- * v17 makes the canonical Next Best Action directly resumable from Home.
+ * v18 renders the adaptive recovery checklist directly in Home and Check.
  */
 (async function () {
   'use strict';
@@ -17,6 +17,8 @@
     installVerifiedCapability(store, api.catalog || {});
 
     const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
+    const recoverySummary = action => action?.source === 'stale-evidence-recovery' ? action.recoveryRoute?.checklist || null : null;
+    const checklistHtml = checklist => checklist ? `<div class="goal" id="canonicalRecoveryChecklist"><b>Recovery checklist</b><small>Apply: ${checklist.apply?.ready ? 'ready' : 'required'} • Check: ${checklist.check?.ready ? 'ready' : 'required'} • Evidence: ${checklist.evidence?.status === 'recapture-required' ? 'recapture required' : 'ready'}</small>${checklist.priorEvidenceStale ? '<small>Previous Evidence is stale and will be superseded by the new proof.</small>' : ''}</div>` : '';
     const syncDownstreamSurfaces = (state = {}) => {
       const action = state?.nextBestAction || state?.hubSignals?.nextBestAction || null;
       const capability = state?.verifiedCapability || store.getVerifiedCapability?.() || null;
@@ -43,7 +45,7 @@
       }
       const advice = document.getElementById('advice');
       if (advice && action) {
-        advice.innerHTML = `<div class="mission"><b>${esc(action.label || 'Next best action')}</b><div class="muted">${esc(action.reason || action.prompt || '')}</div><div style="margin-top:6px"><span class="pill">Proof ${esc(action.proofProgress || '0/4')}</span>${action.nextProofLabel ? ` <span class="tag">Next: ${esc(action.nextProofLabel)}</span>` : ''}${action.source === 'stale-evidence-recovery' ? ' <span class="tag">Recovery</span>' : ''}</div></div>`;
+        advice.innerHTML = `<div class="mission"><b>${esc(action.label || 'Next best action')}</b><div class="muted">${esc(action.reason || action.prompt || '')}</div><div style="margin-top:6px"><span class="pill">Proof ${esc(action.proofProgress || '0/4')}</span>${action.nextProofLabel ? ` <span class="tag">Next: ${esc(action.nextProofLabel)}</span>` : ''}${action.source === 'stale-evidence-recovery' ? ' <span class="tag">Recovery</span>' : ''}</div></div>${checklistHtml(recoverySummary(action))}`;
       }
       const readiness = document.getElementById('readiness');
       if (readiness && capability) {
@@ -104,10 +106,12 @@
         if (document.getElementById('adapterRemediation')) return;
         const concepts = Array.isArray(remediation.concepts) && remediation.concepts.length ? remediation.concepts : ['the failed Check items'];
         const actions = Array.isArray(remediation.actions) && remediation.actions.length ? remediation.actions : ['Review the missed concepts and explain the correct senior-level reasoning in your own words.'];
+        const route = currentStore.getState()?.nextBestAction?.recoveryRoute;
+        const checklist = route?.checklist;
         const panel = document.createElement('div');
         panel.id = 'adapterRemediation';
         panel.style.cssText = 'margin-top:12px;border:1px solid #fed7aa;background:#fffaf5;border-radius:11px;padding:12px';
-        panel.innerHTML = `<h3 style="margin:0 0 6px">Targeted reinforcement required</h3><p class="muted">The latest Check was not passed. Complete the targeted reinforcement before retrying.</p><p><b>Focus:</b> ${concepts.map(esc).join(', ')}</p><ol>${actions.map(x => `<li>${esc(x)}</li>`).join('')}</ol><label style="display:block;font-size:12px;font-weight:800">Reinforcement note<textarea id="adapterRemediationNotes" placeholder="What did you review, what changed in your reasoning, and how did you verify it?"></textarea></label><button class="btn primary" id="adapterCompleteRemediation">Complete reinforcement & unlock retry</button>`;
+        panel.innerHTML = `<h3 style="margin:0 0 6px">Targeted reinforcement required</h3><p class="muted">The latest Check was not passed. Complete the targeted reinforcement before retrying.</p><p><b>Focus:</b> ${concepts.map(esc).join(', ')}</p><ol>${actions.map(x => `<li>${esc(x)}</li>`).join('')}</ol>${checklistHtml(checklist)}<label style="display:block;font-size:12px;font-weight:800">Reinforcement note<textarea id="adapterRemediationNotes" placeholder="What did you review, what changed in your reasoning, and how did you verify it?"></textarea></label><button class="btn primary" id="adapterCompleteRemediation">Complete reinforcement & unlock retry</button>`;
         button.before(panel);
         document.getElementById('adapterCompleteRemediation').onclick = () => {
           const notes = document.getElementById('adapterRemediationNotes')?.value.trim() || '';
