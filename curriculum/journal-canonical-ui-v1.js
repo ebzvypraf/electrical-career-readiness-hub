@@ -1,6 +1,10 @@
-/* Electrical Career Readiness Hub — canonical Journal UI bridge v1.
+/* Electrical Career Readiness Hub — canonical Journal UI bridge v1.1.
  * Makes the existing Journal surface write through the shared learning-state store
  * while preserving the existing form and legacy state compatibility.
+ *
+ * Manual Journal entries are linked to the learner's current canonical next action
+ * when one exists, so the Journal can be traced back to the same 24-week learning
+ * pathway without inventing a second progress model.
  */
 (function () {
   'use strict';
@@ -44,9 +48,19 @@
       const learn = String(entry?.learn || entry?.reflection || '').trim();
       const hard = String(entry?.hard || '').trim();
       const next = String(entry?.next || entry?.nextAction || '').trim();
-      const esc = value => String(value ?? '').replace(/[&<>\"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;' }[char]));
-      return `<div class="goal"><b>${esc(date || 'Undated reflection')}</b>${hours > 0 ? ` · ${esc(hours)}h` : ''}${entry?.stage ? ` · <span class="tag">${esc(entry.stage)}</span>` : ''}<small>${esc(study || 'Learning reflection')}</small>${learn ? `<p>${esc(learn)}</p>` : ''}${hard ? `<p><b>Difficulty:</b> ${esc(hard)}</p>` : ''}${next ? `<p><b>Next:</b> ${esc(next)}</p>` : ''}</div>`;
+      const week = entry?.weekId == null || entry?.weekId === '' ? '' : ` · Week ${String(entry.weekId)}`;
+      const stage = entry?.stage ? ` · <span class="tag">${String(entry.stage)}</span>` : '';
+      const esc = value => String(value ?? '').replace(/[&<>\"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"':'&quot;', "'":'&#39;' }[char]));
+      return `<div class="goal"><b>${esc(date || 'Undated reflection')}</b>${hours > 0 ? ` · ${esc(hours)}h` : ''}${esc(week)}${stage}<small>${esc(study || 'Learning reflection')}</small>${learn ? `<p>${esc(learn)}</p>` : ''}${hard ? `<p><b>Difficulty:</b> ${esc(hard)}</p>` : ''}${next ? `<p><b>Next:</b> ${esc(next)}</p>` : ''}</div>`;
     }).join('');
+  }
+
+  function currentLearningLink(store) {
+    try {
+      const next = store?.getState?.()?.hubSignals?.nextBestAction;
+      if (!next || next.weekId == null || !next.stage) return {};
+      return { weekId: String(next.weekId), stage: String(next.stage) };
+    } catch (_) { return {}; }
   }
 
   function install() {
@@ -68,6 +82,7 @@
       if (!activeStore) return;
       event.preventDefault();
       event.stopImmediatePropagation();
+      const link = currentLearningLink(activeStore);
       const result = activeStore.addJournalEntry({
         id: `journal-${Date.now()}`,
         date: document.getElementById('jdate')?.value || new Date().toISOString().slice(0, 10),
@@ -75,7 +90,8 @@
         study: document.getElementById('jstudy')?.value?.trim() || '',
         learn: document.getElementById('jlearn')?.value?.trim() || '',
         hard: document.getElementById('jhard')?.value?.trim() || '',
-        next: document.getElementById('jnext')?.value?.trim() || ''
+        next: document.getElementById('jnext')?.value?.trim() || '',
+        ...link
       });
       if (!result?.ok) {
         window.alert(result?.reason || 'Journal entry could not be saved.');
