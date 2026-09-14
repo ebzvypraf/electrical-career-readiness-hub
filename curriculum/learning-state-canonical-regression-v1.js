@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — live canonical catalog regression v1.
+/* Electrical Career Readiness Hub — live canonical catalog regression v2.
  * Runs the Learn → Apply → Check → Evidence progression against the actual
  * 24-week catalog loaded by the production runtime. Read-only: no learner storage.
  */
@@ -47,11 +47,17 @@ const demonstratedEvidence = (weekId, week) => ({
 
 const journalEntry = (weekId, stage) => ({ id: `${stage}-${weekId}`, date: '2026-01-01', weekId: String(weekId), stage, source: `${stage}-completion`, reflection: 'Canonical regression reflection', nextAction: 'Continue to the next stage' });
 
+const expectedNextStage = (weekIds, index, stage) => {
+  if (stage !== 'evidence') return { week: weekIds[index], stage: STAGES[STAGES.indexOf(stage) + 1] };
+  return index < weekIds.length - 1 ? { week: weekIds[index + 1], stage: 'learn' } : null;
+};
+
 export async function runCanonicalLearningStateRegression() {
   const catalog = await loadCanonicalCatalog();
-  const quality = validateCanonicalQuality(catalog, Object.fromEntries(Object.keys(catalog).map(id => [id, catalog[id].check?.questions || []])));
+  const weekIds = Object.keys(catalog).sort((a, b) => Number(a) - Number(b));
+  const quality = validateCanonicalQuality(catalog, Object.fromEntries(weekIds.map(id => [id, catalog[id].check?.questions || []])));
   const issues = [];
-  const progress = Object.fromEntries(Object.keys(catalog).map(id => [id, emptyProgress()]));
+  const progress = Object.fromEntries(weekIds.map(id => [id, emptyProgress()]));
   const contextByWeek = {};
   const journalEntries = [];
   const portfolioEntries = [];
@@ -61,7 +67,8 @@ export async function runCanonicalLearningStateRegression() {
   if (!quality.complete) issues.push({ code: 'catalog-incomplete', detail: JSON.stringify(quality) });
   if (!quality.stageComplete) issues.push({ code: 'catalog-stage-incomplete', detail: `Weeks missing Learn/Apply/Check/Evidence: ${quality.missingStageWeeks.join(', ')}` });
 
-  for (const weekId of Object.keys(catalog).sort((a, b) => Number(a) - Number(b))) {
+  for (let index = 0; index < weekIds.length; index += 1) {
+    const weekId = weekIds[index];
     const week = catalog[weekId];
     contextByWeek[weekId] = {};
     for (const stage of STAGES) {
@@ -80,6 +87,13 @@ export async function runCanonicalLearningStateRegression() {
       progress[weekId] = result.progress;
       contextByWeek[weekId] = { ...contextByWeek[weekId], ...context };
       completedStages += 1;
+
+      const actualNext = nextStage(progress, weekIds);
+      const expectedNext = expectedNextStage(weekIds, index, stage);
+      if (actualNext !== expectedNext && JSON.stringify(actualNext) !== JSON.stringify(expectedNext)) {
+        issues.push({ code: 'next-action-mismatch', weekId, stage, expected: expectedNext, actual: actualNext });
+      }
+
       if (stage === 'apply' || stage === 'check') journalEntries.push(journalEntry(weekId, stage));
       if (stage === 'evidence') {
         const evidence = context.evidence;
@@ -96,13 +110,16 @@ export async function runCanonicalLearningStateRegression() {
     journalEntries,
     portfolioEntries,
     evidenceLedger,
-    nextBestAction: nextStage(progress, Object.keys(catalog))
+    nextBestAction: nextStage(progress, weekIds)
   });
   if (!contract.ok) issues.push({ code: 'learning-state-contract-failed', detail: JSON.stringify(contract.issues) });
   if (completedStages !== 96) issues.push({ code: 'stage-count-mismatch', expected: 96, actual: completedStages });
-  if (nextStage(progress, Object.keys(catalog)) !== null) issues.push({ code: 'terminal-state-mismatch', detail: '24-week canonical progression still has a next action' });
+  if (journalEntries.length !== 48) issues.push({ code: 'journal-projection-count-mismatch', expected: 48, actual: journalEntries.length });
+  if (portfolioEntries.length !== 24) issues.push({ code: 'portfolio-projection-count-mismatch', expected: 24, actual: portfolioEntries.length });
+  if (evidenceLedger.length !== 24) issues.push({ code: 'evidence-ledger-count-mismatch', expected: 24, actual: evidenceLedger.length });
+  if (nextStage(progress, weekIds) !== null) issues.push({ code: 'terminal-state-mismatch', detail: '24-week canonical progression still has a next action' });
 
-  return { ok: issues.length === 0, suiteVersion: 'v1-live-canonical', weekCount: Object.keys(catalog).length, stageCount: completedStages, expectedStageCount: 96, catalogQuality: quality, contractOk: contract.ok, issues };
+  return { ok: issues.length === 0, suiteVersion: 'v2-live-canonical', weekCount: weekIds.length, stageCount: completedStages, expectedStageCount: 96, journalProjectionCount: journalEntries.length, portfolioProjectionCount: portfolioEntries.length, evidenceLedgerCount: evidenceLedger.length, catalogQuality: quality, contractOk: contract.ok, issues };
 }
 
 const api = { runCanonicalLearningStateRegression };
