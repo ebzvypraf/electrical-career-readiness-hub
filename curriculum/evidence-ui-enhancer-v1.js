@@ -6,6 +6,7 @@
 import './portfolio-review-enhancer-v1.js';
 import './check-proof-ui-enhancer-v1.js';
 import './learn-stage-ui-enhancer-v1.js';
+import './skills-proof-ui-enhancer-v1.js';
 
 (function () {
   'use strict';
