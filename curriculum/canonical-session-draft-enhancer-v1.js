@@ -1,5 +1,5 @@
 /*
- * Electrical Career Readiness Hub — canonical session draft enhancer v1.
+ * Electrical Career Readiness Hub — canonical session draft enhancer v1.1.
  * Preserves incomplete Course work locally so an interrupted session can resume
  * without creating a second learning-state model. Canonical store writes remain
  * the only source of completion/progression truth.
@@ -84,6 +84,14 @@
       }, 0));
     }, 0);
   };
+  const detectOpenStage = () => {
+    const card = document.getElementById('modalCard');
+    if (!card) return null;
+    const header = card.querySelector('.k')?.textContent || '';
+    const match = header.match(/Week\s+(\d+)\s+•\s+(Learn|Apply|Check|Evidence)/i);
+    if (!match) return null;
+    return { weekId: match[1], stage: match[2].toLowerCase() };
+  };
   const wait = (tries = 100) => {
     const api = window.ECRHCanonical;
     if (!api?.store || typeof api.openStage !== 'function') return tries ? setTimeout(() => wait(tries - 1), 100) : null;
@@ -93,6 +101,14 @@
       originalOpenStage(weekId, stage);
       if (['apply','check','evidence'].includes(String(stage))) attach(api, weekId, stage);
     };
+    const card = document.getElementById('modalCard');
+    if (card) {
+      const observer = new MutationObserver(() => {
+        const current = detectOpenStage();
+        if (current && ['apply','check','evidence'].includes(current.stage)) attach(api, current.weekId, current.stage);
+      });
+      observer.observe(card, { childList:true, subtree:true });
+    }
     api.sessionDraftEnhancerReady = true;
     window.ECRHCanonicalSessionDrafts = { save, restore, clear };
   };
