@@ -1,11 +1,12 @@
-/* Electrical Career Readiness Hub — live canonical catalog regression v3.
+/* Electrical Career Readiness Hub — live canonical catalog regression v4.
  * Runs the Learn → Apply → Check → Evidence progression against the actual
  * 24-week catalog loaded by the production runtime. Read-only: no learner storage.
- * Also validates the real downstream Home/Skills projection produced by the hub.
+ * Also validates the real downstream Home/Skills projection and canonical store lifecycle.
  */
 import { STAGES, emptyProgress, applyStageCompletion, nextStage, buildHubSignals } from './learning-engine-v2.js';
 import { loadCanonicalCatalog, validateCanonicalQuality } from './canonical-catalog-v1.js';
 import { validateLearningState } from './learning-state-contract-v1.js';
+import { runStoreLifecycleRegression } from './store-lifecycle-regression-v1.js';
 
 const applyEvidence = week => ({
   tasks: Array.isArray(week?.apply?.tasks) && week.apply.tasks.length ? week.apply.tasks.map(() => true) : [true],
@@ -91,10 +92,7 @@ export async function runCanonicalLearningStateRegression() {
 
       const actualNext = nextStage(progress, weekIds);
       const expectedNext = expectedNextStage(weekIds, index, stage);
-      if (JSON.stringify(actualNext) !== JSON.stringify(expectedNext)) {
-        issues.push({ code: 'next-action-mismatch', weekId, stage, expected: expectedNext, actual: actualNext });
-      }
-
+      if (JSON.stringify(actualNext) !== JSON.stringify(expectedNext)) issues.push({ code: 'next-action-mismatch', weekId, stage, expected: expectedNext, actual: actualNext });
       if (stage === 'apply' || stage === 'check') journalEntries.push(journalEntry(weekId, stage));
       if (stage === 'evidence') {
         const evidence = context.evidence;
@@ -105,16 +103,7 @@ export async function runCanonicalLearningStateRegression() {
   }
 
   const hubSignals = buildHubSignals(catalog, progress, contextByWeek, journalEntries, portfolioEntries);
-  const contract = validateLearningState({
-    catalog,
-    progressByWeek: progress,
-    contextByWeek,
-    journalEntries,
-    portfolioEntries,
-    evidenceLedger,
-    hubSignals,
-    nextBestAction: hubSignals?.nextBestAction || null
-  });
+  const contract = validateLearningState({ catalog, progressByWeek: progress, contextByWeek, journalEntries, portfolioEntries, evidenceLedger, hubSignals, nextBestAction: hubSignals?.nextBestAction || null });
   if (!contract.ok) issues.push({ code: 'learning-state-contract-failed', detail: JSON.stringify(contract.issues) });
 
   if (completedStages !== 96) issues.push({ code: 'stage-count-mismatch', expected: 96, actual: completedStages });
@@ -132,9 +121,12 @@ export async function runCanonicalLearningStateRegression() {
   }
   if (nextStage(progress, weekIds) !== null) issues.push({ code: 'terminal-state-mismatch', detail: '24-week canonical progression still has a next action' });
 
+  const storeLifecycle = await runStoreLifecycleRegression(catalog);
+  if (!storeLifecycle.ok) issues.push({ code: 'store-lifecycle-regression-failed', detail: JSON.stringify(storeLifecycle) });
+
   return {
     ok: issues.length === 0,
-    suiteVersion: 'v3-live-canonical-projections',
+    suiteVersion: 'v4-live-canonical-store-lifecycle',
     weekCount: weekIds.length,
     stageCount: completedStages,
     expectedStageCount: 96,
@@ -143,6 +135,7 @@ export async function runCanonicalLearningStateRegression() {
     evidenceLedgerCount: evidenceLedger.length,
     homeProjection: { overallProgress: hubSignals?.overallProgress ?? null, completedStages: hubSignals?.completedStages ?? null, totalStages: hubSignals?.totalStages ?? null, nextBestAction: hubSignals?.nextBestAction ?? null },
     skillsProjection: { demonstratedCapabilityCount: Array.isArray(hubSignals?.demonstratedCapability) ? hubSignals.demonstratedCapability.length : 0, prioritySkillGapCount: Array.isArray(hubSignals?.prioritySkillGaps) ? hubSignals.prioritySkillGaps.length : 0 },
+    storeLifecycle,
     catalogQuality: quality,
     contractOk: contract.ok,
     issues
