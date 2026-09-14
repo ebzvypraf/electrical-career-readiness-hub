@@ -1,7 +1,9 @@
 /*
- * Electrical Career Readiness Hub — canonical Course runtime v1.
+ * Electrical Career Readiness Hub — canonical Course runtime v1.1.
  * Replaces the legacy Course renderer with the authored 24-week catalog and
  * routes Learn → Apply → Check → Evidence through the canonical state store.
+ * v1.1 makes successful Check and Evidence transitions hand off directly to
+ * the store-selected next proof action instead of leaving the learner at a dead end.
  */
 import { loadCanonicalCatalog } from './canonical-catalog-v1.js';
 import { createLearningStateStore } from './learning-state-store-v1.js';
@@ -125,6 +127,14 @@ function modal(title, body) {
   document.getElementById('canonicalClose').onclick = close;
 }
 function close() { document.getElementById('modal')?.classList.remove('show'); }
+function openNextCanonicalAction(excludeWeekId = null) {
+  const action = nextCanonical();
+  if (!action || action.weekId == null || !action.stage) return false;
+  if (excludeWeekId != null && String(action.weekId) === String(excludeWeekId) && action.stage === 'evidence') return false;
+  close();
+  setTimeout(() => openStage(String(action.weekId), String(action.stage)), 0);
+  return true;
+}
 
 function openStage(weekId, stage) {
   const id = String(weekId);
@@ -199,7 +209,11 @@ function openStage(weekId, stage) {
     if (!result.ok) return alert(result.reason || 'Assessment could not be recorded.');
     if (!result.result.passed) { refresh(); openStage(id, 'check'); return; }
     const ok = commit('check', id, { assessmentResult: result.result });
-    if (ok) { close(); refresh(); }
+    if (ok) {
+      close();
+      refresh();
+      setTimeout(() => openStage(id, 'evidence'), 0);
+    }
   };
   if (stage === 'evidence') document.getElementById('canonicalEvidence').onclick = () => {
     if (p.evidence) return close();
@@ -221,7 +235,12 @@ function openStage(weekId, stage) {
       ...criteria
     });
     if (!result.ok) return alert(result.reason || 'Evidence could not be captured.');
-    close(); refresh();
+    close();
+    refresh();
+    setTimeout(() => {
+      const next = nextCanonical();
+      if (next) openStage(String(next.weekId), String(next.stage));
+    }, 0);
   };
 }
 
