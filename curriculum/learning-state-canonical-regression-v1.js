@@ -1,8 +1,9 @@
-/* Electrical Career Readiness Hub — live canonical catalog regression v2.
+/* Electrical Career Readiness Hub — live canonical catalog regression v3.
  * Runs the Learn → Apply → Check → Evidence progression against the actual
  * 24-week catalog loaded by the production runtime. Read-only: no learner storage.
+ * Also validates the real downstream Home/Skills projection produced by the hub.
  */
-import { STAGES, emptyProgress, applyStageCompletion, nextStage } from './learning-engine-v2.js';
+import { STAGES, emptyProgress, applyStageCompletion, nextStage, buildHubSignals } from './learning-engine-v2.js';
 import { loadCanonicalCatalog, validateCanonicalQuality } from './canonical-catalog-v1.js';
 import { validateLearningState } from './learning-state-contract-v1.js';
 
@@ -36,7 +37,7 @@ const demonstratedEvidence = (weekId, week) => ({
   prerequisitesSatisfied: true,
   demonstrated: true,
   applyLink: `apply:${weekId}`,
-  checkLink: 'check:' + weekId + ':2026-01-01T00:00:00Z',
+  checkLink: `check:${weekId}:2026-01-01T00:00:00Z`,
   linkageComplete: true,
   linkageValid: true,
   proofChain: { applyLinked: true, checkLinked: true, evidenceCaptured: true, demonstratedCapability: true },
@@ -48,8 +49,8 @@ const demonstratedEvidence = (weekId, week) => ({
 const journalEntry = (weekId, stage) => ({ id: `${stage}-${weekId}`, date: '2026-01-01', weekId: String(weekId), stage, source: `${stage}-completion`, reflection: 'Canonical regression reflection', nextAction: 'Continue to the next stage' });
 
 const expectedNextStage = (weekIds, index, stage) => {
-  if (stage !== 'evidence') return { week: weekIds[index], stage: STAGES[STAGES.indexOf(stage) + 1] };
-  return index < weekIds.length - 1 ? { week: weekIds[index + 1], stage: 'learn' } : null;
+  if (stage !== 'evidence') return { weekId: weekIds[index], stage: STAGES[STAGES.indexOf(stage) + 1] };
+  return index < weekIds.length - 1 ? { weekId: weekIds[index + 1], stage: 'learn' } : null;
 };
 
 export async function runCanonicalLearningStateRegression() {
@@ -90,7 +91,7 @@ export async function runCanonicalLearningStateRegression() {
 
       const actualNext = nextStage(progress, weekIds);
       const expectedNext = expectedNextStage(weekIds, index, stage);
-      if (actualNext !== expectedNext && JSON.stringify(actualNext) !== JSON.stringify(expectedNext)) {
+      if (JSON.stringify(actualNext) !== JSON.stringify(expectedNext)) {
         issues.push({ code: 'next-action-mismatch', weekId, stage, expected: expectedNext, actual: actualNext });
       }
 
@@ -103,6 +104,7 @@ export async function runCanonicalLearningStateRegression() {
     }
   }
 
+  const hubSignals = buildHubSignals(catalog, progress, contextByWeek, journalEntries, portfolioEntries);
   const contract = validateLearningState({
     catalog,
     progressByWeek: progress,
@@ -110,16 +112,41 @@ export async function runCanonicalLearningStateRegression() {
     journalEntries,
     portfolioEntries,
     evidenceLedger,
-    nextBestAction: nextStage(progress, weekIds)
+    hubSignals,
+    nextBestAction: hubSignals?.nextBestAction || null
   });
   if (!contract.ok) issues.push({ code: 'learning-state-contract-failed', detail: JSON.stringify(contract.issues) });
+
   if (completedStages !== 96) issues.push({ code: 'stage-count-mismatch', expected: 96, actual: completedStages });
   if (journalEntries.length !== 48) issues.push({ code: 'journal-projection-count-mismatch', expected: 48, actual: journalEntries.length });
   if (portfolioEntries.length !== 24) issues.push({ code: 'portfolio-projection-count-mismatch', expected: 24, actual: portfolioEntries.length });
   if (evidenceLedger.length !== 24) issues.push({ code: 'evidence-ledger-count-mismatch', expected: 24, actual: evidenceLedger.length });
+  if (hubSignals?.completedStages !== 96) issues.push({ code: 'hub-progress-projection-mismatch', expected: 96, actual: hubSignals?.completedStages });
+  if (hubSignals?.totalStages !== 96) issues.push({ code: 'hub-total-stage-projection-mismatch', expected: 96, actual: hubSignals?.totalStages });
+  if (hubSignals?.overallProgress !== 100) issues.push({ code: 'home-progress-projection-mismatch', expected: 100, actual: hubSignals?.overallProgress });
+  if (hubSignals?.nextBestAction !== null) issues.push({ code: 'home-terminal-action-mismatch', expected: null, actual: hubSignals?.nextBestAction });
+  if (Array.isArray(hubSignals?.prioritySkillGaps) && hubSignals.prioritySkillGaps.length) issues.push({ code: 'skills-terminal-gaps-remain', expected: 0, actual: hubSignals.prioritySkillGaps.length });
+  if (Array.isArray(hubSignals?.demonstratedCapability)) {
+    const incompleteSkills = hubSignals.demonstratedCapability.filter(item => Number(item?.readiness) < 100);
+    if (incompleteSkills.length) issues.push({ code: 'skills-capability-projection-incomplete', expected: 0, actual: incompleteSkills.length });
+  }
   if (nextStage(progress, weekIds) !== null) issues.push({ code: 'terminal-state-mismatch', detail: '24-week canonical progression still has a next action' });
 
-  return { ok: issues.length === 0, suiteVersion: 'v2-live-canonical', weekCount: weekIds.length, stageCount: completedStages, expectedStageCount: 96, journalProjectionCount: journalEntries.length, portfolioProjectionCount: portfolioEntries.length, evidenceLedgerCount: evidenceLedger.length, catalogQuality: quality, contractOk: contract.ok, issues };
+  return {
+    ok: issues.length === 0,
+    suiteVersion: 'v3-live-canonical-projections',
+    weekCount: weekIds.length,
+    stageCount: completedStages,
+    expectedStageCount: 96,
+    journalProjectionCount: journalEntries.length,
+    portfolioProjectionCount: portfolioEntries.length,
+    evidenceLedgerCount: evidenceLedger.length,
+    homeProjection: { overallProgress: hubSignals?.overallProgress ?? null, completedStages: hubSignals?.completedStages ?? null, totalStages: hubSignals?.totalStages ?? null, nextBestAction: hubSignals?.nextBestAction ?? null },
+    skillsProjection: { demonstratedCapabilityCount: Array.isArray(hubSignals?.demonstratedCapability) ? hubSignals.demonstratedCapability.length : 0, prioritySkillGapCount: Array.isArray(hubSignals?.prioritySkillGaps) ? hubSignals.prioritySkillGaps.length : 0 },
+    catalogQuality: quality,
+    contractOk: contract.ok,
+    issues
+  };
 }
 
 const api = { runCanonicalLearningStateRegression };
