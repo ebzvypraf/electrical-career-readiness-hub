@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — canonical Skills UI bridge v2.
+/* Electrical Career Readiness Hub — canonical Skills UI bridge v2.1.
  * Keeps the learner-facing Skills page bound to the same canonical store that
  * powers Course, Home, Journal and Portfolio.
  *
@@ -18,6 +18,59 @@
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>\"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  function openWeekStage(weekId, stage) {
+    const api = window.ECRHCanonical;
+    if (api?.openStage) { api.openStage(String(weekId), String(stage)); return; }
+    const selector = '[data-canonical-open="' + String(weekId) + ':' + String(stage) + '"]';
+    const direct = document.querySelector(selector);
+    if (direct) { direct.click(); return; }
+    const course = document.querySelector('[data-page="course"]');
+    if (course) course.click();
+    let attempts = 0;
+    const timer = setInterval(() => {
+      const button = document.querySelector(selector);
+      if (button) { clearInterval(timer); button.click(); }
+      if (++attempts > 20) clearInterval(timer);
+    }, 150);
+  }
+
+  function renderEvidenceTrace(host, skills, entries, catalog) {
+    host.querySelectorAll('[data-skill-evidence-trace]').forEach(node => node.remove());
+    if (!Array.isArray(entries) || !entries.length) return;
+
+    const normalizedEntries = entries.filter(entry => entry && entry.week != null && entry.title);
+    Array.from(host.querySelectorAll('.skillrow')).forEach((row, index) => {
+      const item = skills[index];
+      if (!item?.skill) return;
+      const skillName = String(item.skill).trim().toLowerCase();
+      const matches = normalizedEntries.filter(entry => {
+        const week = catalog?.[String(entry.week)];
+        const targets = Array.isArray(week?.skills) ? week.skills : [];
+        return targets.some(target => String(target).trim().toLowerCase() === skillName);
+      });
+      if (!matches.length) return;
+
+      const wrap = document.createElement('div');
+      wrap.dataset.skillEvidenceTrace = '1';
+      wrap.style.cssText = 'margin-top:10px;padding-top:9px;border-top:1px solid rgba(127,127,127,.18)';
+      const list = matches.slice(0, 4).map(entry => {
+        const demonstrated = entry.reviewStatus === 'demonstrated' && entry.upstreamChangedAfterEvidence !== true;
+        const status = demonstrated ? 'demonstrated' : 'developing / review';
+        const stage = entry.upstreamChangedAfterEvidence ? 'apply' : (demonstrated ? 'evidence' : 'apply');
+        return `<div style="margin-top:6px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span><b>Week ${esc(entry.week)}</b> • ${esc(entry.title)} <small class="muted">(${esc(status)})</small></span><button class="btn" type="button" data-skill-evidence-open="${esc(entry.week)}:${esc(stage)}">Open proof</button></div>`;
+      }).join('');
+      const more = matches.length > 4 ? `<small class="muted">+ ${matches.length - 4} more linked evidence item${matches.length - 4 === 1 ? '' : 's'}</small>` : '';
+      wrap.innerHTML = `<small class="muted"><b>Portfolio evidence:</b> ${matches.length} linked item${matches.length === 1 ? '' : 's'}</small>${list}${more}`;
+      wrap.querySelectorAll('[data-skill-evidence-open]').forEach(button => {
+        button.addEventListener('click', () => {
+          const [weekId, stage] = String(button.dataset.skillEvidenceOpen || '').split(':');
+          if (weekId && stage) openWeekStage(weekId, stage);
+        });
+      });
+      row.appendChild(wrap);
+    });
   }
 
   function render() {
@@ -47,6 +100,8 @@
         <small>${esc(recommendation)}</small>
       </div>`;
     }).join('');
+
+    renderEvidenceTrace(host, skills, state.portfolioEntries, state.catalog || window.ECRHCanonical?.catalog || {});
   }
 
   function attach() {
