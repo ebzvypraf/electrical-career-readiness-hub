@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — structured Apply UI v1.
+/* Electrical Career Readiness Hub — structured Apply UI v1.1.
  * Converts the canonical Apply modal into an auditable learner-authored record.
  * Uses the existing canonical learning-state store; no parallel progress model.
  */
@@ -18,17 +18,49 @@
     return match ? String(Number(match[1])) : null;
   }
 
+  function readForm(modal) {
+    return {
+      tasks: [...modal.querySelectorAll('[data-apply-task]')].map(input => input.checked),
+      deliverable: document.getElementById('apply-deliverable')?.value || '',
+      decisions: document.getElementById('apply-decisions')?.value || '',
+      assumptions: document.getElementById('apply-assumptions')?.value || '',
+      verification: document.getElementById('apply-verification')?.value || ''
+    };
+  }
+
+  function readiness(form) {
+    const fields = [
+      form.tasks.length > 0 && form.tasks.every(Boolean),
+      Boolean(String(form.deliverable).trim()),
+      Boolean(String(form.decisions).trim()),
+      Boolean(String(form.assumptions).trim()),
+      Boolean(String(form.verification).trim())
+    ];
+    return { fields, complete: fields.filter(Boolean).length, total: fields.length, ready: fields.every(Boolean) };
+  }
+
+  function renderStatus(modal) {
+    const status = modal.querySelector('[data-apply-gate-status]');
+    if (!status) return;
+    const result = readiness(readForm(modal));
+    const existing = getStore()?.getState?.()?.contextByWeek?.[currentWeekId()]?.applicationEvidence;
+    const savedReady = Boolean(existing?.tasksComplete && existing?.deliverable && existing?.decisions && existing?.assumptions && existing?.verification);
+    const ready = result.ready || savedReady;
+    status.dataset.ready = ready ? 'true' : 'false';
+    status.innerHTML = ready
+      ? '<strong>Apply gate ready</strong><span>All required practical proof fields are complete. You can now move to Check.</span>'
+      : `<strong>Apply gate in progress</strong><span>${result.complete}/${result.total} required proof areas complete. Finish the remaining fields before moving to Check.</span>`;
+  }
+
   function enhance() {
     const modal = document.getElementById('modalCard');
     const weekId = currentWeekId();
     const store = getStore();
-    if (!modal || !weekId || !store || (modal.dataset.applyStructuredV1 === weekId && modal.querySelector('#apply-task-checks'))) return;
+    if (!modal || !weekId || !store || (modal.dataset.applyStructuredV11 === weekId && modal.querySelector('#apply-task-checks'))) return;
 
     const state = store.getState?.() || {};
     const existing = state.contextByWeek?.[weekId]?.applicationEvidence || {};
-    const tasks = Array.isArray(state.contextByWeek?.[weekId]?.applicationEvidence?.tasks)
-      ? state.contextByWeek[weekId].applicationEvidence.tasks
-      : [];
+    const tasks = Array.isArray(existing.tasks) ? existing.tasks : [];
     const catalogTasks = Array.isArray(window.ECRHCanonical?.catalog?.[weekId]?.apply?.tasks)
       ? window.ECRHCanonical.catalog[weekId].apply.tasks
       : [];
@@ -42,6 +74,7 @@
     wrapper.style.marginTop = '10px';
     wrapper.innerHTML = '<h3>Structured Apply record</h3>' +
       '<p class="muted">Complete every practical task and capture the decisions, assumptions and verification behind your work. This record is the Apply stage gate.</p>' +
+      '<div data-apply-gate-status role="status" aria-live="polite" style="display:grid;gap:4px;margin:10px 0;padding:10px 12px;border:1px solid var(--border);border-radius:10px"><strong>Apply gate in progress</strong><span>0/5 required proof areas complete. Finish the remaining fields before moving to Check.</span></div>' +
       '<div class="rubric" id="apply-task-checks">' +
       catalogTasks.map((task, i) => `<label class="rubric-row" style="gap:10px;justify-content:flex-start"><input type="checkbox" data-apply-task="${i}" ${taskValues[i] ? 'checked' : ''}> <span>${escapeHtml(task)}</span></label>`).join('') +
       '</div>' +
@@ -53,27 +86,31 @@
       '</div>';
 
     save.parentNode.parentNode.insertBefore(wrapper, save.parentNode);
-    modal.dataset.applyStructuredV1 = weekId;
+    modal.dataset.applyStructuredV11 = weekId;
+
+    wrapper.querySelectorAll('input, textarea').forEach(input => input.addEventListener('input', () => renderStatus(modal)));
+    wrapper.querySelectorAll('input[type="checkbox"]').forEach(input => input.addEventListener('change', () => renderStatus(modal)));
+    renderStatus(modal);
 
     save.addEventListener('click', function (event) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      const taskChecks = [...modal.querySelectorAll('[data-apply-task]')].map(input => input.checked);
+      const form = readForm(modal);
       const result = store.saveApplicationEvidence({
         weekId,
-        tasks: taskChecks,
-        deliverable: document.getElementById('apply-deliverable')?.value || '',
-        decisions: document.getElementById('apply-decisions')?.value || '',
-        assumptions: document.getElementById('apply-assumptions')?.value || '',
-        verification: document.getElementById('apply-verification')?.value || '',
+        tasks: form.tasks,
+        deliverable: form.deliverable,
+        decisions: form.decisions,
+        assumptions: form.assumptions,
+        verification: form.verification,
         notes: note.value || ''
       });
       if (!result.ok) {
         alert(result.reason);
         return;
       }
-      alert('Structured Apply record saved. The Apply stage gate is now ready when all required fields are complete.');
-      enhance();
+      renderStatus(modal);
+      alert('Structured Apply record saved. Complete all required proof areas before moving to Check.');
     }, true);
   }
 
