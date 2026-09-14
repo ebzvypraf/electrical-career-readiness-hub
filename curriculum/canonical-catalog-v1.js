@@ -21,6 +21,7 @@ import './recovery-provenance-bridge-v1.js';
 import './assessment-store-bridge-v1.js';
 import './assessment-response-retention-v1.js';
 import './skills-canonical-ui-v1.js';
+import './skills-learning-action-bridge-v1.js';
 import './home-learning-loop-ui-v1.js';
 import './home-session-resume-ui-v1.js';
 import './portfolio-review-enhancer-v1.js';
