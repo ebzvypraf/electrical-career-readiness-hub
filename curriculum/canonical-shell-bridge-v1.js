@@ -1,8 +1,10 @@
-/* Electrical Career Readiness Hub — canonical shell bridge v1.5.
+/* Electrical Career Readiness Hub — canonical shell bridge v1.6.
  * Keeps Home/Skills/Journal/Portfolio navigation and legacy forms attached to
  * the canonical learning state after the Course runtime takes ownership.
  * Capability displays use the persisted canonical proof chain rather than
  * relying on a transient linkageValid field that may not survive normalization.
+ * v1.6 loads the canonical session-draft enhancer so interrupted Apply/Check/
+ * Evidence work can be resumed without creating a second progress model.
  */
 (function () {
   'use strict';
@@ -141,6 +143,9 @@
     renderSkills();
     renderJournal();
     renderPortfolio();
+    import('./canonical-session-draft-enhancer-v1.js').then(() => {
+      window.ECRHCanonical.sessionDrafts = true;
+    }).catch(error => console.error('Canonical session draft enhancer failed', error));
     window.ECRHCanonical.shellReady = true;
   };
   wait();
