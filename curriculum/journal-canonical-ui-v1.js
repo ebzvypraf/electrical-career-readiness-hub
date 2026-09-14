@@ -1,17 +1,23 @@
-/* Electrical Career Readiness Hub — canonical Journal UI bridge v1.1.
+/* Electrical Career Readiness Hub — canonical Journal UI bridge v1.2.
  * Makes the existing Journal surface write through the shared learning-state store
  * while preserving the existing form and legacy state compatibility.
  *
  * Manual Journal entries are linked to the learner's current canonical next action
  * when one exists, so the Journal can be traced back to the same 24-week learning
  * pathway without inventing a second progress model.
+ *
+ * v1.2 adds a stage-aware learning thread: Journal history can be filtered by
+ * Learn / Apply / Check / Evidence and the current canonical next action is shown
+ * above the history. The store remains the sole source of progression truth.
  */
 (function () {
   'use strict';
 
   const LEGACY_KEY = 'ecrh-v35';
   const CANONICAL_KEY = 'ecrh-canonical-journal-v1';
+  const STAGES = ['all', 'learn', 'apply', 'check', 'evidence'];
   let installed = false;
+  let activeFilter = 'all';
 
   function getStore() {
     const api = typeof window !== 'undefined' ? window.ECRHCanonical : null;
@@ -33,26 +39,8 @@
     } catch (_) {}
   }
 
-  function render(entries) {
-    const host = document.getElementById('logs');
-    if (!host) return;
-    const list = Array.isArray(entries) ? entries : [];
-    if (!list.length) {
-      host.innerHTML = '<div class="empty">No reflections yet. Your first meaningful study note will appear here.</div>';
-      return;
-    }
-    host.innerHTML = list.slice().reverse().map(entry => {
-      const date = String(entry?.date || '').slice(0, 10);
-      const hours = Number(entry?.hours) || 0;
-      const study = String(entry?.study || '').trim();
-      const learn = String(entry?.learn || entry?.reflection || '').trim();
-      const hard = String(entry?.hard || '').trim();
-      const next = String(entry?.next || entry?.nextAction || '').trim();
-      const week = entry?.weekId == null || entry?.weekId === '' ? '' : ` · Week ${String(entry.weekId)}`;
-      const stage = entry?.stage ? ` · <span class="tag">${String(entry.stage)}</span>` : '';
-      const esc = value => String(value ?? '').replace(/[&<>\"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"':'&quot;', "'":'&#39;' }[char]));
-      return `<div class="goal"><b>${esc(date || 'Undated reflection')}</b>${hours > 0 ? ` · ${esc(hours)}h` : ''}${esc(week)}${stage}<small>${esc(study || 'Learning reflection')}</small>${learn ? `<p>${esc(learn)}</p>` : ''}${hard ? `<p><b>Difficulty:</b> ${esc(hard)}</p>` : ''}${next ? `<p><b>Next:</b> ${esc(next)}</p>` : ''}</div>`;
-    }).join('');
+  function esc(value) {
+    return String(value ?? '').replace(/[&<>\"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[char]));
   }
 
   function currentLearningLink(store) {
@@ -63,6 +51,70 @@
     } catch (_) { return {}; }
   }
 
+  function ensureThreadHost() {
+    const host = document.getElementById('logs');
+    if (!host) return null;
+    let thread = document.getElementById('journalLearningThread');
+    if (!thread) {
+      thread = document.createElement('div');
+      thread.id = 'journalLearningThread';
+      thread.style.marginBottom = '14px';
+      host.parentElement?.insertBefore(thread, host);
+    }
+    return thread;
+  }
+
+  function renderThread(entries, store) {
+    const thread = ensureThreadHost();
+    if (!thread) return;
+    const state = store?.getState?.() || {};
+    const next = state.hubSignals?.nextBestAction || null;
+    const list = Array.isArray(entries) ? entries : [];
+    const counts = STAGES.slice(1).reduce((acc, stage) => {
+      acc[stage] = list.filter(entry => String(entry?.stage || '') === stage).length;
+      return acc;
+    }, {});
+    const nextText = next
+      ? `Week ${esc(next.weekId)} · ${esc(next.label || next.stage)}${next.week ? ` · ${esc(next.week)}` : ''}`
+      : '24-week pathway complete';
+    const nextPrompt = next?.prompt || 'Review your strongest evidence and prepare for the next career-readiness step.';
+    thread.innerHTML = `<div class="goal" style="margin-bottom:8px"><b>Current learning thread</b><small>Next canonical action: ${nextText}</small><small>${esc(nextPrompt)}</small></div>
+      <div class="summary" style="grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">
+        ${STAGES.map(stage => `<button type="button" class="btn ${activeFilter === stage ? 'primary' : ''}" data-journal-filter="${stage}" style="min-width:0">${stage === 'all' ? `All (${list.length})` : `${stage[0].toUpperCase()}${stage.slice(1)} (${counts[stage]})`}</button>`).join('')}
+      </div>`;
+    thread.querySelectorAll('[data-journal-filter]').forEach(button => {
+      button.onclick = () => {
+        activeFilter = String(button.dataset.journalFilter || 'all');
+        render(entries, store);
+      };
+    });
+  }
+
+  function render(entries, store = getStore()) {
+    const host = document.getElementById('logs');
+    if (!host) return;
+    const list = Array.isArray(entries) ? entries : [];
+    renderThread(list, store);
+    const filtered = activeFilter === 'all'
+      ? list
+      : list.filter(entry => String(entry?.stage || '').toLowerCase() === activeFilter);
+    if (!filtered.length) {
+      host.innerHTML = `<div class="empty">No ${activeFilter === 'all' ? '' : esc(activeFilter + ' ')}reflections yet. Your next canonical learning action can create the next traceable entry.</div>`;
+      return;
+    }
+    host.innerHTML = filtered.slice().reverse().map(entry => {
+      const date = String(entry?.date || '').slice(0, 10);
+      const hours = Number(entry?.hours) || 0;
+      const study = String(entry?.study || '').trim();
+      const learn = String(entry?.learn || entry?.reflection || '').trim();
+      const hard = String(entry?.hard || '').trim();
+      const next = String(entry?.next || entry?.nextAction || '').trim();
+      const week = entry?.weekId == null || entry?.weekId === '' ? '' : ` · Week ${String(entry.weekId)}`;
+      const stage = entry?.stage ? ` · <span class="tag">${esc(entry.stage)}</span>` : '';
+      return `<div class="goal"><b>${esc(date || 'Undated reflection')}</b>${hours > 0 ? ` · ${esc(hours)}h` : ''}${esc(week)}${stage}<small>${esc(study || 'Learning reflection')}</small>${learn ? `<p>${esc(learn)}</p>` : ''}${hard ? `<p><b>Difficulty:</b> ${esc(hard)}</p>` : ''}${next ? `<p><b>Next:</b> ${esc(next)}</p>` : ''}</div>`;
+    }).join('');
+  }
+
   function install() {
     if (installed) return true;
     const store = getStore();
@@ -71,7 +123,7 @@
 
     store.subscribe(next => {
       const entries = Array.isArray(next?.journalEntries) ? next.journalEntries : [];
-      render(entries);
+      render(entries, store);
       writeLegacyJournals(entries);
     });
 
@@ -100,7 +152,7 @@
       ['jhours', 'jstudy', 'jlearn', 'jhard', 'jnext'].forEach(id => { const node = document.getElementById(id); if (node) node.value = ''; });
       const dateNode = document.getElementById('jdate');
       if (dateNode) dateNode.value = new Date().toISOString().slice(0, 10);
-      render(result.state?.journalEntries || []);
+      render(result.state?.journalEntries || [], activeStore);
     }, true);
     return true;
   }
