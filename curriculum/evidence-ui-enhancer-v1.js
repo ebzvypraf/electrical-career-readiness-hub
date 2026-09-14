@@ -1,6 +1,7 @@
-/* Electrical Career Readiness Hub — Evidence UI enhancer v1.
- * Adds the canonical evidence rubric/reflection fields to the existing Course modal
- * without replacing the production shell or legacy UI adapter.
+/* Electrical Career Readiness Hub — Evidence UI enhancer v1.1.
+ * Makes the canonical Apply → Check → Evidence proof chain visible before
+ * evidence capture and prevents a learner from treating an unproven/stale
+ * chain as demonstrated capability. Does not replace the production shell.
  */
 import './portfolio-review-enhancer-v1.js';
 
@@ -12,8 +13,8 @@ import './portfolio-review-enhancer-v1.js';
   function api() { return root() && root().ECRHCanonical; }
   function getStore() { const canonical = api(); return typeof canonical?.store === 'function' ? canonical.store() : canonical?.store || null; }
   function currentWeek() { const card = document.getElementById('modalCard'); const marker = card && card.querySelector('.k'); const match = marker && text(marker.textContent).match(/Week\s+(\d+)/i); return match ? Number(match[1]) : null; }
-  function evidenceContext(week) { const store = getStore(); return store && store.getState ? (store.getState().contextByWeek?.[String(week)]?.evidence || {}) : {}; }
   function weekContext(week) { const store = getStore(); return store && store.getState ? (store.getState().contextByWeek?.[String(week)] || {}) : {}; }
+  function evidenceContext(week) { return weekContext(week).evidence || {}; }
   function time(value) { const n = Date.parse(value || ''); return Number.isFinite(n) ? n : null; }
   function isStaleEvidence(week, evidence) {
     const ctx = weekContext(week); const captured = time(evidence?.capturedAt || evidence?.date);
@@ -22,16 +23,40 @@ import './portfolio-review-enhancer-v1.js';
     const check = time(ctx?.assessmentResult?.date);
     return [apply, check].some(value => value != null && value > captured);
   }
+  function proofState(week) {
+    const ctx = weekContext(week), apply = ctx.applicationEvidence || {}, check = ctx.assessmentResult || {}, evidence = ctx.evidence || {};
+    const applyReady = Boolean(apply.tasksComplete && apply.deliverable && apply.decisions && apply.assumptions && apply.verification);
+    const checkPassed = Boolean(check.passed === true && (check.completionReady === true || check.passed === true));
+    const stale = isStaleEvidence(week, evidence);
+    return { applyReady, checkPassed, stale, evidenceDemonstrated: Boolean(evidence.demonstrated) && !stale };
+  }
+  function gateMarkup(state) {
+    const row = (ok, label, detail) => '<div class="rubric-row"><span><strong>' + (ok ? 'Ready' : 'Blocked') + '</strong> — ' + esc(label) + '</span><span class="tag' + (ok ? ' pill ok' : '') + '">' + esc(detail) + '</span></div>';
+    const ready = state.applyReady && state.checkPassed && !state.stale;
+    return '<div class="learning-card" id="canonical-proof-gate"><h3>Proof-chain gate</h3>' +
+      '<p class="muted">Evidence is the final proof step. It becomes demonstrable only when the current Apply record and current Check result are valid and not superseded.</p>' +
+      '<div class="rubric">' +
+      row(state.applyReady, 'Apply record', state.applyReady ? 'Complete' : 'Required first') +
+      row(state.checkPassed, 'Check result', state.checkPassed ? 'Passed' : 'Pass Check first') +
+      row(!state.stale, 'Evidence freshness', state.stale ? 'Recapture required' : 'Current') +
+      '</div>' +
+      '<div class="result' + (ready ? '' : ' warn') + '"><b>' + (ready ? 'Evidence capture is unlocked.' : 'Evidence capture is blocked.') + '</b><p>' +
+      (ready ? 'Record the artifact, satisfy the rubric, and preserve the Apply → Check links.' : 'Return to the incomplete upstream stage shown above. The canonical store will reject Evidence until the proof chain is valid.') +
+      '</p></div></div>';
+  }
 
   function enhance() {
     const card = document.getElementById('modalCard');
-    if (!card || !document.getElementById('canonical-save-evidence') || card.dataset.evidenceEnhanced === '1') return;
+    if (!card || !document.getElementById('canonical-save-evidence')) return;
     const week = currentWeek(); const canonical = api(); const module = canonical && canonical.catalog && canonical.catalog[String(week)];
     const criteria = Array.isArray(module?.evidence?.criteria) ? module.evidence.criteria : []; const existing = evidenceContext(week) || {};
     const anchor = document.getElementById('canonical-ed'); const form = anchor && anchor.closest('.evidence-form'); if (!form) return;
-    const block = document.createElement('div'); block.className = 'evidence-form'; block.id = 'canonical-evidence-quality';
-    const stale = isStaleEvidence(week, existing);
-    block.innerHTML = (stale ? '<div class="result warn"><b>Evidence needs recapture.</b><p>This saved Evidence is older than a later Apply or Check result. The previous proof remains in history, but it cannot represent the latest learning state until you capture it again.</p></div>' : '') +
+    const state = proofState(week); const stale = state.stale; const saveButton = document.getElementById('canonical-save-evidence');
+    if (saveButton) { saveButton.disabled = !(state.applyReady && state.checkPassed); saveButton.title = saveButton.disabled ? 'Complete Apply and pass Check before capturing Evidence.' : 'Capture canonical Evidence'; }
+    let block = document.getElementById('canonical-evidence-quality');
+    if (!block) { block = document.createElement('div'); block.className = 'evidence-form'; block.id = 'canonical-evidence-quality'; form.insertBefore(block, saveButton); }
+    block.innerHTML = gateMarkup(state) +
+      (stale ? '<div class="result warn"><b>Evidence needs recapture.</b><p>This saved Evidence is older than a later Apply or Check result. The previous proof remains in history, but it cannot represent the latest learning state until you capture it again.</p></div>' : '') +
       '<div class="learning-card"><h3>Evidence quality</h3>' +
       '<p class="muted">Connect the proof to the practical Apply decision and the Check learning result. High-quality evidence shows the chain, not only the final artifact.</p>' +
       (criteria.length ? '<div class="rubric">' + criteria.map(function (label, index) { const id = 'criterion_' + (index + 1); const checked = existing[id] === true || existing[id] === 'true'; return '<label class="rubric-row" style="cursor:pointer;gap:10px;align-items:flex-start"><span style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="' + id + '" ' + (checked ? 'checked' : '') + '> <span>' + (index + 1) + '. ' + esc(label) + '</span></span><span class="tag">Required</span></label>'; }).join('') + '</div>' : '<div class="saved">No additional rubric criteria are defined for this week.</div>') +
@@ -39,15 +64,16 @@ import './portfolio-review-enhancer-v1.js';
       '<label>Check / recovery link<textarea id="canon-ecl" placeholder="Which Check concept or recovered question does this Evidence demonstrate?">' + esc(existing.checkLink || '') + '</textarea></label>' +
       '<label>Reflection<textarea id="canon-er" placeholder="What did you learn, decide, or improve through this evidence?">' + esc(existing.reflection || '') + '</textarea></label>' +
       '<label>Next action<textarea id="canon-ena" placeholder="What will you do next to strengthen or apply this capability?">' + esc(existing.nextAction || '') + '</textarea></label>' +
-      '<p class="muted">Evidence can still be demonstrated when the core rubric is satisfied, but it is rated <strong>high</strong> only when both learning links are explicitly recorded.</p>' +
+      '<p class="muted">A demonstrated Evidence record requires the canonical Apply and Check links, satisfied criteria, and a current upstream proof chain.</p>' +
       '</div>';
-    form.insertBefore(block, document.getElementById('canonical-save-evidence')); card.dataset.evidenceEnhanced = '1';
+    card.dataset.evidenceEnhanced = '1';
   }
 
   function capture(event) {
     const target = event.target && event.target.closest ? event.target.closest('#canonical-save-evidence') : null; if (!target) return;
     const store = getStore(); if (!store || typeof store.captureEvidence !== 'function') return;
     enhance(); const week = currentWeek(); if (!week) return;
+    const state = proofState(week); if (!state.applyReady || !state.checkPassed) { event.preventDefault(); event.stopImmediatePropagation(); window.alert('Evidence is locked until the structured Apply record is complete and the Check stage has passed.'); return; }
     const titleEl = document.getElementById('canonical-et'); const descriptionEl = document.getElementById('canonical-ed'); const title = text(titleEl && titleEl.value); const description = text(descriptionEl && descriptionEl.value); if (!title || !description) return;
     event.preventDefault(); event.stopImmediatePropagation();
     const input = { weekId: String(week), title, description, applyLink: text(document.getElementById('canon-eal')?.value), checkLink: text(document.getElementById('canon-ecl')?.value), reflection: text(document.getElementById('canon-er')?.value), nextAction: text(document.getElementById('canon-ena')?.value), date: new Date().toISOString() };
