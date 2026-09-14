@@ -1,13 +1,14 @@
-/* Electrical Career Readiness Hub — canonical learning state integrity contract v2.
+/* Electrical Career Readiness Hub — canonical learning state integrity contract v3.
  * Read-only invariants for the Learn → Apply → Check → Evidence proof chain.
- * Also validates downstream Home projection so a committed week cannot leave
- * the learner pointed at an already-completed stage.
+ * Also validates downstream Home, Journal and Portfolio projections so a
+ * committed stage cannot leave downstream surfaces partially advanced.
  * The contract never mutates learner state; it exposes actionable diagnostics.
  */
 
 const asWeek = value => String(value ?? '').trim();
 const hasCanonicalApplyLink = (entry, weekId) => entry?.applyLink === `apply:${weekId}`;
 const hasCanonicalCheckLink = (entry, weekId) => typeof entry?.checkLink === 'string' && entry.checkLink.startsWith(`check:${weekId}:`) && entry.checkLink.length > `check:${weekId}:`.length;
+const isApplyJournalEntry = entry => entry?.source === 'apply-completion';
 
 function issue(code, weekId, message, severity = 'error') {
   return { code, weekId: weekId == null ? null : String(weekId), message, severity };
@@ -23,6 +24,7 @@ export function validateLearningState({ catalog = {}, progressByWeek = {}, conte
   const weeks = Object.keys(catalog || {}).sort((a, b) => Number(a) - Number(b));
   const portfolioByWeek = new Map((Array.isArray(portfolioEntries) ? portfolioEntries : []).map(entry => [asWeek(entry?.week), entry]));
   const ledgerByLineage = new Map((Array.isArray(evidenceLedger) ? evidenceLedger : []).filter(item => item?.lineageId).map(item => [String(item.lineageId), item]));
+  const journal = Array.isArray(journalEntries) ? journalEntries : [];
   let completedEvidence = 0;
   let demonstratedEvidence = 0;
   let recoveredChecks = 0;
@@ -34,13 +36,22 @@ export function validateLearningState({ catalog = {}, progressByWeek = {}, conte
     const portfolio = portfolioByWeek.get(weekId) || null;
     const assessment = context.assessmentResult || null;
     const history = Array.isArray(context.assessmentHistory) ? context.assessmentHistory : (Array.isArray(assessment?.assessmentHistory) ? assessment.assessmentHistory : []);
+    const weekJournal = journal.filter(entry => asWeek(entry?.weekId) === weekId);
 
     if (progress.apply === true && !applyRecordReady(context)) {
       issues.push(issue('apply-progress-without-record', weekId, 'Apply is marked complete but the canonical structured Apply record is incomplete.'));
     }
 
+    if (progress.apply === true && applyRecordReady(context) && !weekJournal.some(isApplyJournalEntry)) {
+      issues.push(issue('apply-progress-without-journal', weekId, 'Apply is marked complete but its canonical Apply → Journal projection is missing.'));
+    }
+
     if (progress.check === true && (!assessment || assessment.passed !== true)) {
       issues.push(issue('check-progress-without-pass', weekId, 'Check is marked complete but the current assessment result is not passed.'));
+    }
+
+    if (progress.check === true && assessment?.passed === true && !weekJournal.some(entry => entry?.stage === 'check' && entry?.weekId != null)) {
+      issues.push(issue('check-progress-without-journal', weekId, 'Check is marked complete but its canonical Check → Journal projection is missing.'));
     }
 
     if (assessment?.passed === true && assessment?.recovered === true) {
@@ -87,14 +98,14 @@ export function validateLearningState({ catalog = {}, progressByWeek = {}, conte
   const valid = issues.filter(x => x.severity === 'error');
   return {
     ok: valid.length === 0,
-    contractVersion: 'v2',
+    contractVersion: 'v3',
     checkedAt: new Date().toISOString(),
     weeksChecked: weeks.length,
     counts: {
       completedEvidence,
       demonstratedEvidence,
       recoveredChecks,
-      journalEntries: Array.isArray(journalEntries) ? journalEntries.length : 0,
+      journalEntries: journal.length,
       evidenceLedgerRecords: Array.isArray(evidenceLedger) ? evidenceLedger.length : 0
     },
     issues
