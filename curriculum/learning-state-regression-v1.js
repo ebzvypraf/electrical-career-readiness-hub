@@ -1,9 +1,9 @@
-/* Electrical Career Readiness Hub — canonical learning state regression suite v1.
+/* Electrical Career Readiness Hub — canonical learning state regression suite v2.
  * Deterministic, dependency-light scenarios for the Learn → Apply → Check → Evidence
  * state machine and downstream projections. This module is intentionally read-only:
  * it constructs fixture states and reports failures without touching learner storage.
  */
-import { STAGES, emptyProgress, isStageUnlocked, canCompleteStage } from './learning-engine-v2.js';
+import { STAGES, emptyProgress, isStageUnlocked, canCompleteStage, nextStage, applyStageCompletion } from './learning-engine-v2.js';
 import { validateLearningState } from './learning-state-contract-v1.js';
 
 const deepClone = value => JSON.parse(JSON.stringify(value));
@@ -64,8 +64,35 @@ export function runLearningStateRegression() {
     failures.push(assert('stale evidence is rejected', !result.ok && result.issues.some(issue => issue.code === 'evidence-progress-while-stale')));
   }
 
+  // 6. Full 24-week progression: each week unlocks only after the prior week's Evidence.
+  {
+    const progress = baseProgress();
+    const catalog = baseCatalog();
+    let completed = 0;
+    for (let week = 1; week <= 24; week += 1) {
+      const id = String(week);
+      failures.push(assert(`week ${week} learn unlocks`, isStageUnlocked(progress, id, 'learn')));
+      const contexts = {
+        learn: { learnViewedAt: `2026-01-${String(week).padStart(2, '0')}` },
+        apply: { applicationEvidence: applyEvidence() },
+        check: { assessmentResult: passedCheck() },
+        evidence: { evidence: demonstratedEvidence(id) }
+      };
+      for (const stage of STAGES) {
+        const result = applyStageCompletion(progress, id, stage, contexts[stage]);
+        failures.push(assert(`week ${week} ${stage} completes`, result.ok, result.reason));
+        if (!result.ok) break;
+        progress[id] = result.progress;
+        completed += 1;
+      }
+      failures.push(assert(`week ${week} is fully complete`, STAGES.every(stage => progress[id][stage])));
+    }
+    failures.push(assert('all 96 stages complete', completed === 96));
+    failures.push(assert('24-week engine has no remaining next action', nextStage(progress, Object.keys(catalog)) === null));
+  }
+
   const failed = failures.filter(Boolean);
-  return { ok: failed.length === 0, suiteVersion: 'v1', scenarioCount: 5, failed, passed: 5 - failed.length };
+  return { ok: failed.length === 0, suiteVersion: 'v2', scenarioCount: 6, failed, passed: 6 - failed.length };
 }
 
 const api = { runLearningStateRegression };
