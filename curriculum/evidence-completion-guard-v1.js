@@ -1,7 +1,9 @@
-/* Electrical Career Readiness Hub — Evidence completion guard v1.2.
+/* Electrical Career Readiness Hub — Evidence completion guard v1.3.
  * Keeps the canonical Course runtime as the source of truth while preventing
  * an Evidence stage from being submitted with an incomplete proof package.
  * This is a UI preflight only: it does not create or mutate learning state.
+ * v1.3 aligns the preflight with the canonical Evidence save control while
+ * retaining the prior selector as a compatibility fallback.
  */
 (function () {
   'use strict';
@@ -9,9 +11,11 @@
   window.__ECRHEvidenceCompletionGuardInstalled = true;
 
   const get = id => document.getElementById(id);
+  const saveSelector = '#canonical-save-evidence, #canonicalEvidence';
+  const getSaveButton = () => document.querySelector(saveSelector);
   const text = id => get(id)?.value?.trim() || '';
   const ensureStatus = () => {
-    const button = get('canonicalEvidence');
+    const button = getSaveButton();
     if (!button || get('evidenceCompletionStatus')) return;
     const wrap = document.createElement('div');
     wrap.id = 'evidenceCompletionStatus';
@@ -23,8 +27,10 @@
   };
   const validate = () => {
     const criteria = [...document.querySelectorAll('.criterion')];
-    const checked = criteria.filter(x => x.checked).length;
-    const required = criteria.length;
+    const evidenceCriteria = [...document.querySelectorAll('[data-evidence-criterion]')];
+    const controls = evidenceCriteria.length ? evidenceCriteria : criteria;
+    const checked = controls.filter(x => x.checked).length;
+    const required = controls.length;
     const missing = [];
     if (!text('evidenceTitle')) missing.push('evidence title');
     if (!text('evidenceDescription')) missing.push('what it proves');
@@ -37,7 +43,7 @@
     return { ok: missing.length === 0, missing, checked, required };
   };
   const render = () => {
-    const button = get('canonicalEvidence');
+    const button = getSaveButton();
     if (!button) return;
     ensureStatus();
     const result = validate();
@@ -51,7 +57,7 @@
   };
 
   document.addEventListener('click', event => {
-    const button = event.target?.closest?.('#canonicalEvidence');
+    const button = event.target?.closest?.(saveSelector);
     if (!button) return;
     const result = validate();
     if (result.ok) return;
@@ -62,14 +68,14 @@
       : !text('evidenceDescription') ? get('evidenceDescription')
       : !text('evidenceReflection') ? get('evidenceReflection')
       : !text('evidenceNext') ? get('evidenceNext')
-      : document.querySelector('.criterion:not(:checked)');
+      : document.querySelector('[data-evidence-criterion]:not(:checked), .criterion:not(:checked)');
     firstMissing?.focus?.();
   }, true);
 
   const observer = new MutationObserver(render);
   observer.observe(document.body, { childList: true, subtree: true });
   ['input', 'change'].forEach(type => document.addEventListener(type, event => {
-    if (event.target?.matches?.('#evidenceTitle, #evidenceDescription, #evidenceReflection, #evidenceNext, .criterion')) render();
+    if (event.target?.matches?.('#evidenceTitle, #evidenceDescription, #evidenceReflection, #evidenceNext, [data-evidence-criterion], .criterion')) render();
   }, true));
   render();
 })();
