@@ -1,11 +1,14 @@
 /*
- * Electrical Career Readiness Hub — stage → Journal bridge v1.4.
+ * Electrical Career Readiness Hub — stage → Journal bridge v1.5.
  * Completes the learner-loop journal trail for Learn and Evidence stages,
  * while persisting the canonical stage-transition timestamp so Journal dates
  * reflect the actual learner action rather than the bridge's observation time.
  * Apply, Check and remediation already have canonical journal bridges in the state store.
- * This module is idempotent: one journal record per completed Learn/Evidence stage.
+ * Learn records now capture the authored week objective/takeaway when the canonical
+ * catalog is available, making the Journal a useful learning record rather than a
+ * generic completion marker.
  *
+ * This module is idempotent: one journal record per completed Learn/Evidence stage.
  * Store compatibility: ECRHCanonical.store is the canonical store object in the
  * current runtime; older builds exposed it as a function. Resolve both forms so
  * the Journal bridge remains attached to the same canonical state boundary.
@@ -23,6 +26,27 @@
       return typeof candidate === 'function' ? candidate() : candidate || null;
     } catch (_) { return null; }
   };
+  const getCatalog = () => {
+    try { return stateApi()?.catalog || {}; } catch (_) { return {}; }
+  };
+
+  function learnJournalContent(weekId, context) {
+    const module = getCatalog()?.[String(weekId)] || {};
+    const learn = module.learn || {};
+    const objective = clean(learn.objective || module.objective);
+    const takeaway = clean(learn.takeaway || learn.keyTakeaway || learn.summary);
+    const concepts = Array.isArray(learn.concepts) ? learn.concepts.map(clean).filter(Boolean).slice(0, 3) : [];
+    const storedSummary = clean(context.learnSummary);
+    const learningRecord = storedSummary || objective || takeaway || (concepts.length ? `Key concepts: ${concepts.join('; ')}` : 'Core learning completed and ready for practical application.');
+    const reflection = takeaway
+      ? `Learn stage completed. Key takeaway: ${takeaway}`
+      : 'Learn stage completed. Reflect on which concept or reasoning principle will matter most during Apply.';
+    return {
+      learn: learningRecord,
+      reflection,
+      nextAction: `Continue to Apply for Week ${weekId}.`
+    };
+  }
 
   function bridge(state) {
     const store = getStore();
@@ -53,14 +77,15 @@
       }
 
       if (progress?.learn && !byId.has(`learn-${weekId}`)) {
+        const content = learnJournalContent(weekId, context);
         store.addJournalEntry({
           id: `learn-${weekId}`,
           date: clean(stageTimestamps.learn).slice(0, 10) || new Date().toISOString().slice(0, 10),
           hours: 0,
           study: `Week ${weekId}: Learn stage completed`,
-          learn: clean(context.learnSummary || 'Core learning completed and ready for practical application.'),
-          reflection: 'Learn stage completed in the canonical pathway.',
-          nextAction: `Continue to Apply for Week ${weekId}.`,
+          learn: content.learn,
+          reflection: content.reflection,
+          nextAction: content.nextAction,
           weekId,
           stage: 'learn'
         });
