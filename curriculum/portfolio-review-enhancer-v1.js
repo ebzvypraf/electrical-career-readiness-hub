@@ -1,6 +1,9 @@
-/* Electrical Career Readiness Hub — Portfolio Review enhancer v3.
+/* Electrical Career Readiness Hub — Portfolio Review enhancer v3.1.
  * Keeps self-review controls synchronized with the canonical portfolio state
  * and exposes the canonical Apply -> Check -> Evidence proof chain for review-ready artifacts.
+ * v3.1 resolves portfolio cards by their authored Week marker instead of DOM index,
+ * preventing evidence/review controls from attaching to the wrong artifact when cards
+ * are reordered or filtered by another portfolio projection.
  */
 (function () {
   'use strict';
@@ -79,13 +82,26 @@
     });
   }
 
+  function cardWeekId(card) {
+    const pill = card.querySelector('.pill');
+    const match = pill?.textContent?.match(/Week\s+(\d+)/i);
+    return match ? String(Number(match[1])) : null;
+  }
+
+  function entryWeekId(entry) {
+    const candidate = entry?.weekId ?? entry?.week ?? entry?.sourceWeek;
+    return candidate == null || candidate === '' ? null : String(Number(candidate));
+  }
+
   function decorate() {
     const grid = document.getElementById('portfolioGrid');
     if (!grid) return;
     const items = entries();
+    const byWeek = new Map(items.map(function (entry) { return [entryWeekId(entry), entry]; }).filter(function (pair) { return pair[0]; }));
     const cards = Array.from(grid.querySelectorAll('.evidence'));
-    cards.forEach(function (card, index) {
-      const entry = items[index];
+    cards.forEach(function (card) {
+      const weekId = cardWeekId(card);
+      const entry = weekId ? byWeek.get(weekId) : null;
       if (!entry) return;
       let proof = card.querySelector('[data-proof-chain-panel]');
       if (!proof) {
