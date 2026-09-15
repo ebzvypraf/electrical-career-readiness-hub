@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — canonical Journal UI bridge v1.2.
+/* Electrical Career Readiness Hub — canonical Journal UI bridge v1.3.
  * Makes the existing Journal surface write through the shared learning-state store
  * while preserving the existing form and legacy state compatibility.
  *
@@ -9,6 +9,9 @@
  * v1.2 adds a stage-aware learning thread: Journal history can be filtered by
  * Learn / Apply / Check / Evidence and the current canonical next action is shown
  * above the history. The store remains the sole source of progression truth.
+ *
+ * v1.3 makes the current canonical next action directly actionable: the Journal
+ * can return the learner to the same Week + stage through ECRHCanonical.openStage().
  */
 (function () {
   'use strict';
@@ -24,6 +27,10 @@
     if (!api) return null;
     const store = typeof api.store === 'function' ? api.store() : api.store;
     return store && typeof store.addJournalEntry === 'function' ? store : null;
+  }
+
+  function getCanonicalApi() {
+    return typeof window !== 'undefined' ? window.ECRHCanonical : null;
   }
 
   function readLegacy() {
@@ -78,7 +85,10 @@
       ? `Week ${esc(next.weekId)} · ${esc(next.label || next.stage)}${next.week ? ` · ${esc(next.week)}` : ''}`
       : '24-week pathway complete';
     const nextPrompt = next?.prompt || 'Review your strongest evidence and prepare for the next career-readiness step.';
-    thread.innerHTML = `<div class="goal" style="margin-bottom:8px"><b>Current learning thread</b><small>Next canonical action: ${nextText}</small><small>${esc(nextPrompt)}</small></div>
+    const action = next && next.weekId != null && next.stage
+      ? `<button type="button" class="btn primary" id="journal-next-action">Open current learning action</button>`
+      : '';
+    thread.innerHTML = `<div class="goal" style="margin-bottom:8px"><b>Current learning thread</b><small>Next canonical action: ${nextText}</small><small>${esc(nextPrompt)}</small>${action}</div>
       <div class="summary" style="grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">
         ${STAGES.map(stage => `<button type="button" class="btn ${activeFilter === stage ? 'primary' : ''}" data-journal-filter="${stage}" style="min-width:0">${stage === 'all' ? `All (${list.length})` : `${stage[0].toUpperCase()}${stage.slice(1)} (${counts[stage]})`}</button>`).join('')}
       </div>`;
@@ -88,6 +98,17 @@
         render(entries, store);
       };
     });
+    const nextButton = thread.querySelector('#journal-next-action');
+    if (nextButton) {
+      nextButton.onclick = () => {
+        const api = getCanonicalApi();
+        if (typeof api?.openStage === 'function') {
+          api.openStage(String(next.weekId), String(next.stage));
+          return;
+        }
+        document.querySelector('[data-page="course"]')?.click();
+      };
+    }
   }
 
   function render(entries, store = getStore()) {
