@@ -14,6 +14,7 @@ import './learner-state-integrity-v1.js';
 import './learner-flow-integrity-v1.js';
 import './learner-flow-downstream-integrity-v1.js';
 import './stage-journal-bridge-v1.js';
+import './assessment-failure-journal-bridge-v1.js';
 import './assessment-recovery-journal-bridge-v1.js';
 import './assessment-history-bridge-v1.js';
 import './assessment-history-ui-v1.js';
@@ -118,25 +119,7 @@ export function catalogCompleteness(catalog) {
 }
 
 export function assessmentCoverage(assessments) {
-  const weeks = Object.keys(assessments || {}).filter(id => CANONICAL_WEEK_IDS.includes(String(id)));
-  return { assessedWeeks: weeks.length, assessedWeekIds: weeks.sort((a, b) => Number(a) - Number(b)), totalQuestions: weeks.reduce((n, id) => n + (assessments[id]?.length || 0), 0) };
-}
-
-export function assessmentQuality(assessments, catalog = {}) {
-  return CANONICAL_WEEK_IDS.map(weekId => {
-    const authored = Array.isArray(assessments?.[weekId]) ? assessments[weekId] : [];
-    const questions = authored.length ? authored : (catalog?.[weekId]?.check?.questions || []);
-    const candidate = authored.length ? authored : questions;
-    const deterministic = candidate.length > 0 && candidate.every(q => Array.isArray(q?.options) && q.options.length >= 2 && Number.isInteger(q?.correctIndex) && q.correctIndex >= 0 && q.correctIndex < q.options.length);
-    return { week: Number(weekId), questionCount: questions.length, deterministic, mode: deterministic ? 'authored-deterministic' : questions.length ? 'compatibility' : 'missing' };
-  });
-}
-
-export function validateCanonicalQuality(catalog, assessments) {
-  const coverage = catalogCompleteness(catalog);
-  const assessment = assessmentQuality(assessments, catalog);
-  const missingStages = assessment.filter(x => !['learn', 'apply', 'check', 'evidence'].every(stage => catalog?.[String(x.week)]?.[stage])).map(x => x.week);
-  const missingChecks = assessment.filter(x => x.mode === 'missing').map(x => x.week);
-  const compatibilityChecks = assessment.filter(x => x.mode === 'compatibility').map(x => x.week);
-  return { ...coverage, stageComplete: missingStages.length === 0, missingStageWeeks: missingStages, assessmentReady: missingChecks.length === 0, missingAssessmentWeeks: missingChecks, compatibilityWeeks: compatibilityChecks, deterministicWeeks: assessment.filter(x => x.deterministic).map(x => x.week) };
+  const source = assessments || {};
+  const covered = CANONICAL_WEEK_IDS.filter(id => Array.isArray(source[id]) && source[id].length);
+  return { expectedWeeks: 24, coveredWeeks: covered.length, missingWeeks: CANONICAL_WEEK_IDS.filter(id => !covered.includes(id)), complete: covered.length === 24 };
 }
