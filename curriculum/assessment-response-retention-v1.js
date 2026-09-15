@@ -1,9 +1,9 @@
-/* Electrical Career Readiness Hub — assessment response retention v6.
+/* Electrical Career Readiness Hub — assessment response retention v6.1.
  * Restores the learner's latest canonical Check responses when the production
  * Check modal is reopened, and surfaces the persisted attempt/recovery trail
  * so Check, remediation and Evidence remain visibly connected.
- * v6 aligns restoration with canonical question-ID selectors and adds a
- * deterministic recovery context panel without changing assessment scoring.
+ * v6.1 aligns the recovery-context insertion point with both canonical and
+ * legacy Check submit controls without changing assessment scoring.
  */
 (function () {
   'use strict';
@@ -60,16 +60,17 @@
     if (!weekId) return;
     const current = getState()?.contextByWeek?.[weekId];
     const result = current?.assessmentResult;
-    if (!result || !card.querySelector('#canonicalCheck')) return;
+    if (!result) return;
 
     let panel = card.querySelector('#canonical-check-recovery-context');
     if (!panel) {
       panel = document.createElement('div');
       panel.id = 'canonical-check-recovery-context';
       panel.className = 'result';
-      const button = card.querySelector('#canonicalCheck');
+      const button = card.querySelector('#canonical-score, #canonicalCheck');
       button?.parentElement?.insertBefore(panel, button);
     }
+    if (!panel) return;
 
     const history = Array.isArray(result.assessmentHistory) ? result.assessmentHistory : [];
     const attempt = Number(result.attemptNumber || history.length || 1);
