@@ -1,7 +1,9 @@
-/* Electrical Career Readiness Hub — Portfolio learning trace UI v1.
+/* Electrical Career Readiness Hub — Portfolio learning trace UI v1.1.
  * Projects canonical Portfolio evidence back to the exact Week + catalog skills
  * and provides a direct return path into the canonical Course stage.
  * This is a projection only; the learning-state store remains authoritative.
+ * v1.1 prefers the stable Week identity published by the Portfolio review layer,
+ * with rendered-text matching retained only as a compatibility fallback.
  */
 (function () {
   'use strict';
@@ -11,18 +13,28 @@
     if (!api?.store || !api?.catalog) return tries ? setTimeout(() => wait(tries - 1), 100) : null;
     const store = api.store;
     const state = () => store.getState();
+    const entryWeekId = entry => {
+      const candidate = entry?.weekId ?? entry?.week ?? entry?.sourceWeek;
+      return candidate == null || candidate === '' ? null : String(Number(candidate));
+    };
+    const findCard = (grid, weekId, entry) => {
+      const cards = [...grid.children];
+      const stable = cards.find(node => String(node.dataset?.portfolioWeek || '') === weekId);
+      if (stable) return stable;
+      return cards.find(node => node.textContent?.includes(`Week ${weekId}`) && node.textContent?.includes(entry.title || '')) || null;
+    };
     const render = () => {
       const grid = document.getElementById('portfolioGrid');
       if (!grid) return;
       const entries = Array.isArray(state().portfolioEntries) ? state().portfolioEntries.slice().sort((a,b) => Number(b.week || 0) - Number(a.week || 0)) : [];
       grid.querySelectorAll('[data-portfolio-trace]').forEach(node => node.remove());
       entries.forEach(entry => {
-        const weekId = String(entry.week ?? '');
+        const weekId = entryWeekId(entry);
         if (!weekId || !api.catalog[weekId]) return;
         const skills = Array.isArray(api.catalog[weekId].skills) ? api.catalog[weekId].skills.filter(Boolean) : [];
-        const cards = [...grid.children];
-        const card = cards.find(node => node.textContent?.includes(`Week ${weekId}`) && node.textContent?.includes(entry.title || ''));
+        const card = findCard(grid, weekId, entry);
         if (!card) return;
+        card.dataset.portfolioWeek = weekId;
         const trace = document.createElement('div');
         trace.dataset.portfolioTrace = weekId;
         trace.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid rgba(127,127,127,.18)';
