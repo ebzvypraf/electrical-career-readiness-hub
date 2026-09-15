@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — Evidence completion guard v1.0.
+/* Electrical Career Readiness Hub — Evidence completion guard v1.1.
  * Keeps the canonical Course runtime as the source of truth while preventing
  * an Evidence stage from being submitted with an incomplete proof package.
  * This is a UI preflight only: it does not create or mutate learning state.
@@ -17,6 +17,8 @@
     wrap.id = 'evidenceCompletionStatus';
     wrap.className = 'muted';
     wrap.style.cssText = 'margin-top:8px;font-size:12px';
+    wrap.setAttribute('role', 'status');
+    wrap.setAttribute('aria-live', 'polite');
     button.parentNode?.insertBefore(wrap, button.nextSibling);
   };
   const validate = () => {
