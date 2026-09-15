@@ -1,9 +1,11 @@
-/* Electrical Career Readiness Hub — Home learning-loop status v2.2.
+/* Electrical Career Readiness Hub — Home learning-loop status v2.3.
  * Surfaces the canonical active-week Learn → Apply → Check → Evidence state on Home,
  * plus the downstream Journal/Portfolio proof produced by the same canonical store.
  * Additive UI only; canonical learning-state store remains the source of truth.
- * Failed Checks now surface their canonical remediation state so Home points the learner
+ * Failed Checks surface their canonical remediation state so Home points the learner
  * back to reinforcement instead of presenting a generic Journal/Portfolio summary.
+ * v2.3 prefers the canonical Course runtime's data-canonical-open route for direct
+ * stage navigation, with legacy DOM selectors retained only as a compatibility fallback.
  */
 (function () {
   'use strict';
@@ -43,20 +45,30 @@
   }
 
   function openNextStage(weekId, stage) {
-    const stageIndex = STAGES.indexOf(stage);
-    if (stageIndex < 0) return false;
-    const trigger = document.querySelector(`[data-open="${Number(weekId) - 1}:${stageIndex}"]`);
-    if (trigger) { trigger.click(); return true; }
+    const id = String(weekId);
+    const stageName = String(stage || '').toLowerCase();
+    if (!STAGES.includes(stageName)) return false;
+
+    // Canonical Course runtime route: the rendered stage buttons are keyed by
+    // week + stage and invoke the single canonical openStage() implementation.
+    const canonicalSelector = `[data-canonical-open="${esc(id)}:${esc(stageName)}"]`;
+    const direct = document.querySelector(canonicalSelector);
+    if (direct) { direct.click(); return true; }
+
+    // Compatibility with older Course renderers retained for known-good fallback.
+    const stageIndex = STAGES.indexOf(stageName);
+    const legacy = document.querySelector(`[data-open="${Number(id) - 1}:${stageIndex}"]`);
+    if (legacy) { legacy.click(); return true; }
 
     const weeks = Array.from(document.querySelectorAll('.week'));
     const target = weeks.find(node => {
       const no = node.querySelector('.wno');
-      return no && Number((String(no.textContent).match(/\d+/) || [])[0]) === Number(weekId);
+      return no && Number((String(no.textContent).match(/\d+/) || [])[0]) === Number(id);
     });
     if (!target) return false;
     const buttons = Array.from(target.querySelectorAll('button'));
-    const button = buttons.find(item => new RegExp('^\\s*' + stage + '\\b', 'i').test(String(item.textContent || '')))
-      || buttons.find(item => String(item.textContent || '').toLowerCase().includes(stage.toLowerCase()));
+    const button = buttons.find(item => new RegExp('^\\s*' + stageName + '\\b', 'i').test(String(item.textContent || '')))
+      || buttons.find(item => String(item.textContent || '').toLowerCase().includes(stageName));
     if (button) { button.click(); return true; }
     return false;
   }
