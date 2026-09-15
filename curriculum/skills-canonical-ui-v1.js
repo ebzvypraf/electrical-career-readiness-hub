@@ -1,10 +1,12 @@
-/* Electrical Career Readiness Hub — canonical Skills UI bridge v2.1.
+/* Electrical Career Readiness Hub — canonical Skills UI bridge v2.2.
  * Keeps the learner-facing Skills page bound to the same canonical store that
  * powers Course, Home, Journal and Portfolio.
  *
  * Assessment and demonstrated-capability counts are read from canonical
  * hub signals so the Skills surface remains state-safe and does not maintain
  * a second curriculum lookup or progress store.
+ * v2.2 adds a stable skill key to each rendered row so downstream Skills
+ * enhancers resolve by skill identity rather than DOM position.
  */
 (function () {
   'use strict';
@@ -18,6 +20,10 @@
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>\"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  function skillKey(value) {
+    return String(value == null ? '' : value).trim().toLowerCase();
   }
 
   function openWeekStage(weekId, stage) {
@@ -41,14 +47,14 @@
     if (!Array.isArray(entries) || !entries.length) return;
 
     const normalizedEntries = entries.filter(entry => entry && entry.week != null && entry.title);
-    Array.from(host.querySelectorAll('.skillrow')).forEach((row, index) => {
-      const item = skills[index];
+    Array.from(host.querySelectorAll('.skillrow')).forEach((row) => {
+      const item = skills.find(skill => skillKey(skill?.skill) === String(row.dataset.skillKey || ''));
       if (!item?.skill) return;
-      const skillName = String(item.skill).trim().toLowerCase();
+      const skillName = skillKey(item.skill);
       const matches = normalizedEntries.filter(entry => {
         const week = catalog?.[String(entry.week)];
         const targets = Array.isArray(week?.skills) ? week.skills : [];
-        return targets.some(target => String(target).trim().toLowerCase() === skillName);
+        return targets.some(target => skillKey(target) === skillName);
       });
       if (!matches.length) return;
 
@@ -91,7 +97,7 @@
       const recommendation = item.recommendedWeekId && item.recommendedStageLabel
         ? `Next focus: Week ${esc(item.recommendedWeekId)} • ${esc(item.recommendedStageLabel)}`
         : 'All currently unlocked stages are complete for this skill.';
-      return `<div class="skillrow">
+      return `<div class="skillrow" data-skill-key="${esc(skillKey(item.skill))}">
         <div class="skillhead"><b>${esc(item.skill)}</b><strong>${Number(item.readiness || 0)}%</strong></div>
         <div class="bar"><span style="width:${Math.max(0, Math.min(100, Number(item.readiness || 0)))}%"></span></div>
         <div class="muted">Learn ${Number(coverage.learn || 0)}% · Apply ${Number(coverage.apply || 0)}% · Check ${Number(coverage.check || 0)}% · Evidence ${Number(coverage.evidence || 0)}%</div>
