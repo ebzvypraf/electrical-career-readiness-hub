@@ -4,11 +4,15 @@
  * Persistence belongs to the canonical learning-state store; this bridge
  * exposes stable summaries to Home, Skills, Journal and Portfolio without
  * wrapping or mutating the assessment command path.
+ *
+ * v1.3 adds an actionable history trail: recent Check records can return
+ * directly to their canonical Week + Check stage without creating another
+ * progression path.
  */
 (function () {
   'use strict';
 
-  const HISTORY_VERSION = '1.2.1';
+  const HISTORY_VERSION = '1.3.0';
   let installed = false;
   let unsubscribe = null;
   let renderQueued = false;
@@ -74,6 +78,20 @@
     return node;
   }
 
+  function bindHistoryActions(host) {
+    host?.querySelectorAll('[data-assessment-history-open]').forEach(button => {
+      button.onclick = () => {
+        const weekId = String(button.dataset.assessmentHistoryOpen || '');
+        const api = window.ECRHCanonical;
+        if (weekId && typeof api?.openStage === 'function') {
+          api.openStage(weekId, 'check');
+          return;
+        }
+        document.querySelector('[data-page="course"]')?.click();
+      };
+    });
+  }
+
   function render() {
     renderQueued = false;
     if (!installed || !window.ECRHAssessmentHistory) return;
@@ -88,9 +106,11 @@
     upsert(advice, 'skills', 'goal',
       `<b>Assessment progression</b><small>${summary.passedAttempts} passed attempt${summary.passedAttempts === 1 ? '' : 's'} across the recorded learning trail. Repeated attempts remain visible as progression evidence.</small>`);
 
+    const recent = summary.records.slice().reverse().slice(0, 4);
     const logs = document.getElementById('logs');
     upsert(logs, 'journal', 'goal',
-      `<b>Assessment attempt trail</b><div class="muted">${summary.records.slice().reverse().slice(0, 4).map(item => { const last = item.history[item.history.length - 1]; return `Week ${esc(item.weekId)} — ${esc(last?.score)}/${esc(last?.total)}${last?.percentage != null ? ` (${esc(last.percentage)}%)` : ''}${last?.passed ? ' — passed' : ' — reinforcement needed'}`; }).join('<br>')}</div>`);
+      `<b>Assessment attempt trail</b><div class="muted">${recent.map(item => { const last = item.history[item.history.length - 1]; return `<div style="margin-top:8px"><span>Week ${esc(item.weekId)} — ${esc(last?.score)}/${esc(last?.total)}${last?.percentage != null ? ` (${esc(last.percentage)}%)` : ''}${last?.passed ? ' — passed' : ' — reinforcement needed'}</span> <button type="button" class="btn" data-assessment-history-open="${esc(item.weekId)}">Open Check</button></div>`; }).join('')}</div>`);
+    bindHistoryActions(logs);
 
     const readiness = document.getElementById('readiness');
     upsert(readiness, 'portfolio', 'goal',
