@@ -1,12 +1,12 @@
 /*
  * Electrical Career Readiness Hub — adaptive next-action engine v1.
  * Chooses the highest-value learner action from canonical state signals.
- * v1.3.2 adds an explicit recovery checklist so downstream Home/Course consumers
- * can render the exact proof inputs required before recapture.
+ * v1.3.3 prevents Evidence recommendations after a failed latest Check
+ * and keeps the recovery route aligned with the current assessment result.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.3.2';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.3.3';
 
 function text(value) { return String(value ?? '').trim(); }
 
@@ -73,14 +73,16 @@ function proofChainContext(context = {}) {
 function proofChainStatus(context = {}) {
   const proof = proofChainContext(context);
   const trail = assessmentTrail(context);
+  const latestCheckFailed = proof.checkLinked && trail.attempts > 0 && !trail.latestPassed;
   const nextProofStage = !proof.applyLinked ? 'apply'
-    : !proof.checkLinked || (proof.stale && !trail.latestPassed) ? 'check'
+    : !proof.checkLinked || latestCheckFailed || (proof.stale && !trail.latestPassed) ? 'check'
     : !proof.evidenceCaptured ? 'evidence'
     : !proof.demonstrated ? 'evidence'
     : null;
-  const completedStages = [proof.applyLinked, proof.checkLinked, proof.evidenceCaptured, proof.demonstrated].filter(Boolean).length;
+  const completedStages = [proof.applyLinked, proof.checkLinked && !latestCheckFailed, proof.evidenceCaptured, proof.demonstrated].filter(Boolean).length;
   return {
     ...proof,
+    latestCheckFailed,
     completedStages,
     totalStages: 4,
     complete: completedStages === 4,
@@ -96,7 +98,8 @@ function actionContract(context = {}) {
     proofProgress: `${status.completedStages}/${status.totalStages}`,
     nextProofStage: status.nextProofStage,
     nextProofLabel: status.nextProofLabel,
-    evidenceStale: status.stale
+    evidenceStale: status.stale,
+    latestCheckFailed: status.latestCheckFailed
   };
 }
 
