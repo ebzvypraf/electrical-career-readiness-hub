@@ -1,6 +1,8 @@
-/* Electrical Career Readiness Hub — Skills → learning-action bridge v1.
+/* Electrical Career Readiness Hub — Skills → learning-action bridge v1.1.
  * Turns each canonical skill recommendation into a direct return path into
  * the existing Course stage without creating a second progression model.
+ * v1.1 resolves Skills rows by their stable canonical skill key instead of
+ * assuming DOM order matches the canonical skill signal order.
  */
 (function () {
   'use strict';
@@ -9,6 +11,10 @@
     return String(value == null ? '' : value).replace(/[&<>\"']/g, function (ch) {
       return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' })[ch];
     });
+  }
+
+  function skillKey(value) {
+    return String(value == null ? '' : value).trim().toLowerCase();
   }
 
   function getStore() {
@@ -42,8 +48,10 @@
     if (!store) return;
     var skills = store.getState()?.hubSignals?.skills || [];
     host.querySelectorAll('[data-skill-next-action]').forEach(function (node) { node.remove(); });
-    Array.from(host.querySelectorAll('.skillrow')).forEach(function (row, index) {
-      var item = skills[index];
+    Array.from(host.querySelectorAll('.skillrow')).forEach(function (row) {
+      var item = skills.find(function (skill) {
+        return skillKey(skill?.skill) === String(row.dataset.skillKey || '');
+      });
       if (!item || !item.recommendedWeekId || !item.recommendedStage) return;
       var stage = String(item.recommendedStage);
       var label = String(item.recommendedStageLabel || stage);
