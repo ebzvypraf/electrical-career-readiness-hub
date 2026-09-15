@@ -1,7 +1,9 @@
-/* Electrical Career Readiness Hub — Home learning-loop status v2.1.
+/* Electrical Career Readiness Hub — Home learning-loop status v2.2.
  * Surfaces the canonical active-week Learn → Apply → Check → Evidence state on Home,
  * plus the downstream Journal/Portfolio proof produced by the same canonical store.
  * Additive UI only; canonical learning-state store remains the source of truth.
+ * Failed Checks now surface their canonical remediation state so Home points the learner
+ * back to reinforcement instead of presenting a generic Journal/Portfolio summary.
  */
 (function () {
   'use strict';
@@ -28,7 +30,11 @@
       const e = context.applicationEvidence || {};
       return { status: e.tasksComplete && e.deliverable && e.decisions && e.assumptions && e.verification ? 'ready' : 'pending', label: e.tasksComplete ? 'Ready to complete' : 'In progress' };
     }
-    if (stage === 'check') return { status: context.assessmentResult?.passed ? 'ready' : 'pending', label: context.assessmentResult?.passed ? 'Passed' : 'Pending' };
+    if (stage === 'check') {
+      const latest = Array.isArray(context.assessmentHistory) ? context.assessmentHistory.at(-1) : null;
+      if (latest?.passed === false) return { status: 'remediation', label: 'Reinforcement needed' };
+      return { status: context.assessmentResult?.passed ? 'ready' : 'pending', label: context.assessmentResult?.passed ? 'Passed' : 'Pending' };
+    }
     if (stage === 'evidence') {
       const e = context.evidence || {};
       return { status: e.evidenceQuality === 'high' ? 'ready' : (e.title && e.description ? 'in-progress' : 'pending'), label: e.evidenceQuality === 'high' ? 'High-quality proof' : (e.title ? 'Captured' : 'Pending') };
@@ -63,6 +69,7 @@
     const weekId = activeWeek(state);
     if (!weekId) return;
     const week = api()?.catalog?.[weekId] || {};
+    const context = state.contextByWeek?.[weekId] || {};
     let panel = document.getElementById('home-learning-loop');
     if (!panel) {
       panel = document.createElement('div');
@@ -75,28 +82,35 @@
 
     const readiness = STAGES.map(stage => stageState(state, weekId, stage));
     const nextStage = STAGES.find((stage, i) => readiness[i].status !== 'complete') || null;
+    const latestCheck = Array.isArray(context.assessmentHistory) ? context.assessmentHistory.at(-1) : null;
+    const checkFailed = nextStage === 'check' && latestCheck?.passed === false;
     const weekJournal = (state.journalEntries || []).filter(entry => String(entry?.weekId || '') === String(weekId));
     const weekPortfolio = (state.portfolioEntries || []).filter(entry => String(entry?.week) === String(weekId));
     const journalCount = weekJournal.length;
     const portfolioCount = weekPortfolio.length;
     const demonstrated = weekPortfolio.some(entry => entry?.demonstrated === true || entry?.reviewStatus === 'demonstrated');
-    const signature = `${weekId}|${readiness.map(x => `${x.status}:${x.label}`).join('|')}|${journalCount}|${portfolioCount}|${demonstrated}|${state.hubSignals?.overallProgress || 0}|${nextStage || 'complete'}`;
+    const remediation = context.remediation || {};
+    const remediationConcepts = Array.isArray(remediation.concepts) ? remediation.concepts.filter(Boolean).slice(0, 3) : [];
+    const signature = `${weekId}|${readiness.map(x => `${x.status}:${x.label}`).join('|')}|${journalCount}|${portfolioCount}|${demonstrated}|${state.hubSignals?.overallProgress || 0}|${nextStage || 'complete'}|${checkFailed}|${remediationConcepts.join(',')}`;
     if (panel.dataset.signature === signature) return;
     panel.dataset.signature = signature;
 
-    const activeStage = state.hubSignals?.nextBestAction?.label || nextStage || 'Complete';
-    const downstream = demonstrated
-      ? 'Portfolio proof is demonstrated for this week.'
-      : portfolioCount
-        ? `Portfolio evidence captured: ${portfolioCount} record${portfolioCount === 1 ? '' : 's'}.`
-        : journalCount
-          ? `Journal trail recorded: ${journalCount} entr${journalCount === 1 ? 'y' : 'ies'}.`
-          : 'Journal and Portfolio will update from the canonical stage actions.';
+    const activeStage = checkFailed ? 'Remediation' : (state.hubSignals?.nextBestAction?.label || nextStage || 'Complete');
+    const downstream = checkFailed
+      ? `Latest Check was not passed${remediationConcepts.length ? `; reinforce ${remediationConcepts.join(', ')}` : ''}, then retry the Check.`
+      : demonstrated
+        ? 'Portfolio proof is demonstrated for this week.'
+        : portfolioCount
+          ? `Portfolio evidence captured: ${portfolioCount} record${portfolioCount === 1 ? '' : 's'}.`
+          : journalCount
+            ? `Journal trail recorded: ${journalCount} entr${journalCount === 1 ? 'y' : 'ies'}.`
+            : 'Journal and Portfolio will update from the canonical stage actions.';
 
-    panel.innerHTML = `<div class="k">Learning loop</div><h2>Week ${esc(weekId)} — ${esc(week.title || 'Current learning module')}</h2><p class="muted">Your progress is tracked through one connected learning loop. Complete each stage in order; Evidence becomes reusable career proof.</p><div class="summary">${STAGES.map((stage, index) => { const x = readiness[index]; const cls = x.status === 'complete' || x.status === 'ready' ? 'ok' : ''; return `<div class="goal"><b>${index + 1}. ${LABELS[stage]}</b><small><span class="pill ${cls}">${esc(x.label)}</span></small></div>`; }).join('')}</div><div class="mission" style="margin-top:10px"><b>Next: ${esc(activeStage)}</b><div class="muted">${esc(state.hubSignals?.nextBestAction?.prompt || week.integration?.homeAction || `Continue ${activeStage.toLowerCase()} for this week.`)}</div><div class="muted" style="margin-top:7px"><b>Downstream proof:</b> ${esc(downstream)}</div>${nextStage ? `<button class="btn primary" id="home-learning-loop-open" style="margin-top:10px">Open ${esc(LABELS[nextStage])}</button>` : ''}</div>`;
+    const actionStage = checkFailed ? 'check' : nextStage;
+    panel.innerHTML = `<div class="k">Learning loop</div><h2>Week ${esc(weekId)} — ${esc(week.title || 'Current learning module')}</h2><p class="muted">Your progress is tracked through one connected learning loop. Complete each stage in order; Evidence becomes reusable career proof.</p><div class="summary">${STAGES.map((stage, index) => { const x = readiness[index]; const cls = x.status === 'complete' || x.status === 'ready' ? 'ok' : ''; return `<div class="goal"><b>${index + 1}. ${LABELS[stage]}</b><small><span class="pill ${cls}">${esc(x.label)}</span></small></div>`; }).join('')}</div><div class="mission" style="margin-top:10px"><b>Next: ${esc(activeStage)}</b><div class="muted">${esc(checkFailed ? (remediation.nextAction || `Complete targeted reinforcement for Week ${weekId}, then retry the Check.`) : (state.hubSignals?.nextBestAction?.prompt || week.integration?.homeAction || `Continue ${activeStage.toLowerCase()} for this week.`))}</div><div class="muted" style="margin-top:7px"><b>Downstream proof:</b> ${esc(downstream)}</div>${actionStage ? `<button class="btn primary" id="home-learning-loop-open" style="margin-top:10px">Open ${esc(checkFailed ? 'Check' : LABELS[actionStage])}</button>` : ''}</div>`;
     const openButton = document.getElementById('home-learning-loop-open');
-    if (openButton && nextStage) openButton.onclick = () => {
-      if (!openNextStage(weekId, nextStage)) {
+    if (openButton && actionStage) openButton.onclick = () => {
+      if (!openNextStage(weekId, actionStage)) {
         const courseNav = document.querySelector('[data-page="course"]');
         if (courseNav) courseNav.click();
       }
