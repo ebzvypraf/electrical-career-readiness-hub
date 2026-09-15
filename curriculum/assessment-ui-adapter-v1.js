@@ -1,8 +1,8 @@
-/* Electrical Career Readiness Hub — canonical UI entrypoint v20.
+/* Electrical Career Readiness Hub — canonical UI entrypoint v20.1.
  * Keep the stable production entrypoint and install the proof-backed capability
  * read model at the canonical store boundary before downstream surfaces render it.
- * v20 exposes the read-only canonical learning-state integrity contract with
- * downstream Home next-action validation.
+ * v20.1 prevents duplicate remediation panels when the dedicated remediation UI
+ * and this compatibility adapter observe the same failed Check modal.
  */
 (async function () {
   'use strict';
@@ -124,7 +124,7 @@
         const card = document.getElementById('modalCard');
         const button = document.getElementById('canonicalCheck');
         if (!card || !button || !context.assessmentResult || context.assessmentResult.passed || !remediation || remediation.status === 'complete') return;
-        if (document.getElementById('adapterRemediation')) return;
+        if (document.getElementById('adapterRemediation') || card.querySelector('[data-remediation-panel]')) return;
         const concepts = Array.isArray(remediation.concepts) && remediation.concepts.length ? remediation.concepts : ['the failed Check items'];
         const actions = Array.isArray(remediation.actions) && remediation.actions.length ? remediation.actions : ['Review the missed concepts and explain the correct senior-level reasoning in your own words.'];
         const route = currentStore.getState()?.nextBestAction?.recoveryRoute;
