@@ -1,8 +1,9 @@
 /*
- * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.1.
+ * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.2.
  * Merges the maintained base curriculum and extension modules into one
  * runtime catalog without duplicating lesson definitions in the UI.
  * v1.1 validates the four-stage learning contract before a catalog is exposed.
+ * v1.2 also validates assessment coverage after all assessment fallbacks resolve.
  */
 
 import './remediation-ui-v1.js';
@@ -127,6 +128,8 @@ export async function loadAssessmentCatalog(sources = ASSESSMENT_SOURCES, catalo
     const curriculumQuestions = catalog?.[weekId]?.check?.questions;
     if (Array.isArray(curriculumQuestions) && curriculumQuestions.length) questionsByWeek[weekId] = curriculumQuestions;
   }
+  const coverage = assessmentCoverage(questionsByWeek);
+  if (!coverage.complete) throw new Error(`Canonical assessment catalog incomplete; missing Weeks ${coverage.missingWeeks.join(', ')}`);
   return questionsByWeek;
 }
 
