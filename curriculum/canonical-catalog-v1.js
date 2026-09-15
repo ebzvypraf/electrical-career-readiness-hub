@@ -12,6 +12,7 @@ import './apply-structured-ui-v1.js';
 import './learning-integrity-ui-v1.js';
 import './learner-state-integrity-v1.js';
 import './learner-flow-integrity-v1.js';
+import './learner-flow-downstream-integrity-v1.js';
 import './stage-journal-bridge-v1.js';
 import './assessment-recovery-journal-bridge-v1.js';
 import './assessment-history-bridge-v1.js';
