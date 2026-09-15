@@ -1,7 +1,11 @@
-/* Electrical Career Readiness Hub — Home session resume v1.
- * Surfaces meaningful unfinished Course drafts on Home and routes the learner
+/* Electrical Career Readiness Hub — Home session resume v1.1.
+ * Surfaces the latest meaningful unfinished Course draft on Home and routes the learner
  * back to the exact Week + stage through the canonical Course runtime.
  * Draft state is temporary working state; canonical progress remains authoritative.
+ *
+ * v1.1 fixes a continuity edge case: a newer draft that has since been completed no
+ * longer hides an older still-incomplete draft. Home selects the latest meaningful
+ * draft that is actually incomplete according to the canonical store.
  */
 (function () {
   'use strict';
@@ -19,14 +23,10 @@
   }
 
   function meaningful(draft) {
-    if (!draft || !['apply', 'check', 'evidence'].includes(String(draft.stage))) return false;
+    if (!draft || !STAGES.slice(1).includes(String(draft.stage))) return false;
     if (draft.stage === 'apply') return Boolean((draft.tasks || []).some(Boolean) || draft.applyDeliverable || draft.applyDecisions || draft.applyAssumptions || draft.applyVerification || draft.applyNotes);
     if (draft.stage === 'check') return Object.keys(draft.responses || {}).length > 0;
     return Boolean((draft.criteria || []).some(Boolean) || draft.evidenceTitle || draft.evidenceDescription || draft.evidenceReflection || draft.evidenceNext);
-  }
-
-  function latestDraft() {
-    return Object.values(readDrafts()).filter(meaningful).sort((a, b) => String(b.savedAt || '').localeCompare(String(a.savedAt || '')))[0] || null;
   }
 
   function store() {
@@ -34,18 +34,25 @@
     return typeof api?.store === 'function' ? api.store() : api?.store || null;
   }
 
-  function isStillIncomplete(draft) {
-    const s = store();
+  function isStillIncomplete(draft, s = store()) {
     const progress = s?.getState?.().progressByWeek?.[String(draft.weekId)] || {};
     return !progress[String(draft.stage)];
+  }
+
+  function latestDraft(s) {
+    return Object.values(readDrafts())
+      .filter(meaningful)
+      .filter(draft => isStillIncomplete(draft, s))
+      .sort((a, b) => String(b.savedAt || '').localeCompare(String(a.savedAt || '')))[0] || null;
   }
 
   function render() {
     const home = document.getElementById('home');
     if (!home) return;
+    const s = store();
+    const draft = latestDraft(s);
     let panel = document.getElementById('home-session-resume');
-    const draft = latestDraft();
-    if (!draft || !isStillIncomplete(draft)) {
+    if (!draft) {
       if (panel) panel.remove();
       return;
     }
