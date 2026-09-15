@@ -1,10 +1,11 @@
-/* Electrical Career Readiness Hub — canonical shell bridge v1.6.
+/* Electrical Career Readiness Hub — canonical shell bridge v1.7.
  * Keeps Home/Skills/Journal/Portfolio navigation and legacy forms attached to
  * the canonical learning state after the Course runtime takes ownership.
  * Capability displays use the persisted canonical proof chain rather than
  * relying on a transient linkageValid field that may not survive normalization.
- * v1.6 loads the canonical session-draft enhancer so interrupted Apply/Check/
- * Evidence work can be resumed without creating a second progress model.
+ * v1.7 links manually logged Journal reflections to the canonical next learning
+ * action when the learner is working from Home/Journal, improving week/stage
+ * attribution without creating a second progress model.
  */
 (function () {
   'use strict';
@@ -116,7 +117,10 @@
       const hard = document.getElementById('jhard')?.value.trim() || '';
       const next = document.getElementById('jnext')?.value.trim() || '';
       if (!date || (!study && !learn && !hard && !next && hours <= 0)) return alert('Add a date and study information.');
-      const result = store.addJournalEntry({ date, hours, study, learn, hard, next, nextAction: next });
+      const action = state()?.nextBestAction || state()?.hubSignals?.nextBestAction || null;
+      const weekId = action?.weekId != null ? String(action.weekId) : null;
+      const stage = ['learn','apply','check','evidence'].includes(String(action?.stage)) ? String(action.stage) : null;
+      const result = store.addJournalEntry({ date, hours, study, learn, hard, next, nextAction: next, weekId, stage });
       if (!result.ok) return alert(result.reason || 'Journal entry could not be saved.');
       ['jhours','jstudy','jlearn','jhard','jnext'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
       go('journal');
