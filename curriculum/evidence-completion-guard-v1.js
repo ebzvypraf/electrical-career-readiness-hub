@@ -1,0 +1,70 @@
+/* Electrical Career Readiness Hub — Evidence completion guard v1.0.
+ * Keeps the canonical Course runtime as the source of truth while preventing
+ * an Evidence stage from being submitted with an incomplete proof package.
+ * This is a UI preflight only: it does not create or mutate learning state.
+ */
+(function () {
+  'use strict';
+  if (window.__ECRHEvidenceCompletionGuardInstalled) return;
+  window.__ECRHEvidenceCompletionGuardInstalled = true;
+
+  const get = id => document.getElementById(id);
+  const text = id => get(id)?.value?.trim() || '';
+  const ensureStatus = () => {
+    const button = get('canonicalEvidence');
+    if (!button || get('evidenceCompletionStatus')) return;
+    const wrap = document.createElement('div');
+    wrap.id = 'evidenceCompletionStatus';
+    wrap.className = 'muted';
+    wrap.style.cssText = 'margin-top:8px;font-size:12px';
+    button.parentNode?.insertBefore(wrap, button.nextSibling);
+  };
+  const validate = () => {
+    const criteria = [...document.querySelectorAll('.criterion')];
+    const checked = criteria.filter(x => x.checked).length;
+    const required = criteria.length;
+    const missing = [];
+    if (!text('evidenceTitle')) missing.push('evidence title');
+    if (!text('evidenceDescription')) missing.push('what it proves');
+    if (!text('evidenceReflection')) missing.push('reflection');
+    if (!text('evidenceNext')) missing.push('next action');
+    if (required && checked !== required) missing.push(`${required - checked} evidence criterion${required - checked === 1 ? '' : 'ia'} remaining`);
+    return { ok: missing.length === 0, missing, checked, required };
+  };
+  const render = () => {
+    const button = get('canonicalEvidence');
+    if (!button) return;
+    ensureStatus();
+    const result = validate();
+    const status = get('evidenceCompletionStatus');
+    if (status) {
+      status.textContent = result.ok
+        ? 'Proof package complete — ready to capture linked Evidence.'
+        : `Before capture: ${result.missing.join(' • ')}`;
+    }
+    button.setAttribute('aria-describedby', 'evidenceCompletionStatus');
+  };
+
+  document.addEventListener('click', event => {
+    const button = event.target?.closest?.('#canonicalEvidence');
+    if (!button) return;
+    const result = validate();
+    if (result.ok) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    render();
+    const firstMissing = !text('evidenceTitle') ? get('evidenceTitle')
+      : !text('evidenceDescription') ? get('evidenceDescription')
+      : !text('evidenceReflection') ? get('evidenceReflection')
+      : !text('evidenceNext') ? get('evidenceNext')
+      : document.querySelector('.criterion:not(:checked)');
+    firstMissing?.focus?.();
+  }, true);
+
+  const observer = new MutationObserver(render);
+  observer.observe(document.body, { childList: true, subtree: true });
+  ['input', 'change'].forEach(type => document.addEventListener(type, event => {
+    if (event.target?.matches?.('#evidenceTitle, #evidenceDescription, #evidenceReflection, #evidenceNext, .criterion')) render();
+  }, true));
+  render();
+})();
