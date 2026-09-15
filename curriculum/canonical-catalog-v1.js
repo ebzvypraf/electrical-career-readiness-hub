@@ -1,7 +1,8 @@
 /*
- * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.
+ * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.1.
  * Merges the maintained base curriculum and extension modules into one
  * runtime catalog without duplicating lesson definitions in the UI.
+ * v1.1 validates the four-stage learning contract before a catalog is exposed.
  */
 
 import './remediation-ui-v1.js';
@@ -77,6 +78,21 @@ function normalizeWeek(content, fallback = {}) {
   };
 }
 
+function validateWeekContract(week) {
+  const id = String(week?.week ?? week?.id ?? '');
+  const missing = [];
+  if (!week?.learn || typeof week.learn !== 'object') missing.push('Learn');
+  if (!week?.apply || typeof week.apply !== 'object') missing.push('Apply');
+  if (!week?.check || typeof week.check !== 'object' || !Array.isArray(week.check.questions) || !week.check.questions.length) missing.push('Check');
+  if (!week?.evidence || typeof week.evidence !== 'object' || !Array.isArray(week.evidence.criteria) || !week.evidence.criteria.length) missing.push('Evidence');
+  if (missing.length) throw new Error(`Canonical Week ${id} violates Learn → Apply → Check → Evidence contract: missing ${missing.join(', ')}`);
+}
+
+async function validateCatalogContract(catalog) {
+  for (const weekId of CANONICAL_WEEK_IDS) validateWeekContract(catalog[weekId]);
+  return catalog;
+}
+
 export async function loadCanonicalCatalog(sources = CANONICAL_SOURCES) {
   const payloads = await Promise.all(sources.map(fetchJson));
   const modules = payloads.flatMap(payload => Array.isArray(payload?.modules) ? payload.modules : []);
@@ -91,7 +107,7 @@ export async function loadCanonicalCatalog(sources = CANONICAL_SOURCES) {
 
   const missing = CANONICAL_WEEK_IDS.filter(id => !catalog[id]);
   if (missing.length) throw new Error(`Canonical curriculum incomplete; missing Weeks ${missing.join(', ')}`);
-  return Object.fromEntries(CANONICAL_WEEK_IDS.map(id => [id, catalog[id]]));
+  return validateCatalogContract(Object.fromEntries(CANONICAL_WEEK_IDS.map(id => [id, catalog[id]])));
 }
 
 export async function loadAssessmentCatalog(sources = ASSESSMENT_SOURCES, catalog = {}) {
