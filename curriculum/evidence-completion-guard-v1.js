@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — Evidence completion guard v1.1.
+/* Electrical Career Readiness Hub — Evidence completion guard v1.2.
  * Keeps the canonical Course runtime as the source of truth while preventing
  * an Evidence stage from being submitted with an incomplete proof package.
  * This is a UI preflight only: it does not create or mutate learning state.
@@ -30,7 +30,10 @@
     if (!text('evidenceDescription')) missing.push('what it proves');
     if (!text('evidenceReflection')) missing.push('reflection');
     if (!text('evidenceNext')) missing.push('next action');
-    if (required && checked !== required) missing.push(`${required - checked} evidence criterion${required - checked === 1 ? '' : 'ia'} remaining`);
+    if (required && checked !== required) {
+      const remaining = required - checked;
+      missing.push(`${remaining} evidence criteri${remaining === 1 ? 'on' : 'a'} remaining`);
+    }
     return { ok: missing.length === 0, missing, checked, required };
   };
   const render = () => {
