@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — canonical learning integrity UI v1.
+/* Electrical Career Readiness Hub — canonical learning integrity UI v1.1.
  * Gives the learner/admin a lightweight production diagnostic for the 24-week
  * Learn -> Apply -> Check -> Evidence catalog and assessment coverage.
  * Read-only: it never changes learning state.
@@ -15,6 +15,7 @@
   const ASSESSMENTS = [
     '/curriculum/assessment-bank-weeks-01-03-v1.json',
     '/curriculum/assessment-question-bank-v1.json',
+    '/curriculum/assessment-bank-weeks-11-15-v1.json',
     '/curriculum/assessment-bank-weeks-16-20-v1.json',
     '/curriculum/assessment-bank-weeks-21-24-v1.json'
   ];
