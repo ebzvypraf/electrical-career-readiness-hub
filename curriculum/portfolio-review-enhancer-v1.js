@@ -1,9 +1,9 @@
-/* Electrical Career Readiness Hub — Portfolio Review enhancer v3.1.
+/* Electrical Career Readiness Hub — Portfolio Review enhancer v3.2.
  * Keeps self-review controls synchronized with the canonical portfolio state
  * and exposes the canonical Apply -> Check -> Evidence proof chain for review-ready artifacts.
- * v3.1 resolves portfolio cards by their authored Week marker instead of DOM index,
- * preventing evidence/review controls from attaching to the wrong artifact when cards
- * are reordered or filtered by another portfolio projection.
+ * v3.1 resolves portfolio cards by their authored Week marker instead of DOM index.
+ * v3.2 publishes a stable week identity on each decorated evidence card so downstream
+ * Portfolio projections do not have to rediscover identity from rendered text.
  */
 (function () {
   'use strict';
@@ -83,6 +83,8 @@
   }
 
   function cardWeekId(card) {
+    const authored = card?.dataset?.portfolioWeek;
+    if (authored) return String(Number(authored));
     const pill = card.querySelector('.pill');
     const match = pill?.textContent?.match(/Week\s+(\d+)/i);
     return match ? String(Number(match[1])) : null;
@@ -103,6 +105,7 @@
       const weekId = cardWeekId(card);
       const entry = weekId ? byWeek.get(weekId) : null;
       if (!entry) return;
+      card.dataset.portfolioWeek = weekId;
       let proof = card.querySelector('[data-proof-chain-panel]');
       if (!proof) {
         card.insertAdjacentHTML('beforeend', proofChainMarkup(entry));
