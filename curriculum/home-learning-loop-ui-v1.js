@@ -1,11 +1,11 @@
-/* Electrical Career Readiness Hub — Home learning-loop status v2.3.
+/* Electrical Career Readiness Hub — Home learning-loop status v2.4.
  * Surfaces the canonical active-week Learn → Apply → Check → Evidence state on Home,
  * plus the downstream Journal/Portfolio proof produced by the same canonical store.
  * Additive UI only; canonical learning-state store remains the source of truth.
  * Failed Checks surface their canonical remediation state so Home points the learner
  * back to reinforcement instead of presenting a generic Journal/Portfolio summary.
- * v2.3 prefers the canonical Course runtime's data-canonical-open route for direct
- * stage navigation, with legacy DOM selectors retained only as a compatibility fallback.
+ * v2.4 uses the same deterministic chronological Check ordering as the assessment
+ * history bridge, so Home cannot mistake an older failed attempt for the latest result.
  */
 (function () {
   'use strict';
@@ -16,6 +16,27 @@
 
   function api() { return typeof window !== 'undefined' ? window.ECRHCanonical : null; }
   function store() { const a = api(); return typeof a?.store === 'function' ? a.store() : a?.store || null; }
+
+  function normalizeHistory(history) {
+    const records = Array.isArray(history)
+      ? history.filter(item => item && typeof item === 'object').map((item, index) => ({ item, index }))
+      : [];
+    return records.sort((a, b) => {
+      const aTime = Date.parse(String(a.item?.completedAt || a.item?.createdAt || a.item?.timestamp || a.item?.date || ''));
+      const bTime = Date.parse(String(b.item?.completedAt || b.item?.createdAt || b.item?.timestamp || b.item?.date || ''));
+      const aHasTime = Number.isFinite(aTime);
+      const bHasTime = Number.isFinite(bTime);
+      if (aHasTime && bHasTime && aTime !== bTime) return aTime - bTime;
+      if (aHasTime !== bHasTime) return aHasTime ? -1 : 1;
+      const aAttempt = Number(a.item?.attemptNumber);
+      const bAttempt = Number(b.item?.attemptNumber);
+      const aHasAttempt = Number.isFinite(aAttempt);
+      const bHasAttempt = Number.isFinite(bAttempt);
+      if (aHasAttempt && bHasAttempt && aAttempt !== bAttempt) return aAttempt - bAttempt;
+      if (aHasAttempt !== bHasAttempt) return aHasAttempt ? -1 : 1;
+      return a.index - b.index;
+    }).map(record => record.item);
+  }
 
   function activeWeek(state) {
     const next = state?.hubSignals?.nextBestAction;
@@ -33,7 +54,8 @@
       return { status: e.tasksComplete && e.deliverable && e.decisions && e.assumptions && e.verification ? 'ready' : 'pending', label: e.tasksComplete ? 'Ready to complete' : 'In progress' };
     }
     if (stage === 'check') {
-      const latest = Array.isArray(context.assessmentHistory) ? context.assessmentHistory.at(-1) : null;
+      const history = normalizeHistory(context.assessmentHistory);
+      const latest = history[history.length - 1] || context.assessmentResult || null;
       if (latest?.passed === false) return { status: 'remediation', label: 'Reinforcement needed' };
       return { status: context.assessmentResult?.passed ? 'ready' : 'pending', label: context.assessmentResult?.passed ? 'Passed' : 'Pending' };
     }
@@ -48,18 +70,12 @@
     const id = String(weekId);
     const stageName = String(stage || '').toLowerCase();
     if (!STAGES.includes(stageName)) return false;
-
-    // Canonical Course runtime route: the rendered stage buttons are keyed by
-    // week + stage and invoke the single canonical openStage() implementation.
     const canonicalSelector = `[data-canonical-open="${esc(id)}:${esc(stageName)}"]`;
     const direct = document.querySelector(canonicalSelector);
     if (direct) { direct.click(); return true; }
-
-    // Compatibility with older Course renderers retained for known-good fallback.
     const stageIndex = STAGES.indexOf(stageName);
     const legacy = document.querySelector(`[data-open="${Number(id) - 1}:${stageIndex}"]`);
     if (legacy) { legacy.click(); return true; }
-
     const weeks = Array.from(document.querySelectorAll('.week'));
     const target = weeks.find(node => {
       const no = node.querySelector('.wno');
@@ -94,7 +110,8 @@
 
     const readiness = STAGES.map(stage => stageState(state, weekId, stage));
     const nextStage = STAGES.find((stage, i) => readiness[i].status !== 'complete') || null;
-    const latestCheck = Array.isArray(context.assessmentHistory) ? context.assessmentHistory.at(-1) : null;
+    const checkHistory = normalizeHistory(context.assessmentHistory);
+    const latestCheck = checkHistory[checkHistory.length - 1] || context.assessmentResult || null;
     const checkFailed = nextStage === 'check' && latestCheck?.passed === false;
     const weekJournal = (state.journalEntries || []).filter(entry => String(entry?.weekId || '') === String(weekId));
     const weekPortfolio = (state.portfolioEntries || []).filter(entry => String(entry?.week) === String(weekId));
