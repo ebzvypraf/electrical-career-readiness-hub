@@ -16,6 +16,7 @@
 
   function api() { return typeof window !== 'undefined' ? window.ECRHCanonical : null; }
   function store() { const a = api(); return typeof a?.store === 'function' ? a.store() : a?.store || null; }
+
   function normalizePassed(value, status = '') {
     const normalized = String(value ?? '').toLowerCase();
     if (value === true || value === 1 || ['true', 'passed', 'pass'].includes(normalized)) return true;
@@ -25,8 +26,11 @@
     if (['failed', 'fail', 'incomplete', 'unsuccessful'].includes(normalizedStatus)) return false;
     return null;
   }
+
   function normalizeHistory(history) {
-    const records = Array.isArray(history) ? history.filter(item => item && typeof item === 'object').map((item, index) => ({ item, index })) : [];
+    const records = Array.isArray(history)
+      ? history.filter(item => item && typeof item === 'object').map((item, index) => ({ item, index }))
+      : [];
     return records.sort((a, b) => {
       const aTime = Date.parse(String(a.item?.completedAt || a.item?.createdAt || a.item?.timestamp || a.item?.date || ''));
       const bTime = Date.parse(String(b.item?.completedAt || b.item?.createdAt || b.item?.timestamp || b.item?.date || ''));
@@ -43,12 +47,14 @@
       return a.index - b.index;
     }).map(record => record.item);
   }
+
   function activeWeek(state) {
     const next = state?.hubSignals?.nextBestAction;
     if (next?.weekId) return String(next.weekId);
     const ids = Object.keys(state?.progressByWeek || {}).sort((a, b) => Number(a) - Number(b));
     return ids.find(id => STAGES.some(stage => !(state.progressByWeek?.[id]?.[stage]))) || null;
   }
+
   function stageState(state, weekId, stage) {
     const progress = state?.progressByWeek?.[weekId] || {};
     const context = state?.contextByWeek?.[weekId] || {};
@@ -71,6 +77,7 @@
     }
     return { status: context.learnViewedAt ? 'ready' : 'pending', label: context.learnViewedAt ? 'Viewed' : 'Pending' };
   }
+
   function openNextStage(weekId, stage) {
     const id = String(weekId);
     const stageName = String(stage || '').toLowerCase();
@@ -93,6 +100,7 @@
     if (button) { button.click(); return true; }
     return false;
   }
+
   function render() {
     const home = document.getElementById('home');
     const s = store();
@@ -111,6 +119,7 @@
       if (!grid) return;
       grid.insertBefore(panel, grid.children[1] || null);
     }
+
     const readiness = STAGES.map(stage => stageState(state, weekId, stage));
     const nextStage = STAGES.find((stage, i) => readiness[i].status !== 'complete') || null;
     const checkHistory = normalizeHistory(context.assessmentHistory);
@@ -126,6 +135,7 @@
     const signature = `${weekId}|${readiness.map(x => `${x.status}:${x.label}`).join('|')}|${journalCount}|${portfolioCount}|${demonstrated}|${state.hubSignals?.overallProgress || 0}|${nextStage || 'complete'}|${checkFailed}|${remediationConcepts.join(',')}`;
     if (panel.dataset.signature === signature) return;
     panel.dataset.signature = signature;
+
     const activeStage = checkFailed ? 'Remediation' : (state.hubSignals?.nextBestAction?.label || nextStage || 'Complete');
     const downstream = checkFailed
       ? `Latest Check was not passed${remediationConcepts.length ? `; reinforce ${remediationConcepts.join(', ')}` : ''}, then retry the Check.`
@@ -136,6 +146,7 @@
           : journalCount
             ? `Journal trail recorded: ${journalCount} entr${journalCount === 1 ? 'y' : 'ies'}.`
             : 'Journal and Portfolio will update from the canonical stage actions.';
+
     const actionStage = checkFailed ? 'check' : nextStage;
     panel.innerHTML = `<div class="k">Learning loop</div><h2>Week ${esc(weekId)} — ${esc(week.title || 'Current learning module')}</h2><p class="muted">Your progress is tracked through one connected learning loop. Complete each stage in order; Evidence becomes reusable career proof.</p><div class="summary">${STAGES.map((stage, index) => { const x = readiness[index]; const cls = x.status === 'complete' || x.status === 'ready' ? 'ok' : ''; return `<div class="goal"><b>${index + 1}. ${LABELS[stage]}</b><small><span class="pill ${cls}">${esc(x.label)}</span></small></div>`; }).join('')}</div><div class="mission" style="margin-top:10px"><b>Next: ${esc(activeStage)}</b><div class="muted">${esc(checkFailed ? (remediation.nextAction || `Complete targeted reinforcement for Week ${weekId}, then retry the Check.`) : (state.hubSignals?.nextBestAction?.prompt || week.integration?.homeAction || `Continue ${activeStage.toLowerCase()} for this week.`))}</div><div class="muted" style="margin-top:7px"><b>Downstream proof:</b> ${esc(downstream)}</div>${actionStage ? `<button class="btn primary" id="home-learning-loop-open" style="margin-top:10px">Open ${esc(checkFailed ? 'Check' : LABELS[actionStage])}</button>` : ''}</div>`;
     const openButton = document.getElementById('home-learning-loop-open');
@@ -146,6 +157,7 @@
       }
     };
   }
+
   function boot() {
     const s = store();
     if (!s) { setTimeout(boot, 250); return; }
@@ -153,6 +165,7 @@
     s.subscribe(() => setTimeout(render, 0));
     new MutationObserver(render).observe(document.body, { childList: true, subtree: true });
   }
+
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
     else boot();
