@@ -1,9 +1,10 @@
 /*
- * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.2.
+ * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.3.
  * Merges the maintained base curriculum and extension modules into one
  * runtime catalog without duplicating lesson definitions in the UI.
  * v1.1 validates the four-stage learning contract before a catalog is exposed.
  * v1.2 also validates assessment coverage after all assessment fallbacks resolve.
+ * v1.3 validates that each stage has substantive learner-facing content.
  */
 
 import './remediation-ui-v1.js';
@@ -79,14 +80,27 @@ function normalizeWeek(content, fallback = {}) {
   };
 }
 
+function nonEmptyText(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 function validateWeekContract(week) {
   const id = String(week?.week ?? week?.id ?? '');
   const missing = [];
-  if (!week?.learn || typeof week.learn !== 'object') missing.push('Learn');
-  if (!week?.apply || typeof week.apply !== 'object') missing.push('Apply');
-  if (!week?.check || typeof week.check !== 'object' || !Array.isArray(week.check.questions) || !week.check.questions.length) missing.push('Check');
-  if (!week?.evidence || typeof week.evidence !== 'object' || !Array.isArray(week.evidence.criteria) || !week.evidence.criteria.length) missing.push('Evidence');
-  if (missing.length) throw new Error(`Canonical Week ${id} violates Learn → Apply → Check → Evidence contract: missing ${missing.join(', ')}`);
+  const learn = week?.learn;
+  const apply = week?.apply;
+  const check = week?.check;
+  const evidence = week?.evidence;
+  const learnContent = Array.isArray(learn?.concepts) ? learn.concepts : (Array.isArray(learn?.bullets) ? learn.bullets : []);
+  const applyTasks = Array.isArray(apply?.tasks) ? apply.tasks : [];
+  const checkQuestions = Array.isArray(check?.questions) ? check.questions : [];
+  const evidenceCriteria = Array.isArray(evidence?.criteria) ? evidence.criteria : [];
+
+  if (!learn || typeof learn !== 'object' || !nonEmptyText(learn.objective || week?.objective) || !learnContent.some(nonEmptyText)) missing.push('Learn content');
+  if (!apply || typeof apply !== 'object' || !nonEmptyText(apply.scenario) || !applyTasks.some(nonEmptyText) || !nonEmptyText(apply.deliverable)) missing.push('Apply content');
+  if (!check || typeof check !== 'object' || !checkQuestions.length || checkQuestions.some(question => !nonEmptyText(question?.prompt) || !nonEmptyText(question?.answer))) missing.push('Check content');
+  if (!evidence || typeof evidence !== 'object' || !nonEmptyText(evidence.prompt) || !evidenceCriteria.some(nonEmptyText)) missing.push('Evidence content');
+  if (missing.length) throw new Error(`Canonical Week ${id} violates Learn → Apply → Check → Evidence content contract: incomplete ${missing.join(', ')}`);
 }
 
 async function validateCatalogContract(catalog) {
