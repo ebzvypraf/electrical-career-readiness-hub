@@ -1,14 +1,37 @@
 /*
  * Electrical Career Readiness Hub — adaptive next-action engine v1.
  * Chooses the highest-value learner action from canonical state signals.
- * v1.3.4 uses deterministic assessment ordering when resolving latest Check
- * state so adaptive recovery decisions match the assessment history bridge.
+ * v1.3.5 uses deterministic assessment ordering and normalized boolean
+ * assessment outcomes so persisted Check state cannot be misread when
+ * values arrive as strings or other serialized representations.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.3.4';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.3.5';
 
 function text(value) { return String(value ?? '').trim(); }
+
+function booleanSignal(value) {
+  if (value === true || value === false) return value;
+  if (typeof value === 'number') return value === 1;
+  const normalized = text(value).toLowerCase();
+  if (['true', '1', 'yes', 'passed', 'pass', 'success'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'failed', 'fail', 'failure'].includes(normalized)) return false;
+  return null;
+}
+
+function assessmentPassed(record) {
+  const explicit = booleanSignal(record?.passed);
+  if (explicit !== null) return explicit;
+  const status = text(record?.status).toLowerCase();
+  if (['passed', 'pass', 'complete', 'completed', 'success'].includes(status)) return true;
+  if (['failed', 'fail', 'incomplete', 'error'].includes(status)) return false;
+  return false;
+}
+
+function assessmentRecovered(record) {
+  return booleanSignal(record?.recovered) === true;
+}
 
 function normalizeAssessmentHistory(history) {
   const records = Array.isArray(history)
@@ -37,12 +60,13 @@ function assessmentTrail(context = {}) {
   const history = normalizeAssessmentHistory(context?.assessmentHistory);
   const records = history.length ? history : (context?.assessmentResult ? [context.assessmentResult] : []);
   const latest = records.at(-1) || context?.assessmentResult || null;
-  const priorFailure = records.slice(0, -1).some(item => item?.passed === false);
-  const hasPersistedRecovery = records.some(item => typeof item?.recovered === 'boolean');
+  const priorFailure = records.slice(0, -1).some(item => assessmentPassed(item) === false);
+  const hasPersistedRecovery = records.some(item => booleanSignal(item?.recovered) !== null);
+  const latestPassed = assessmentPassed(latest);
   return {
     attempts: records.length,
-    recovered: hasPersistedRecovery ? latest?.recovered === true : Boolean(records.length > 1 && latest?.passed && priorFailure),
-    latestPassed: Boolean(latest?.passed),
+    recovered: hasPersistedRecovery ? assessmentRecovered(latest) : Boolean(records.length > 1 && latestPassed && priorFailure),
+    latestPassed,
     latestPercentage: Number.isFinite(Number(latest?.percentage)) ? Number(latest.percentage) : null
   };
 }
