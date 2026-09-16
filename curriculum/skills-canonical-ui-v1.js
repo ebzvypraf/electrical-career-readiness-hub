@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — canonical Skills UI bridge v2.2.
+/* Electrical Career Readiness Hub — canonical Skills UI bridge v2.3.
  * Keeps the learner-facing Skills page bound to the same canonical store that
  * powers Course, Home, Journal and Portfolio.
  *
@@ -7,6 +7,8 @@
  * a second curriculum lookup or progress store.
  * v2.2 adds a stable skill key to each rendered row so downstream Skills
  * enhancers resolve by skill identity rather than DOM position.
+ * v2.3 makes each skill's canonical next-focus recommendation actionable,
+ * allowing Skills to resume the same Course stage used by the learning engine.
  */
 (function () {
   'use strict';
@@ -94,18 +96,31 @@
 
     host.innerHTML = skills.map(item => {
       const coverage = item.coverage || {};
-      const recommendation = item.recommendedWeekId && item.recommendedStageLabel
+      const hasRecommendation = item.recommendedWeekId && item.recommendedStageLabel;
+      const recommendation = hasRecommendation
         ? `Next focus: Week ${esc(item.recommendedWeekId)} • ${esc(item.recommendedStageLabel)}`
         : 'All currently unlocked stages are complete for this skill.';
+      const nextAction = hasRecommendation
+        ? `<button class="btn" type="button" data-skill-next="${esc(item.recommendedWeekId)}">Open next focus</button>`
+        : '';
       return `<div class="skillrow" data-skill-key="${esc(skillKey(item.skill))}">
         <div class="skillhead"><b>${esc(item.skill)}</b><strong>${Number(item.readiness || 0)}%</strong></div>
         <div class="bar"><span style="width:${Math.max(0, Math.min(100, Number(item.readiness || 0)))}%"></span></div>
         <div class="muted">Learn ${Number(coverage.learn || 0)}% · Apply ${Number(coverage.apply || 0)}% · Check ${Number(coverage.check || 0)}% · Evidence ${Number(coverage.evidence || 0)}%</div>
         <div class="muted">Checks passed ${Number(item.knowledgeChecks || 0)} · Demonstrated weeks ${Number(item.evidenceCount || item.demonstratedWeeks || 0)}</div>
         <div class="muted">Evidence quality ${Number(item.evidenceQuality || 0)}% · Journal coverage ${Number(item.journalCoverage || 0)}%</div>
-        <small>${esc(recommendation)}</small>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap"><small>${esc(recommendation)}</small>${nextAction}</div>
       </div>`;
     }).join('');
+
+    host.querySelectorAll('[data-skill-next]').forEach(button => {
+      button.addEventListener('click', () => {
+        const weekId = String(button.dataset.skillNext || '');
+        const item = skills.find(skill => String(skill?.recommendedWeekId || '') === weekId);
+        const stage = item?.recommendedStage;
+        if (weekId && stage) openWeekStage(weekId, stage);
+      });
+    });
 
     renderEvidenceTrace(host, skills, state.portfolioEntries, state.catalog || window.ECRHCanonical?.catalog || {});
   }
