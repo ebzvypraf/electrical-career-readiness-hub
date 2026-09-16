@@ -1,10 +1,12 @@
 /*
- * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.3.
+ * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.4.
  * Merges the maintained base curriculum and extension modules into one
  * runtime catalog without duplicating lesson definitions in the UI.
  * v1.1 validates the four-stage learning contract before a catalog is exposed.
  * v1.2 also validates assessment coverage after all assessment fallbacks resolve.
  * v1.3 validates that each stage has substantive learner-facing content.
+ * v1.4 supplies downstream Home/Journal/Portfolio integration for Weeks 11-20
+ * through a dedicated mapping layer without duplicating lesson payloads.
  */
 
 import './remediation-ui-v1.js';
@@ -33,6 +35,7 @@ import './portfolio-review-enhancer-v1.js';
 import './portfolio-learning-trace-ui-v1.js';
 import './journal-canonical-ui-v1.js';
 import './evidence-completion-guard-v1.js';
+import { integrationForWeek } from './learning-integration-weeks-11-20-v1.js';
 
 export const CANONICAL_SOURCES = [
   '/curriculum/learning-content-v1.json',
@@ -58,7 +61,7 @@ async function fetchJson(url) {
 }
 
 function normalizeWeek(content, fallback = {}) {
-  const c = content || {}, integration = c.integration || {};
+  const c = content || {}, integration = { ...integrationForWeek(c.week ?? fallback.week), ...(c.integration || {}) };
   return {
     id: c.id || fallback.id,
     week: c.week ?? fallback.week,
