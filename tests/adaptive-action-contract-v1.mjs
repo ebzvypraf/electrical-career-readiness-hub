@@ -63,4 +63,53 @@ const serializedPass = chooseNextBestAction({
 assert.equal(serializedPass.latestCheckFailed, false);
 assert.equal(serializedPass.nextProofStage, 'evidence');
 
+const staleEvidenceAfterPassingCheck = chooseNextBestAction({
+  catalog,
+  progressByWeek: progress,
+  contextByWeek: {
+    '1': {
+      evidence: {
+        upstreamChangedAfterEvidence: true,
+        invalidationReason: 'new-check-attempt',
+        lineage: { lineageId: 'lineage-001' },
+        proofChain: {
+          apply: { linked: true },
+          check: { linked: true },
+          evidence: { captured: true, demonstratedCapability: true }
+        }
+      },
+      assessmentHistory: [{ completedAt: '2026-09-16T12:00:00Z', passed: true }]
+    }
+  },
+  hubSignals: {}
+});
+assert.equal(staleEvidenceAfterPassingCheck.stage, 'evidence');
+assert.equal(staleEvidenceAfterPassingCheck.source, 'stale-evidence-recovery');
+assert.equal(staleEvidenceAfterPassingCheck.recovery.required, true);
+assert.equal(staleEvidenceAfterPassingCheck.recovery.priorLineageId, 'lineage-001');
+assert.equal(staleEvidenceAfterPassingCheck.label, 'Recover Evidence');
+
+const staleEvidenceAfterFailedCheck = chooseNextBestAction({
+  catalog,
+  progressByWeek: progress,
+  contextByWeek: {
+    '1': {
+      evidence: {
+        upstreamChangedAfterEvidence: true,
+        invalidationReason: 'new-check-attempt',
+        proofChain: {
+          apply: { linked: true },
+          check: { linked: true },
+          evidence: { captured: true, demonstratedCapability: true }
+        }
+      },
+      assessmentHistory: [{ completedAt: '2026-09-16T12:00:00Z', passed: 'false' }]
+    }
+  },
+  hubSignals: {}
+});
+assert.equal(staleEvidenceAfterFailedCheck.stage, 'check');
+assert.equal(staleEvidenceAfterFailedCheck.source, 'stale-evidence-recovery');
+assert.equal(staleEvidenceAfterFailedCheck.latestCheckFailed, true);
+
 console.log('adaptive-action-contract-v1: PASS');
