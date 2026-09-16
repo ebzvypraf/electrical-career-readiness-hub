@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — structured Apply UI v1.2.
+/* Electrical Career Readiness Hub — structured Apply UI v1.3.
  * Converts the canonical Apply modal into an auditable learner-authored record.
  * Uses the existing canonical learning-state store; no parallel progress model.
  */
@@ -69,7 +69,33 @@
     handoff.innerHTML = '<strong>Ready for the next proof steps</strong>' +
       `<span>Check: validate your reasoning against the week’s requirements.</span>` +
       `<span>Journal: ${escapeHtml(integration.journalPrompt || 'Record what you learned, what you would improve, and your next action.')}</span>` +
-      `<span>Portfolio: ${escapeHtml(integration.portfolioPrompt || 'Capture a sanitized, reviewable proof artifact from this work.')}</span>`;
+      `<span>Portfolio: ${escapeHtml(integration.portfolioPrompt || 'Capture a sanitized, reviewable proof artifact from this work.')}</span>` +
+      renderActionButtons(savedReady);
+    wireDownstreamActions(handoff);
+  }
+
+  function renderActionButtons(savedReady) {
+    if (!savedReady) return '';
+    return '<div data-apply-downstream-actions style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">' +
+      '<button type="button" class="btn primary" data-apply-next="course">Return to Course</button>' +
+      '<button type="button" class="btn" data-apply-next="journal">Open Journal</button>' +
+      '<button type="button" class="btn" data-apply-next="portfolio">Open Portfolio</button>' +
+      '</div>';
+  }
+
+  function wireDownstreamActions(handoff) {
+    handoff.querySelectorAll('[data-apply-next]').forEach(button => {
+      if (button.dataset.wired === 'true') return;
+      button.dataset.wired = 'true';
+      button.addEventListener('click', () => {
+        const page = button.dataset.applyNext;
+        document.querySelectorAll('[data-page]').forEach(candidate => {
+          if (candidate.dataset.page === page) candidate.click();
+        });
+        const close = document.querySelector('[data-close-modal], #modalClose, #closeModal');
+        if (close) close.click();
+      });
+    });
   }
 
   function enhance() {
