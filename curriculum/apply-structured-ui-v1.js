@@ -89,11 +89,10 @@
       button.dataset.wired = 'true';
       button.addEventListener('click', () => {
         const page = button.dataset.applyNext;
-        document.querySelectorAll('[data-page]').forEach(candidate => {
-          if (candidate.dataset.page === page) candidate.click();
-        });
-        const close = document.querySelector('[data-close-modal], #modalClose, #closeModal');
-        if (close) close.click();
+        const target = [...document.querySelectorAll('[data-page]')].find(candidate => candidate.dataset.page === page);
+        if (target) target.click();
+        const modal = document.getElementById('modal');
+        if (modal) modal.classList.remove('show');
       });
     });
   }
