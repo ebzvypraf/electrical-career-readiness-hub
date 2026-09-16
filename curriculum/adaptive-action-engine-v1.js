@@ -1,25 +1,47 @@
 /*
  * Electrical Career Readiness Hub — adaptive next-action engine v1.
  * Chooses the highest-value learner action from canonical state signals.
- * v1.3.3 prevents Evidence recommendations after a failed latest Check
- * and keeps the recovery route aligned with the current assessment result.
+ * v1.3.4 uses deterministic assessment ordering when resolving latest Check
+ * state so adaptive recovery decisions match the assessment history bridge.
  */
 import { STAGES, STAGE_LABELS, isStageUnlocked } from './learning-engine-v2.js';
 
-export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.3.3';
+export const ADAPTIVE_ACTION_ENGINE_VERSION = '1.3.4';
 
 function text(value) { return String(value ?? '').trim(); }
 
+function normalizeAssessmentHistory(history) {
+  const records = Array.isArray(history)
+    ? history.filter(item => item && typeof item === 'object').map((item, index) => ({ item, index }))
+    : [];
+  return records
+    .sort((a, b) => {
+      const aTime = Date.parse(String(a.item?.completedAt || a.item?.createdAt || a.item?.timestamp || a.item?.date || ''));
+      const bTime = Date.parse(String(b.item?.completedAt || b.item?.createdAt || b.item?.timestamp || b.item?.date || ''));
+      const aHasTime = Number.isFinite(aTime);
+      const bHasTime = Number.isFinite(bTime);
+      if (aHasTime && bHasTime && aTime !== bTime) return aTime - bTime;
+      if (aHasTime !== bHasTime) return aHasTime ? -1 : 1;
+      const aAttempt = Number(a.item?.attemptNumber);
+      const bAttempt = Number(b.item?.attemptNumber);
+      const aHasAttempt = Number.isFinite(aAttempt);
+      const bHasAttempt = Number.isFinite(bAttempt);
+      if (aHasAttempt && bHasAttempt && aAttempt !== bAttempt) return aAttempt - bAttempt;
+      if (aHasAttempt !== bHasAttempt) return aHasAttempt ? -1 : 1;
+      return a.index - b.index;
+    })
+    .map(record => record.item);
+}
+
 function assessmentTrail(context = {}) {
-  const history = Array.isArray(context?.assessmentHistory) && context.assessmentHistory.length
-    ? context.assessmentHistory
-    : (context?.assessmentResult ? [context.assessmentResult] : []);
-  const latest = history.at(-1) || context?.assessmentResult || null;
-  const priorFailure = history.slice(0, -1).some(item => item?.passed === false);
-  const hasPersistedRecovery = history.some(item => typeof item?.recovered === 'boolean');
+  const history = normalizeAssessmentHistory(context?.assessmentHistory);
+  const records = history.length ? history : (context?.assessmentResult ? [context.assessmentResult] : []);
+  const latest = records.at(-1) || context?.assessmentResult || null;
+  const priorFailure = records.slice(0, -1).some(item => item?.passed === false);
+  const hasPersistedRecovery = records.some(item => typeof item?.recovered === 'boolean');
   return {
-    attempts: history.length,
-    recovered: hasPersistedRecovery ? latest?.recovered === true : Boolean(history.length > 1 && latest?.passed && priorFailure),
+    attempts: records.length,
+    recovered: hasPersistedRecovery ? latest?.recovered === true : Boolean(records.length > 1 && latest?.passed && priorFailure),
     latestPassed: Boolean(latest?.passed),
     latestPercentage: Number.isFinite(Number(latest?.percentage)) ? Number(latest.percentage) : null
   };
