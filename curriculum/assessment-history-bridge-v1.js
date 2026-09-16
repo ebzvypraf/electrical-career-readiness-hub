@@ -5,6 +5,9 @@
  * exposes stable summaries to Home, Skills, Journal and Portfolio without
  * wrapping or mutating the assessment command path.
  *
+ * v1.4 adds deterministic chronological ordering for attempt history so
+ * recovered/latest Check state is not inferred from object insertion order.
+ *
  * v1.3 adds an actionable history trail: recent Check records can return
  * directly to their canonical Week + Check stage without creating another
  * progression path.
@@ -12,7 +15,7 @@
 (function () {
   'use strict';
 
-  const HISTORY_VERSION = '1.3.0';
+  const HISTORY_VERSION = '1.4.0';
   let installed = false;
   let unsubscribe = null;
   let renderQueued = false;
@@ -26,7 +29,26 @@
   };
 
   function normalizeHistory(history) {
-    return Array.isArray(history) ? history.filter(item => item && typeof item === 'object') : [];
+    const records = Array.isArray(history)
+      ? history.filter(item => item && typeof item === 'object').map((item, index) => ({ item, index }))
+      : [];
+    return records
+      .sort((a, b) => {
+        const aTime = Date.parse(String(a.item?.completedAt || a.item?.createdAt || a.item?.timestamp || a.item?.date || ''));
+        const bTime = Date.parse(String(b.item?.completedAt || b.item?.createdAt || b.item?.timestamp || b.item?.date || ''));
+        const aHasTime = Number.isFinite(aTime);
+        const bHasTime = Number.isFinite(bTime);
+        if (aHasTime && bHasTime && aTime !== bTime) return aTime - bTime;
+        if (aHasTime !== bHasTime) return aHasTime ? -1 : 1;
+        const aAttempt = Number(a.item?.attemptNumber);
+        const bAttempt = Number(b.item?.attemptNumber);
+        const aHasAttempt = Number.isFinite(aAttempt);
+        const bHasAttempt = Number.isFinite(bAttempt);
+        if (aHasAttempt && bHasAttempt && aAttempt !== bAttempt) return aAttempt - bAttempt;
+        if (aHasAttempt !== bHasAttempt) return aHasAttempt ? -1 : 1;
+        return a.index - b.index;
+      })
+      .map(record => record.item);
   }
 
   function buildSummary(state) {
