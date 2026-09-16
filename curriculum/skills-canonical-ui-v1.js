@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — canonical Skills UI bridge v2.3.
+/* Electrical Career Readiness Hub — canonical Skills UI bridge v2.4.
  * Keeps the learner-facing Skills page bound to the same canonical store that
  * powers Course, Home, Journal and Portfolio.
  *
@@ -9,6 +9,8 @@
  * enhancers resolve by skill identity rather than DOM position.
  * v2.3 makes each skill's canonical next-focus recommendation actionable,
  * allowing Skills to resume the same Course stage used by the learning engine.
+ * v2.4 adds a compact proof-status summary derived from canonical Portfolio
+ * entries so demonstrated evidence contributes visibly to the skill profile.
  */
 (function () {
   'use strict';
@@ -44,6 +46,23 @@
     }, 150);
   }
 
+  function getSkillProof(entries, skill, catalog) {
+    const normalized = Array.isArray(entries) ? entries.filter(entry => entry && entry.week != null && entry.title) : [];
+    const key = skillKey(skill);
+    const matches = normalized.filter(entry => {
+      const week = catalog?.[String(entry.week)];
+      const targets = Array.isArray(week?.skills) ? week.skills : [];
+      return targets.some(target => skillKey(target) === key);
+    });
+    const demonstrated = matches.filter(entry => entry.reviewStatus === 'demonstrated' && entry.upstreamChangedAfterEvidence !== true).length;
+    const needsReview = matches.filter(entry => entry.reviewStatus === 'needs-review' || entry.upstreamChangedAfterEvidence === true).length;
+    const qualityValues = matches
+      .map(entry => Number(entry.evidenceQuality || entry.proofChain?.evidence?.quality || 0))
+      .filter(value => Number.isFinite(value) && value > 0);
+    const quality = qualityValues.length ? Math.round(qualityValues.reduce((sum, value) => sum + value, 0) / qualityValues.length) : 0;
+    return { total: matches.length, demonstrated, needsReview, quality };
+  }
+
   function renderEvidenceTrace(host, skills, entries, catalog) {
     host.querySelectorAll('[data-skill-evidence-trace]').forEach(node => node.remove());
     if (!Array.isArray(entries) || !entries.length) return;
@@ -63,6 +82,8 @@
       const wrap = document.createElement('div');
       wrap.dataset.skillEvidenceTrace = '1';
       wrap.style.cssText = 'margin-top:10px;padding-top:9px;border-top:1px solid rgba(127,127,127,.18)';
+      const proof = getSkillProof(normalizedEntries, item.skill, catalog);
+      const proofSummary = `<div style="margin-bottom:8px"><small class="muted"><b>Proof status:</b> ${proof.demonstrated} demonstrated · ${proof.needsReview} review / developing${proof.quality ? ` · Avg. evidence quality ${proof.quality}%` : ''}</small></div>`;
       const list = matches.slice(0, 4).map(entry => {
         const demonstrated = entry.reviewStatus === 'demonstrated' && entry.upstreamChangedAfterEvidence !== true;
         const status = demonstrated ? 'demonstrated' : 'developing / review';
@@ -70,7 +91,7 @@
         return `<div style="margin-top:6px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span><b>Week ${esc(entry.week)}</b> • ${esc(entry.title)} <small class="muted">(${esc(status)})</small></span><button class="btn" type="button" data-skill-evidence-open="${esc(entry.week)}:${esc(stage)}">Open proof</button></div>`;
       }).join('');
       const more = matches.length > 4 ? `<small class="muted">+ ${matches.length - 4} more linked evidence item${matches.length - 4 === 1 ? '' : 's'}</small>` : '';
-      wrap.innerHTML = `<small class="muted"><b>Portfolio evidence:</b> ${matches.length} linked item${matches.length === 1 ? '' : 's'}</small>${list}${more}`;
+      wrap.innerHTML = `<small class="muted"><b>Portfolio evidence:</b> ${matches.length} linked item${matches.length === 1 ? '' : 's'}</small>${proofSummary}${list}${more}`;
       wrap.querySelectorAll('[data-skill-evidence-open]').forEach(button => {
         button.addEventListener('click', () => {
           const [weekId, stage] = String(button.dataset.skillEvidenceOpen || '').split(':');
