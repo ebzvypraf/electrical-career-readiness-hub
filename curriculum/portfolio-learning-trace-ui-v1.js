@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — Portfolio learning trace UI v1.2.
+/* Electrical Career Readiness Hub — Portfolio learning trace UI v1.3.
  * Projects canonical Portfolio evidence back to the exact Week + catalog skills
  * and provides a direct return path into the canonical Course stage.
  * This is a projection only; the learning-state store remains authoritative.
@@ -6,6 +6,8 @@
  * with rendered-text matching retained only as a compatibility fallback.
  * v1.2 surfaces the canonical weekly Portfolio proof prompt and makes the
  * Evidence -> Portfolio handoff actionable without duplicating curriculum data.
+ * v1.3 adds a compact career-proof snapshot so demonstrated evidence can be
+ * understood as a reusable competency artifact without changing portfolio state.
  */
 (function () {
   'use strict';
@@ -35,15 +37,19 @@
         const week = weekId ? api.catalog[weekId] : null;
         if (!week) return;
         const skills = Array.isArray(week.skills) ? week.skills.filter(Boolean) : [];
+        const competency = Array.isArray(entry.competency) ? entry.competency.filter(Boolean) : [];
         const portfolioPrompt = week.integration?.portfolioPrompt || week.evidence?.prompt || '';
         const card = findCard(grid, weekId, entry);
         if (!card) return;
         card.dataset.portfolioWeek = weekId;
         const demonstrated = entry.reviewStatus === 'demonstrated' && entry.upstreamChangedAfterEvidence !== true;
+        const quality = entry.evidenceQuality || entry.proofChain?.evidence?.quality || '';
+        const criteria = Array.isArray(entry.criteria) ? entry.criteria : [];
+        const satisfied = criteria.filter(item => item?.satisfied === true).length;
         const trace = document.createElement('div');
         trace.dataset.portfolioTrace = weekId;
         trace.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid rgba(127,127,127,.18)';
-        trace.innerHTML = `<small class="muted"><b>Learning trace:</b> Week ${esc(weekId)} • ${demonstrated ? 'demonstrated proof' : 'developing / review'}${skills.length ? ` • Skills: ${skills.map(esc).join(' · ')}` : ''}</small>${portfolioPrompt ? `<div style="margin-top:8px"><b>Canonical proof prompt</b><div class="muted">${esc(portfolioPrompt)}</div></div>` : ''}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn" type="button" data-portfolio-open="${esc(weekId)}">Open source week</button>${!demonstrated ? `<button class="btn primary" type="button" data-portfolio-evidence="${esc(weekId)}">Open Evidence</button>` : ''}</div>`;
+        trace.innerHTML = `<small class="muted"><b>Learning trace:</b> Week ${esc(weekId)} • ${demonstrated ? 'demonstrated proof' : 'developing / review'}${skills.length ? ` • Skills: ${skills.map(esc).join(' · ')}` : ''}</small>${portfolioPrompt ? `<div style="margin-top:8px"><b>Canonical proof prompt</b><div class="muted">${esc(portfolioPrompt)}</div></div>` : ''}<div data-career-proof-snapshot="1" class="learning-card" style="margin-top:10px"><b>Career-proof snapshot</b><div class="muted" style="margin-top:4px">A concise view of what this artifact demonstrates for future review.</div><div style="display:grid;gap:6px;margin-top:8px">${entry.title ? `<div><b>Artifact:</b> ${esc(entry.title)}</div>` : ''}${competency.length ? `<div><b>Competency:</b> ${competency.map(esc).join(' · ')}</div>` : ''}${skills.length ? `<div><b>Skill focus:</b> ${skills.map(esc).join(' · ')}</div>` : ''}${criteria.length ? `<div><b>Evidence criteria:</b> ${esc(satisfied)}/${esc(criteria.length)} satisfied</div>` : ''}${quality ? `<div><b>Evidence quality:</b> ${esc(quality)}</div>` : ''}<div><b>Status:</b> ${demonstrated ? 'Demonstrated' : (entry.reviewStatus === 'needs-review' ? 'Needs review' : 'Developing')}</div></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn" type="button" data-portfolio-open="${esc(weekId)}">Open source week</button>${!demonstrated ? `<button class="btn primary" type="button" data-portfolio-evidence="${esc(weekId)}">Open Evidence</button>` : ''}</div>`;
         trace.querySelector('[data-portfolio-open]').onclick = () => {
           const stage = entry.upstreamChangedAfterEvidence ? 'apply' : (entry.reviewStatus === 'demonstrated' ? 'evidence' : 'apply');
           api.openStage?.(weekId, stage);
