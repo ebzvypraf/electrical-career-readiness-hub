@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — structured Apply UI v1.1.
+/* Electrical Career Readiness Hub — structured Apply UI v1.2.
  * Converts the canonical Apply modal into an auditable learner-authored record.
  * Uses the existing canonical learning-state store; no parallel progress model.
  */
@@ -52,6 +52,26 @@
       : `<strong>Apply gate in progress</strong><span>${result.complete}/${result.total} required proof areas complete. Finish the remaining fields before moving to Check.</span>`;
   }
 
+  function renderDownstreamHandoff(modal) {
+    const handoff = modal.querySelector('[data-apply-downstream-handoff]');
+    if (!handoff) return;
+    const weekId = currentWeekId();
+    const week = window.ECRHCanonical?.catalog?.[weekId] || {};
+    const integration = week.integration || {};
+    const result = readiness(readForm(modal));
+    const existing = getStore()?.getState?.()?.contextByWeek?.[weekId]?.applicationEvidence;
+    const savedReady = Boolean(existing?.tasksComplete && existing?.deliverable && existing?.decisions && existing?.assumptions && existing?.verification);
+    if (!(result.ready || savedReady)) {
+      handoff.hidden = true;
+      return;
+    }
+    handoff.hidden = false;
+    handoff.innerHTML = '<strong>Ready for the next proof steps</strong>' +
+      `<span>Check: validate your reasoning against the week’s requirements.</span>` +
+      `<span>Journal: ${escapeHtml(integration.journalPrompt || 'Record what you learned, what you would improve, and your next action.')}</span>` +
+      `<span>Portfolio: ${escapeHtml(integration.portfolioPrompt || 'Capture a sanitized, reviewable proof artifact from this work.')}</span>`;
+  }
+
   function enhance() {
     const modal = document.getElementById('modalCard');
     const weekId = currentWeekId();
@@ -83,14 +103,16 @@
       '<label>Design decisions<textarea id="apply-decisions" placeholder="Which engineering decisions did you make, and why?">' + escapeHtml(existing.decisions || '') + '</textarea></label>' +
       '<label>Assumptions & interfaces<textarea id="apply-assumptions" placeholder="What assumptions, inputs, interfaces or dependencies did you define?">' + escapeHtml(existing.assumptions || '') + '</textarea></label>' +
       '<label>Verification<textarea id="apply-verification" placeholder="How did you verify the result against requirements, standards or coordination inputs?">' + escapeHtml(existing.verification || '') + '</textarea></label>' +
-      '</div>';
+      '</div>' +
+      '<div data-apply-downstream-handoff role="status" aria-live="polite" hidden style="display:grid;gap:5px;margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:10px"></div>';
 
     save.parentNode.parentNode.insertBefore(wrapper, save.parentNode);
     modal.dataset.applyStructuredV11 = weekId;
 
-    wrapper.querySelectorAll('input, textarea').forEach(input => input.addEventListener('input', () => renderStatus(modal)));
-    wrapper.querySelectorAll('input[type="checkbox"]').forEach(input => input.addEventListener('change', () => renderStatus(modal)));
+    wrapper.querySelectorAll('input, textarea').forEach(input => input.addEventListener('input', () => { renderStatus(modal); renderDownstreamHandoff(modal); }));
+    wrapper.querySelectorAll('input[type="checkbox"]').forEach(input => input.addEventListener('change', () => { renderStatus(modal); renderDownstreamHandoff(modal); }));
     renderStatus(modal);
+    renderDownstreamHandoff(modal);
 
     save.addEventListener('click', function (event) {
       event.preventDefault();
@@ -110,6 +132,7 @@
         return;
       }
       renderStatus(modal);
+      renderDownstreamHandoff(modal);
       alert('Structured Apply record saved. Complete all required proof areas before moving to Check.');
     }, true);
   }
