@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — canonical Journal UI bridge v1.3.
+/* Electrical Career Readiness Hub — canonical Journal UI bridge v1.4.
  * Makes the existing Journal surface write through the shared learning-state store
  * while preserving the existing form and legacy state compatibility.
  *
@@ -12,6 +12,10 @@
  *
  * v1.3 makes the current canonical next action directly actionable: the Journal
  * can return the learner to the same Week + stage through ECRHCanonical.openStage().
+ *
+ * v1.4 surfaces the canonical week's Journal integration prompt and skill focus
+ * beside the current action so reflections are tied to the same learning contract
+ * used by Home, Skills and Portfolio.
  */
 (function () {
   'use strict';
@@ -75,12 +79,18 @@
     const thread = ensureThreadHost();
     if (!thread) return;
     const state = store?.getState?.() || {};
+    const api = getCanonicalApi();
     const next = state.hubSignals?.nextBestAction || null;
     const list = Array.isArray(entries) ? entries : [];
     const counts = STAGES.slice(1).reduce((acc, stage) => {
       acc[stage] = list.filter(entry => String(entry?.stage || '') === stage).length;
       return acc;
     }, {});
+    const weekId = next?.weekId == null ? '' : String(next.weekId);
+    const week = api?.catalog?.[weekId] || {};
+    const integration = week?.integration || {};
+    const skillFocus = Array.isArray(week?.skills) ? week.skills.filter(Boolean).slice(0, 3) : [];
+    const journalPrompt = integration.journalPrompt || integration.journal || 'Record what you learned, what you produced, what was difficult, and what you will do next.';
     const nextText = next
       ? `Week ${esc(next.weekId)} · ${esc(next.label || next.stage)}${next.week ? ` · ${esc(next.week)}` : ''}`
       : '24-week pathway complete';
@@ -88,7 +98,8 @@
     const action = next && next.weekId != null && next.stage
       ? `<button type="button" class="btn primary" id="journal-next-action">Open current learning action</button>`
       : '';
-    thread.innerHTML = `<div class="goal" style="margin-bottom:8px"><b>Current learning thread</b><small>Next canonical action: ${nextText}</small><small>${esc(nextPrompt)}</small>${action}</div>
+    const focus = skillFocus.length ? `<small><b>Skill focus:</b> ${skillFocus.map(esc).join(' · ')}</small>` : '';
+    thread.innerHTML = `<div class="goal" style="margin-bottom:8px"><b>Current learning thread</b><small>Next canonical action: ${nextText}</small><small>${esc(nextPrompt)}</small>${focus}<small><b>Reflection prompt:</b> ${esc(journalPrompt)}</small>${action}</div>
       <div class="summary" style="grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">
         ${STAGES.map(stage => `<button type="button" class="btn ${activeFilter === stage ? 'primary' : ''}" data-journal-filter="${stage}" style="min-width:0">${stage === 'all' ? `All (${list.length})` : `${stage[0].toUpperCase()}${stage.slice(1)} (${counts[stage]})`}</button>`).join('')}
       </div>`;
@@ -101,7 +112,6 @@
     const nextButton = thread.querySelector('#journal-next-action');
     if (nextButton) {
       nextButton.onclick = () => {
-        const api = getCanonicalApi();
         if (typeof api?.openStage === 'function') {
           api.openStage(String(next.weekId), String(next.stage));
           return;
