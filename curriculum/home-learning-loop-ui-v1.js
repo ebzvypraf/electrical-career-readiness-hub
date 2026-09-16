@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — Home learning-loop status v2.4.
+/* Electrical Career Readiness Hub — Home learning-loop status v2.5.
  * Surfaces the canonical active-week Learn → Apply → Check → Evidence state on Home,
  * plus the downstream Journal/Portfolio proof produced by the same canonical store.
  * Additive UI only; canonical learning-state store remains the source of truth.
@@ -6,6 +6,8 @@
  * back to reinforcement instead of presenting a generic Journal/Portfolio summary.
  * v2.4 uses the same deterministic chronological Check ordering as the assessment
  * history bridge, so Home cannot mistake an older failed attempt for the latest result.
+ * v2.5 normalizes persisted Check pass/fail values so serialized false values cannot
+ * be treated as passing by the Home surface.
  */
 (function () {
   'use strict';
@@ -16,6 +18,15 @@
 
   function api() { return typeof window !== 'undefined' ? window.ECRHCanonical : null; }
   function store() { const a = api(); return typeof a?.store === 'function' ? a.store() : a?.store || null; }
+
+  function normalizePassed(value, status = '') {
+    if (value === true || value === 1 || String(value).toLowerCase() === 'true' || String(value).toLowerCase() === 'passed' || String(value).toLowerCase() === 'pass') return true;
+    if (value === false || value === 0 || String(value).toLowerCase() === 'false' || String(value).toLowerCase() === 'failed' || String(value).toLowerCase() === 'fail') return false;
+    const normalizedStatus = String(status || '').toLowerCase();
+    if (['passed', 'pass', 'complete', 'completed', 'success', 'successful'].includes(normalizedStatus)) return true;
+    if (['failed', 'fail', 'incomplete', 'unsuccessful'].includes(normalizedStatus)) return false;
+    return null;
+  }
 
   function normalizeHistory(history) {
     const records = Array.isArray(history)
@@ -56,8 +67,10 @@
     if (stage === 'check') {
       const history = normalizeHistory(context.assessmentHistory);
       const latest = history[history.length - 1] || context.assessmentResult || null;
-      if (latest?.passed === false) return { status: 'remediation', label: 'Reinforcement needed' };
-      return { status: context.assessmentResult?.passed ? 'ready' : 'pending', label: context.assessmentResult?.passed ? 'Passed' : 'Pending' };
+      const passed = normalizePassed(latest?.passed, latest?.status);
+      if (passed === false) return { status: 'remediation', label: 'Reinforcement needed' };
+      if (passed === true) return { status: 'ready', label: 'Passed' };
+      return { status: 'pending', label: 'Pending' };
     }
     if (stage === 'evidence') {
       const e = context.evidence || {};
@@ -112,7 +125,7 @@
     const nextStage = STAGES.find((stage, i) => readiness[i].status !== 'complete') || null;
     const checkHistory = normalizeHistory(context.assessmentHistory);
     const latestCheck = checkHistory[checkHistory.length - 1] || context.assessmentResult || null;
-    const checkFailed = nextStage === 'check' && latestCheck?.passed === false;
+    const checkFailed = nextStage === 'check' && normalizePassed(latestCheck?.passed, latestCheck?.status) === false;
     const weekJournal = (state.journalEntries || []).filter(entry => String(entry?.weekId || '') === String(weekId));
     const weekPortfolio = (state.portfolioEntries || []).filter(entry => String(entry?.week) === String(weekId));
     const journalCount = weekJournal.length;
