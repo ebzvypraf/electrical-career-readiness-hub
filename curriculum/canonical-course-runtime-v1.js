@@ -1,9 +1,9 @@
 /*
- * Electrical Career Readiness Hub — canonical Course runtime v1.1.
+ * Electrical Career Readiness Hub — canonical Course runtime v1.2.
  * Replaces the legacy Course renderer with the authored 24-week catalog and
  * routes Learn → Apply → Check → Evidence through the canonical state store.
- * v1.1 makes successful Check and Evidence transitions hand off directly to
- * the store-selected next proof action instead of leaving the learner at a dead end.
+ * v1.2 makes every successful stage transition hand off directly to the next
+ * stage, reducing dead-end modal closes and unnecessary return-to-Course clicks.
  */
 import { loadCanonicalCatalog } from './canonical-catalog-v1.js';
 import { createLearningStateStore } from './learning-state-store-v1.js';
@@ -135,6 +135,17 @@ function openNextCanonicalAction(excludeWeekId = null) {
   setTimeout(() => openStage(String(action.weekId), String(action.stage)), 0);
   return true;
 }
+function openNextStage(weekId, stage) {
+  const index = STAGES.indexOf(stage);
+  if (index >= 0 && index < STAGES.length - 1) {
+    const nextStage = STAGES[index + 1];
+    if (isStageUnlocked(state().progressByWeek, String(weekId), nextStage)) {
+      setTimeout(() => openStage(String(weekId), nextStage), 0);
+      return true;
+    }
+  }
+  return openNextCanonicalAction(String(weekId));
+}
 
 function openStage(weekId, stage) {
   const id = String(weekId);
@@ -147,7 +158,7 @@ function openStage(weekId, stage) {
   if (stage === 'learn') {
     body = `<div class=\"learning-hero\"><b>Objective</b><p>${esc(module.learn?.objective || module.objective)}</p></div>
       <div class=\"learning-grid\"><div class=\"learning-card\"><h3>Core concepts</h3><ul>${(module.learn?.concepts || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div><div class=\"learning-card\"><h3>Senior reasoning</h3><p>${esc(module.learn?.seniorReasoning || '')}</p></div></div>
-      <button class=\"btn primary\" id=\"canonicalLearn\">${p.learn ? 'Learn completed — review' : 'Mark Learn viewed & complete'}</button>`;
+      <button class=\"btn primary\" id=\"canonicalLearn\">${p.learn ? 'Learn completed — review' : 'Mark Learn complete & continue to Apply'}</button>`;
   }
   if (stage === 'apply') {
     const app = c.applicationEvidence || {};
@@ -158,7 +169,7 @@ function openStage(weekId, stage) {
       <label>Assumptions / missing inputs<textarea id=\"applyAssumptions\">${esc(app.assumptions || '')}</textarea></label>
       <label>Verification / QA<textarea id=\"applyVerification\">${esc(app.verification || '')}</textarea></label>
       <label>Application notes<textarea id=\"applyNotes\">${esc(app.notes || '')}</textarea></label>
-      <button class=\"btn primary\" id=\"canonicalApply\">${p.apply ? 'Apply completed — review' : 'Save Apply evidence & complete'}</button></div>`;
+      <button class=\"btn primary\" id=\"canonicalApply\">${p.apply ? 'Apply completed — review' : 'Save Apply evidence & continue to Check'}</button></div>`;
   }
   if (stage === 'check') {
     const qs = module.check?.questions || [];
@@ -180,14 +191,14 @@ function openStage(weekId, stage) {
       <label>What does it prove?<textarea id=\"evidenceDescription\">${esc(e.description || '')}</textarea></label>
       <label>Reflection<textarea id=\"evidenceReflection\">${esc(e.reflection || '')}</textarea></label>
       <label>Next action<textarea id=\"evidenceNext\">${esc(e.nextAction || '')}</textarea></label>
-      <button class=\"btn primary\" id=\"canonicalEvidence\">${p.evidence ? 'Evidence completed — review' : 'Capture linked evidence'}</button></div>`;
+      <button class=\"btn primary\" id=\"canonicalEvidence\">${p.evidence ? 'Evidence completed — review' : 'Capture linked evidence & continue'}</button></div>`;
   }
   modal(`<div><div class=\"k\">Week ${id} • ${STAGE_LABELS[stage]}</div><h2>${esc(module.title)}</h2><span class=\"pill\">${esc(module.phase)}</span></div>`, body);
   if (stage === 'learn') document.getElementById('canonicalLearn').onclick = () => {
     if (p.learn) return close();
     const now = new Date().toISOString();
     const ok = commit('learn', id, { learnViewedAt: now });
-    if (ok) { close(); refresh(); }
+    if (ok) { close(); refresh(); openNextStage(id, 'learn'); }
   };
   if (stage === 'apply') document.getElementById('canonicalApply').onclick = () => {
     if (p.apply) return close();
@@ -195,7 +206,7 @@ function openStage(weekId, stage) {
     const result = store.saveApplicationEvidence({ weekId:id, tasks, deliverable:document.getElementById('applyDeliverable').value.trim(), decisions:document.getElementById('applyDecisions').value.trim(), assumptions:document.getElementById('applyAssumptions').value.trim(), verification:document.getElementById('applyVerification').value.trim(), notes:document.getElementById('applyNotes').value.trim() });
     if (!result.ok) return alert(result.reason);
     const ok = commit('apply', id, { applicationEvidence: result.evidence });
-    if (ok) { close(); refresh(); }
+    if (ok) { close(); refresh(); openNextStage(id, 'apply'); }
   };
   if (stage === 'check') document.getElementById('canonicalCheck').onclick = () => {
     if (p.check) return close();
