@@ -1,8 +1,10 @@
-/* Electrical Career Readiness Hub — canonical UI entrypoint v20.1.
+/* Electrical Career Readiness Hub — canonical UI entrypoint v20.2.
  * Keep the stable production entrypoint and install the proof-backed capability
  * read model at the canonical store boundary before downstream surfaces render it.
  * v20.1 prevents duplicate remediation panels when the dedicated remediation UI
  * and this compatibility adapter observe the same failed Check modal.
+ * v20.2 preserves the Home resume-draft action when canonical downstream sync
+ * refreshes the primary action button.
  */
 (async function () {
   'use strict';
@@ -38,6 +40,7 @@
 
     const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
     const recoverySummary = action => action?.source === 'stale-evidence-recovery' ? action.recoveryRoute?.checklist || null : null;
+    const stageLabel = stage => ({ learn: 'Learn', apply: 'Apply', check: 'Check', evidence: 'Evidence' }[String(stage)] || String(stage || 'activity'));
     const checklistHtml = checklist => checklist ? `<div class="goal" id="canonicalRecoveryChecklist"><b>Recovery checklist</b><small>Apply: ${checklist.apply?.ready ? 'ready' : 'required'} • Check: ${checklist.check?.ready ? 'ready' : 'required'} • Evidence: ${checklist.evidence?.status === 'recapture-required' ? 'recapture required' : 'ready'}</small>${checklist.priorEvidenceStale ? '<small>Previous Evidence is stale and will be superseded by the new proof.</small>' : ''}</div>` : '';
     const syncDownstreamSurfaces = (state = {}) => {
       refreshIntegrity();
@@ -50,17 +53,23 @@
         const coach = document.getElementById('coach');
         const coachText = document.getElementById('coachText');
         const open = document.getElementById('homeOpen');
+        const weekId = action?.recoveryRoute?.weekId || action?.weekId;
+        const stage = action?.recoveryRoute?.resumeStage || action?.nextProofStage || action?.stage;
+        const context = weekId != null ? state?.contextByWeek?.[String(weekId)] || {} : {};
+        const draft = stage ? context?.sessionDraft?.[String(stage)] : null;
+        const progress = weekId != null ? state?.progressByWeek?.[String(weekId)] || {} : {};
+        const hasDraft = Boolean(draft && !progress[String(stage)]);
         if (title) title.textContent = action.week || `Week ${action.weekId || ''}`;
         if (type) type.textContent = action.label || action.nextProofLabel || action.stage || 'Learn';
         if (coach) coach.textContent = action.proofStatus === 'demonstrated' ? 'Capability demonstrated.' : `Next proof step: ${action.nextProofLabel || action.stage || 'Learn'}.`;
         if (coachText) coachText.textContent = action.prompt || action.reason || 'Continue the canonical learning sequence.';
         if (open) {
-          const stage = action.recoveryRoute?.resumeStage || action.nextProofStage || action.stage;
-          const weekId = action.recoveryRoute?.weekId || action.weekId;
           const resumable = weekId != null && stage;
           open.textContent = action.source === 'stale-evidence-recovery'
             ? `Resume: ${action.recoveryRoute?.resumeLabel || action.nextProofLabel || 'Recovery'}`
-            : 'Open activity';
+            : hasDraft
+              ? `Resume ${stageLabel(stage)} draft`
+              : 'Open activity';
           open.dataset.canonicalAction = resumable ? JSON.stringify({ weekId: String(weekId), stage: String(stage) }) : '';
         }
       }
