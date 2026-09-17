@@ -1,9 +1,11 @@
-/* Electrical Career Readiness Hub — Portfolio Review enhancer v3.2.
+/* Electrical Career Readiness Hub — Portfolio Review enhancer v3.3.
  * Keeps self-review controls synchronized with the canonical portfolio state
  * and exposes the canonical Apply -> Check -> Evidence proof chain for review-ready artifacts.
  * v3.1 resolves portfolio cards by their authored Week marker instead of DOM index.
  * v3.2 publishes a stable week identity on each decorated evidence card so downstream
  * Portfolio projections do not have to rediscover identity from rendered text.
+ * v3.3 makes the proof chain directly reviewable: Portfolio can reopen the exact
+ * Week + Apply / Check / Evidence stage from the canonical learning state.
  */
 (function () {
   'use strict';
@@ -46,7 +48,13 @@
       '<div><b>1 · Apply</b><div class="muted">' + (applyProof || (apply.linked ? 'Apply record linked.' : 'Apply record link not captured.')) + '</div></div>' +
       '<div><b>2 · Check</b><div class="muted">' + checkProof + '</div></div>' +
       '<div><b>3 · Evidence</b><div class="muted"><b>' + esc(evidence.title || entry.title || 'Evidence captured') + '</b> · ' + esc(criteriaText) + (evidence.quality ? ' · Quality: ' + esc(evidence.quality) : '') + '</div></div>' +
-      '</div></div>';
+      '</div>' +
+      '<div data-proof-chain-actions style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid rgba(127,127,127,.18)">' +
+      '<button class="btn" type="button" data-proof-open="apply">Review Apply</button>' +
+      '<button class="btn" type="button" data-proof-open="check">Review Check</button>' +
+      '<button class="btn primary" type="button" data-proof-open="evidence">Open Evidence</button>' +
+      '</div>' +
+      '</div>';
   }
 
   function reviewMarkup(entry) {
@@ -78,6 +86,27 @@
         const nextStatus = action === 'demonstrated' ? 'demonstrated' : action === 'needs-review' ? 'needs-review' : 'draft';
         const result = s.addPortfolioEntry({ ...current, reviewStatus: nextStatus });
         if (!result?.ok) window.alert(result?.reason || 'Portfolio review could not be saved.');
+      });
+    });
+  }
+
+  function openWeekStage(weekId, stage) {
+    const canonical = api();
+    if (typeof canonical?.openStage === 'function') {
+      canonical.openStage(String(weekId), String(stage));
+      return;
+    }
+    const direct = document.querySelector('[data-canonical-open="' + String(weekId) + ':' + String(stage) + '"]');
+    if (direct) { direct.click(); return; }
+    document.querySelector('[data-page="course"]')?.click();
+  }
+
+  function bindProofChain(card, weekId) {
+    card.querySelectorAll('[data-proof-open]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        const stage = String(button.dataset.proofOpen || '').toLowerCase();
+        if (!['apply', 'check', 'evidence'].includes(stage)) return;
+        openWeekStage(weekId, stage);
       });
     });
   }
@@ -115,6 +144,7 @@
         const replacement = next.firstElementChild;
         if (replacement) proof.replaceWith(replacement);
       }
+      bindProofChain(card, weekId);
       let review = card.querySelector('[data-portfolio-review-panel]');
       if (!review) {
         review = document.createElement('div');
