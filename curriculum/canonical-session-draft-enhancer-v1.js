@@ -181,9 +181,11 @@
         notice.style.margin = '10px 0';
         card.insertBefore(notice, card.children[1] || null);
       }
-      notice.dataset.draftKey = key;
-      const when = draft.savedAt ? new Date(draft.savedAt) : null;
-      notice.innerHTML = `<b>Draft restored</b><small>${when && !Number.isNaN(when.getTime()) ? `Your unfinished ${stage} work was restored from ${when.toLocaleString()}.` : `Your unfinished ${stage} work was restored.`} It is not counted as completed until you save it through the canonical learning action.</small>`;
+      if (notice.dataset.draftKey !== key) {
+        notice.dataset.draftKey = key;
+        const when = draft.savedAt ? new Date(draft.savedAt) : null;
+        notice.innerHTML = `<b>Draft restored</b><small>${when && !Number.isNaN(when.getTime()) ? `Your unfinished ${stage} work was restored from ${when.toLocaleString()}.` : `Your unfinished ${stage} work was restored.`} It is not counted as completed until you save it through the canonical learning action.</small>`;
+      }
     }
     lastDraftSignature = signatureFor({
       tasks: draft.tasks,
@@ -297,7 +299,7 @@
         const current = restoreCurrent();
         if (current) bindModal();
       });
-      observer.observe(card, { childList: true, subtree: true });
+      observer.observe(card, { childList:true, subtree:true });
     }
     api.sessionDraftEnhancerReady = true;
     window.ECRHCanonicalSessionDrafts = { save, restore, clear };
