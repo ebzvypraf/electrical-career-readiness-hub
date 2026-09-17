@@ -1,5 +1,5 @@
 /*
- * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.5.
+ * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.6.
  * Merges the maintained base curriculum and extension modules into one
  * runtime catalog without duplicating lesson definitions in the UI.
  * v1.1 validates the four-stage learning contract before a catalog is exposed.
@@ -10,6 +10,9 @@
  * v1.5 supplies safe, content-derived downstream integration defaults for any
  * week that does not have an explicit integration mapping, closing the
  * Home/Journal/Portfolio contract across all 24 canonical weeks.
+ * v1.6 connects the Check stage to the learner's structured Apply record so
+ * assessment reasoning can be cross-checked against practical decisions,
+ * assumptions and verification without creating a second learning-state model.
  */
 
 import './remediation-ui-v1.js';
@@ -17,6 +20,7 @@ import './remediation-impact-ui-v1.js';
 import './evidence-provenance-ui-v1.js';
 import './evidence-criteria-ui-v1.js';
 import './apply-structured-ui-v1.js';
+import './check-apply-feedback-ui-v1.js';
 import './learning-integrity-ui-v1.js';
 import './learner-state-integrity-v1.js';
 import './learner-flow-integrity-v1.js';
