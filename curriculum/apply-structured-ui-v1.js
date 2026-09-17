@@ -1,6 +1,8 @@
-/* Electrical Career Readiness Hub — structured Apply UI v1.3.
+/* Electrical Career Readiness Hub — structured Apply UI v1.4.
  * Converts the canonical Apply modal into an auditable learner-authored record.
  * Uses the existing canonical learning-state store; no parallel progress model.
+ * v1.4 autosaves partial Apply work on field blur/change so learners can close,
+ * navigate away, or resume later without losing an in-progress proof record.
  */
 (function () {
   'use strict';
@@ -28,6 +30,11 @@
     };
   }
 
+  function hasDraft(form) {
+    return form.tasks.some(Boolean) || [form.deliverable, form.decisions, form.assumptions, form.verification]
+      .some(value => String(value || '').trim());
+  }
+
   function readiness(form) {
     const fields = [
       form.tasks.length > 0 && form.tasks.every(Boolean),
@@ -48,8 +55,8 @@
     const ready = result.ready || savedReady;
     status.dataset.ready = ready ? 'true' : 'false';
     status.innerHTML = ready
-      ? '<strong>Apply gate ready</strong><span>All required practical proof fields are complete. You can now move to Check.</span>'
-      : `<strong>Apply gate in progress</strong><span>${result.complete}/${result.total} required proof areas complete. Finish the remaining fields before moving to Check.</span>`;
+      ? '<strong>Apply gate ready</strong><span>All required practical proof fields are complete. You can now move to Check.</span><small data-apply-autosave-status aria-live="polite">Draft saved in this browser.</small>'
+      : `<strong>Apply gate in progress</strong><span>${result.complete}/${result.total} required proof areas complete. Finish the remaining fields before moving to Check.</span><small data-apply-autosave-status aria-live="polite">Your in-progress work is saved automatically when you leave a field.</small>`;
   }
 
   function renderDownstreamHandoff(modal) {
@@ -97,6 +104,27 @@
     });
   }
 
+  function saveDraft(modal) {
+    const store = getStore();
+    const weekId = currentWeekId();
+    if (!store || !weekId) return false;
+    const form = readForm(modal);
+    if (!hasDraft(form)) return false;
+    const note = document.getElementById('canonical-note');
+    const result = store.saveApplicationEvidence({
+      weekId,
+      tasks: form.tasks,
+      deliverable: form.deliverable,
+      decisions: form.decisions,
+      assumptions: form.assumptions,
+      verification: form.verification,
+      notes: note?.value || ''
+    });
+    const status = modal.querySelector('[data-apply-autosave-status]');
+    if (status) status.textContent = result?.ok ? 'Saved automatically.' : 'Could not autosave this draft.';
+    return Boolean(result?.ok);
+  }
+
   function enhance() {
     const modal = document.getElementById('modalCard');
     const weekId = currentWeekId();
@@ -119,7 +147,7 @@
     wrapper.style.marginTop = '10px';
     wrapper.innerHTML = '<h3>Structured Apply record</h3>' +
       '<p class="muted">Complete every practical task and capture the decisions, assumptions and verification behind your work. This record is the Apply stage gate.</p>' +
-      '<div data-apply-gate-status role="status" aria-live="polite" style="display:grid;gap:4px;margin:10px 0;padding:10px 12px;border:1px solid var(--border);border-radius:10px"><strong>Apply gate in progress</strong><span>0/5 required proof areas complete. Finish the remaining fields before moving to Check.</span></div>' +
+      '<div data-apply-gate-status role="status" aria-live="polite" style="display:grid;gap:4px;margin:10px 0;padding:10px 12px;border:1px solid var(--border);border-radius:10px"><strong>Apply gate in progress</strong><span>0/5 required proof areas complete. Finish the remaining fields before moving to Check.</span><small data-apply-autosave-status aria-live="polite">Your in-progress work is saved automatically when you leave a field.</small></div>' +
       '<div class="rubric" id="apply-task-checks">' +
       catalogTasks.map((task, i) => `<label class="rubric-row" style="gap:10px;justify-content:flex-start"><input type="checkbox" data-apply-task="${i}" ${taskValues[i] ? 'checked' : ''}> <span>${escapeHtml(task)}</span></label>`).join('') +
       '</div>' +
@@ -134,14 +162,21 @@
     save.parentNode.parentNode.insertBefore(wrapper, save.parentNode);
     modal.dataset.applyStructuredV11 = weekId;
 
-    wrapper.querySelectorAll('input, textarea').forEach(input => input.addEventListener('input', () => { renderStatus(modal); renderDownstreamHandoff(modal); }));
-    wrapper.querySelectorAll('input[type="checkbox"]').forEach(input => input.addEventListener('change', () => { renderStatus(modal); renderDownstreamHandoff(modal); }));
+    let autosaveTimer = null;
+    const queueAutosave = () => {
+      clearTimeout(autosaveTimer);
+      autosaveTimer = setTimeout(() => saveDraft(modal), 500);
+    };
+    wrapper.querySelectorAll('input, textarea').forEach(input => input.addEventListener('input', () => { renderStatus(modal); renderDownstreamHandoff(modal); queueAutosave(); }));
+    wrapper.querySelectorAll('input[type="checkbox"]').forEach(input => input.addEventListener('change', () => { renderStatus(modal); renderDownstreamHandoff(modal); queueAutosave(); }));
+    wrapper.querySelectorAll('input, textarea').forEach(input => input.addEventListener('blur', () => saveDraft(modal)));
     renderStatus(modal);
     renderDownstreamHandoff(modal);
 
     save.addEventListener('click', function (event) {
       event.preventDefault();
       event.stopImmediatePropagation();
+      clearTimeout(autosaveTimer);
       const form = readForm(modal);
       const result = store.saveApplicationEvidence({
         weekId,
