@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — canonical Journal UI bridge v1.4.
+/* Electrical Career Readiness Hub — canonical Journal UI bridge v1.5.
  * Makes the existing Journal surface write through the shared learning-state store
  * while preserving the existing form and legacy state compatibility.
  *
@@ -16,6 +16,10 @@
  * v1.4 surfaces the canonical week's Journal integration prompt and skill focus
  * beside the current action so reflections are tied to the same learning contract
  * used by Home, Skills and Portfolio.
+ *
+ * v1.5 carries the learner's saved Learn active-recall takeaway into Journal as
+ * optional reflection context, closing the Learn → Journal reflection bridge without
+ * creating a second persistence model.
  */
 (function () {
   'use strict';
@@ -62,6 +66,13 @@
     } catch (_) { return {}; }
   }
 
+  function currentLearnTakeaway(store, weekId) {
+    try {
+      const ctx = store?.getState?.()?.contextByWeek?.[String(weekId)] || {};
+      return String(ctx.learnTakeaway || '').trim();
+    } catch (_) { return ''; }
+  }
+
   function ensureThreadHost() {
     const host = document.getElementById('logs');
     if (!host) return null;
@@ -91,6 +102,7 @@
     const integration = week?.integration || {};
     const skillFocus = Array.isArray(week?.skills) ? week.skills.filter(Boolean).slice(0, 3) : [];
     const journalPrompt = integration.journalPrompt || integration.journal || 'Record what you learned, what you produced, what was difficult, and what you will do next.';
+    const takeaway = weekId ? currentLearnTakeaway(store, weekId) : '';
     const nextText = next
       ? `Week ${esc(next.weekId)} · ${esc(next.label || next.stage)}${next.week ? ` · ${esc(next.week)}` : ''}`
       : '24-week pathway complete';
@@ -99,7 +111,10 @@
       ? `<button type="button" class="btn primary" id="journal-next-action">Open current learning action</button>`
       : '';
     const focus = skillFocus.length ? `<small><b>Skill focus:</b> ${skillFocus.map(esc).join(' · ')}</small>` : '';
-    thread.innerHTML = `<div class="goal" style="margin-bottom:8px"><b>Current learning thread</b><small>Next canonical action: ${nextText}</small><small>${esc(nextPrompt)}</small>${focus}<small><b>Reflection prompt:</b> ${esc(journalPrompt)}</small>${action}</div>
+    const takeawayBlock = takeaway
+      ? `<div class="learning-card" style="margin-top:8px"><small><b>Learn takeaway</b> · Week ${esc(weekId)}</small><p style="margin:6px 0">${esc(takeaway)}</p><button type="button" class="btn" id="journal-use-learn-takeaway">Use as reflection starting point</button></div>`
+      : '';
+    thread.innerHTML = `<div class="goal" style="margin-bottom:8px"><b>Current learning thread</b><small>Next canonical action: ${nextText}</small><small>${esc(nextPrompt)}</small>${focus}<small><b>Reflection prompt:</b> ${esc(journalPrompt)}</small>${action}${takeawayBlock}</div>
       <div class="summary" style="grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">
         ${STAGES.map(stage => `<button type="button" class="btn ${activeFilter === stage ? 'primary' : ''}" data-journal-filter="${stage}" style="min-width:0">${stage === 'all' ? `All (${list.length})` : `${stage[0].toUpperCase()}${stage.slice(1)} (${counts[stage]})`}</button>`).join('')}
       </div>`;
@@ -117,6 +132,16 @@
           return;
         }
         document.querySelector('[data-page="course"]')?.click();
+      };
+    }
+    const takeawayButton = thread.querySelector('#journal-use-learn-takeaway');
+    if (takeawayButton) {
+      takeawayButton.onclick = () => {
+        const field = document.getElementById('jlearn');
+        if (!field) return;
+        const existing = String(field.value || '').trim();
+        field.value = existing ? `${existing}\n\nLearn takeaway: ${takeaway}` : `Learn takeaway: ${takeaway}`;
+        field.focus();
       };
     }
   }
