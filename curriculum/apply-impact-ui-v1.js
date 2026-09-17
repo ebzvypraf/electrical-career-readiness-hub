@@ -1,5 +1,7 @@
-/* Electrical Career Readiness Hub — Apply impact UI v1.
+/* Electrical Career Readiness Hub — Apply impact UI v1.1.
  * Surfaces structured Apply evidence on Skills without replacing the canonical UI.
+ * v1.1 adds explicit proof coverage so a learner can see how much of each skill's
+ * targeted practical work has actually been evidenced.
  */
 import { buildApplyImpact } from './apply-impact-engine-v1.js';
 
@@ -20,7 +22,8 @@ function enhance() {
     badge.dataset.applyImpact = '1';
     badge.style.color = 'var(--teal)';
     badge.style.fontWeight = '750';
-    badge.textContent = `${item.applicationEvidenceWeeks} applied week${item.applicationEvidenceWeeks === 1 ? '' : 's'} • +${item.applyImpact} readiness`;
+    const coverage = Number(item.applicationEvidenceCoverage) || 0;
+    badge.textContent = `${item.applicationEvidenceWeeks} applied week${item.applicationEvidenceWeeks === 1 ? '' : 's'} • ${coverage}% proof coverage • +${item.applyImpact} readiness`;
     row.appendChild(badge);
   });
 }
