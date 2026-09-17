@@ -11,6 +11,13 @@
     return m ? Number(m[1]) : null;
   }
 
+  function openLearn(week) {
+    const api = window.ECRHCanonical;
+    if (!week || typeof api?.openStage !== 'function') return;
+    $('modal')?.classList.remove('show');
+    setTimeout(() => api.openStage(String(week), 'learn'), 0);
+  }
+
   function enhance() {
     const modal = $('modal'), card = $('modalCard');
     if (!modal?.classList.contains('show') || !card) return;
@@ -27,7 +34,8 @@
     panel.setAttribute('data-check-reinforcement', 'true');
     panel.className = 'learning-card';
     panel.style.marginTop = '12px';
-    panel.innerHTML = `<h3>Targeted reinforcement</h3><p class="muted">${feedback.failedCount} item${feedback.failedCount === 1 ? '' : 's'} need reinforcement before Evidence can be completed.</p>${feedback.reinforcement.map((item, i) => `<div class="mission" style="margin-top:8px"><b>Review ${i + 1}: ${esc(item.prompt || item.questionId)}</b><p class="muted">${esc(item.explanation)}</p>${item.concepts?.length ? `<small>Focus: ${esc(item.concepts.join(', '))}</small>` : ''}</div>`).join('')}<p class="muted" style="margin-top:10px">Return to the Learn stage for this week, strengthen the identified concepts, then retry Check.</p>`;
+    panel.innerHTML = `<h3>Targeted reinforcement</h3><p class="muted">${feedback.failedCount} item${feedback.failedCount === 1 ? '' : 's'} need reinforcement before Evidence can be completed.</p>${feedback.reinforcement.map((item, i) => `<div class="mission" style="margin-top:8px"><b>Review ${i + 1}: ${esc(item.prompt || item.questionId)}</b><p class="muted">${esc(item.explanation)}</p>${item.concepts?.length ? `<small>Focus: ${esc(item.concepts.join(', '))}</small>` : ''}</div>`).join('')}<p class="muted" style="margin-top:10px">Strengthen the identified concepts in Learn, then retry Check.</p><button type="button" class="btn primary" data-check-review-learn="true" style="margin-top:8px">Review Learn reinforcement</button>`;
+    panel.querySelector('[data-check-review-learn]')?.addEventListener('click', () => openLearn(week));
     const resultBox = card.querySelector('.result');
     (resultBox || card.querySelector('#canon-score'))?.insertAdjacentElement('afterend', panel);
   }
