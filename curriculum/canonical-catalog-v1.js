@@ -38,6 +38,7 @@ import './portfolio-review-enhancer-v1.js';
 import './portfolio-learning-trace-ui-v1.js';
 import './journal-canonical-ui-v1.js';
 import './evidence-completion-guard-v1.js';
+import './learn-active-recall-ui-v1.js';
 import { integrationForWeek } from './learning-integration-weeks-11-20-v1.js';
 
 export const CANONICAL_SOURCES = [
