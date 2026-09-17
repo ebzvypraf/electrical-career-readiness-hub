@@ -1,9 +1,12 @@
 /*
- * Electrical Career Readiness Hub — canonical Course runtime v1.2.
+ * Electrical Career Readiness Hub — canonical Course runtime v1.3.
  * Replaces the legacy Course renderer with the authored 24-week catalog and
  * routes Learn → Apply → Check → Evidence through the canonical state store.
  * v1.2 makes every successful stage transition hand off directly to the next
  * stage, reducing dead-end modal closes and unnecessary return-to-Course clicks.
+ * v1.3 makes existing canonical session drafts visible and directly resumable
+ * from Course, so learners do not have to return to Home or Skills to recover
+ * interrupted work.
  */
 import { loadCanonicalCatalog } from './canonical-catalog-v1.js';
 import { createLearningStateStore } from './learning-state-store-v1.js';
@@ -101,6 +104,7 @@ function renderCourse() {
   const next = nextCanonical();
   el.innerHTML = Object.entries(catalog).map(([id, module]) => {
     const p = progressFor(id);
+    const context = contextFor(id);
     const done = STAGES.filter(s => p[s]).length;
     const open = String(next?.weekId || '1') === String(id);
     const skills = (module.skillTargets || module.skills || []).map(s => `<span class=\"tag\">${esc(s)}</span>`).join(' ');
@@ -110,7 +114,11 @@ function renderCourse() {
       ${STAGES.map((stage, index) => {
         const unlocked = isStageUnlocked(state().progressByWeek, id, stage);
         const complete = Boolean(p[stage]);
-        return `<div class=\"stage\"><span>${complete ? '✓' : index + 1}</span><b>${STAGE_LABELS[stage]}</b><span>${stageCopy[stage]}</span><button class=\"btn ${complete ? '' : (unlocked ? 'primary' : '')}\" data-canonical-open=\"${id}:${stage}\" ${unlocked ? '' : 'disabled'}>${complete ? 'Review' : (unlocked ? 'Open' : 'Locked')}</button></div>`;
+        const draft = !complete && Boolean(context?.sessionDraft?.[stage]);
+        const label = complete ? 'Review' : (draft ? 'Resume draft' : (unlocked ? 'Open' : 'Locked'));
+        const classes = complete ? '' : (unlocked ? 'primary' : '');
+        const hint = draft ? '<small class=\"muted\" style=\"display:block;margin-top:3px\">Saved work ready to resume</small>' : '';
+        return `<div class=\"stage\"><span>${complete ? '✓' : index + 1}</span><b>${STAGE_LABELS[stage]}</b><span>${stageCopy[stage]}${hint}</span><button class=\"btn ${classes}\" data-canonical-open=\"${id}:${stage}\" ${unlocked ? '' : 'disabled'}>${label}</button></div>`;
       }).join('')}
       </div></div>`;
   }).join('');
