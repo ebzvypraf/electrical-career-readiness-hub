@@ -1,10 +1,13 @@
-/* Electrical Career Readiness Hub — Learn active-recall enhancer v1.0.
+/* Electrical Career Readiness Hub — Learn active-recall enhancer v1.2.
  * Adds a lightweight learner-generated takeaway to the Learn stage and requires
- * that takeaway before Learn can be completed. The canonical store remains the
- * persistence boundary; no parallel progress state is introduced.
+ * a substantive takeaway before Learn can be completed. The canonical store
+ * remains the persistence boundary; no parallel progress state is introduced.
+ * v1.2 adds a small quality threshold and live guidance so a one-word response
+ * cannot satisfy the active-recall checkpoint accidentally.
  */
 (function () {
   'use strict';
+  const MIN_CHARS = 40;
   const text = value => String(value == null ? '' : value).trim();
   const esc = value => text(value).replace(/[&<>\"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[char]));
   const root = () => typeof window !== 'undefined' ? window : null;
@@ -20,17 +23,29 @@
     const ctx = context(week); let block = document.getElementById('canonical-learn-recall');
     if (!block) { block = document.createElement('div'); block.id = 'canonical-learn-recall'; block.className = 'learning-card'; const anchor = document.getElementById('canonical-learn-gate') || card.querySelector('.learning-hero'); if (anchor?.parentNode) anchor.parentNode.insertBefore(block, anchor.nextSibling); else card.appendChild(block); }
     const saved = text(ctx.learnTakeaway || '');
-    block.innerHTML = '<h3>Active-recall checkpoint</h3><p class="muted">Before marking Learn complete, explain the most important idea in your own words. This creates a traceable learning signal without requiring a quiz.</p><label>Your takeaway<textarea id="canonical-learn-takeaway" placeholder="In your own words: what is the most important thing you learned, and why does it matter for the Apply task?"></textarea></label><button type="button" class="btn" id="canonical-save-learn-takeaway">Save learning takeaway</button><span class="tag" style="margin-left:8px">Required for Learn completion</span>';
+    block.innerHTML = '<h3>Active-recall checkpoint</h3><p class="muted">Before marking Learn complete, explain the most important idea in your own words and connect it to the Apply task. A substantive response helps turn reading into a usable reasoning trace.</p><label>Your takeaway<textarea id="canonical-learn-takeaway" minlength="' + MIN_CHARS + '" placeholder="In your own words: what is the most important thing you learned, why does it matter, and how will it affect the Apply task?"></textarea></label><div id="canonical-learn-recall-status" class="muted" style="margin-top:6px;font-size:12px" role="status" aria-live="polite"></div><button type="button" class="btn" id="canonical-save-learn-takeaway">Save learning takeaway</button><span class="tag" style="margin-left:8px">Required for Learn completion</span>';
     const input = document.getElementById('canonical-learn-takeaway'); if (input) input.value = saved;
+    const status = document.getElementById('canonical-learn-recall-status');
+    const updateStatus = () => {
+      const count = text(input?.value).length;
+      if (status) status.textContent = count >= MIN_CHARS ? `${count} characters — substantive takeaway ready to save.` : `${count}/${MIN_CHARS} characters — explain the idea, why it matters, and its effect on the Apply task.`;
+    };
+    input?.addEventListener('input', updateStatus);
+    updateStatus();
     const save = document.getElementById('canonical-save-learn-takeaway');
-    if (save) save.onclick = () => { const value = text(input?.value); if (!value) { window.alert('Add a short takeaway in your own words before saving.'); return; } const result = s.updateStageContext(week, { learnTakeaway: value, learnReviewedAt: new Date().toISOString() }); if (!result?.ok) window.alert(result?.reason || 'Learning takeaway could not be saved.'); else enhance(); };
+    if (save) save.onclick = () => {
+      const value = text(input?.value);
+      if (value.length < MIN_CHARS) { window.alert(`Expand your takeaway to at least ${MIN_CHARS} characters so it captures an idea and its application.`); input?.focus?.(); return; }
+      const result = s.updateStageContext(week, { learnTakeaway: value, learnReviewedAt: new Date().toISOString() });
+      if (!result?.ok) window.alert(result?.reason || 'Learning takeaway could not be saved.'); else enhance();
+    };
   }
   function installGate() {
     const a = api(); if (!a || a.__learnRecallGateInstalled) return Boolean(a);
     const original = typeof window.ECRH?.complete === 'function' ? window.ECRH.complete : null; if (!original) return false;
     window.ECRH.complete = function guardedComplete(index, stageIndex) {
       if (Number(stageIndex) === 0) {
-        const week = Number(index) + 1; const takeaway = text(context(week).learnTakeaway); if (!takeaway) { enhance(); window.alert('Complete the active-recall checkpoint before marking Learn complete.'); return; }
+        const week = Number(index) + 1; const takeaway = text(context(week).learnTakeaway); if (takeaway.length < MIN_CHARS) { enhance(); window.alert(`Complete the active-recall checkpoint with at least ${MIN_CHARS} characters before marking Learn complete.`); return; }
       }
       return original.apply(this, arguments);
     };
