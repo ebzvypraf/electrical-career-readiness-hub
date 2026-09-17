@@ -1,10 +1,14 @@
-/* Electrical Career Readiness Hub — Learn active-recall enhancer v1.3.
+/* Electrical Career Readiness Hub — Learn active-recall enhancer v1.4.
  * Adds a lightweight learner-generated takeaway to the Learn stage and requires
  * a substantive takeaway before Learn can be completed. The canonical store
  * remains the persistence boundary; no parallel progress state is introduced.
  * v1.3 autosaves the active-recall response while the learner types so closing
  * or leaving the stage does not discard substantive learning work.
+ * v1.4 also loads the shared stage definition-of-done projection so the same
+ * completion contract is visible while the learner works through Learn.
  */
+import './stage-definition-of-done-ui-v1.js';
+
 (function () {
   'use strict';
   const MIN_CHARS = 40;
