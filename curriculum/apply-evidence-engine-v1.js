@@ -1,9 +1,12 @@
 /* Electrical Career Readiness Hub — Apply evidence engine v1.
  * Turns the Apply stage from a free-form note into a small, auditable completion record.
+ * Also loads the shared stage definition-of-done projection used by the canonical
+ * learning session so the learner can see exactly what completion requires.
  */
 import './apply-impact-ui-v1.js';
+import './stage-definition-of-done-ui-v1.js';
 
-export const APPLY_EVIDENCE_VERSION = '1.0.0';
+export const APPLY_EVIDENCE_VERSION = '1.1.0';
 
 export function normalizeApplyEvidence(input = {}) {
   const tasks = Array.isArray(input.tasks) ? input.tasks.map(Boolean) : [];
