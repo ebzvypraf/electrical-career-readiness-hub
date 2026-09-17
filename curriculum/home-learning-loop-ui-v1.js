@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — Home learning-loop status v2.8. */
+/* Electrical Career Readiness Hub — Home learning-loop status v2.9. */
 (function () {
   'use strict';
   const STAGES = ['learn', 'apply', 'check', 'evidence'];
@@ -22,13 +22,15 @@
     let panel=document.getElementById('home-learning-loop'); if(!panel){ panel=document.createElement('div'); panel.id='home-learning-loop'; panel.className='card s12'; const grid=home.querySelector('.grid'); if(!grid)return; grid.insertBefore(panel,grid.children[1]||null); }
     const latest=history(context.assessmentHistory).at(-1)||context.assessmentResult||null, latestPassed=passed(latest?.passed,latest?.status);
     const statuses=STAGES.map(stage=>{ if(progress[stage])return['complete','Complete']; if(stage==='check'&&latestPassed===false)return['remediation','Reinforcement needed']; if(stage==='check'&&latestPassed===true)return['ready','Passed']; if(stage==='learn'&&context.learnViewedAt)return['ready','Viewed']; return['pending','Pending']; });
-    const firstIncomplete=STAGES.findIndex((stage,i)=>!progress[stage]); const actionStage=latestPassed===false&&firstIncomplete===2?'check':(firstIncomplete<0?null:STAGES[firstIncomplete]);
+    const firstIncomplete=STAGES.findIndex((stage)=>!progress[stage]);
+    const canonicalStage=STAGES.includes(next?.stage) ? String(next.stage) : null;
+    const actionStage=latestPassed===false&&firstIncomplete===2?'check':(canonicalStage||((firstIncomplete<0)?null:STAGES[firstIncomplete]));
     const journal=(state.journalEntries||[]).filter(e=>String(e?.weekId||'')===weekId).length, portfolio=(state.portfolioEntries||[]).filter(e=>String(e?.week||'')===weekId).length;
     const remediation=context.remediation||{}, concepts=Array.isArray(remediation.concepts)?remediation.concepts.filter(Boolean).slice(0,3):[];
     const proof=next?.proofChain||{};
     const proofProgress=Number.isFinite(Number(next?.proofProgress?.split?.('/')?.[0]))?next.proofProgress:null;
     const proofComplete=next?.proofStatus==='demonstrated' || proof.completedStages===4;
-    const signature=`${weekId}|${statuses.map(x=>x.join(':')).join('|')}|${journal}|${portfolio}|${latestPassed}|${state.hubSignals?.overallProgress||0}|${integration.journalPrompt||''}|${integration.portfolioPrompt||''}|${next?.proofProgress||''}|${next?.source||''}|${next?.reason||''}`;
+    const signature=`${weekId}|${statuses.map(x=>x.join(':')).join('|')}|${journal}|${portfolio}|${latestPassed}|${state.hubSignals?.overallProgress||0}|${integration.journalPrompt||''}|${integration.portfolioPrompt||''}|${next?.proofProgress||''}|${next?.source||''}|${next?.reason||''}|${actionStage||''}`;
     if(panel.dataset.signature===signature)return;
     panel.dataset.signature=signature;
     const title=latestPassed===false?'Remediation':(next?.label||LABELS[actionStage]||'Complete');
