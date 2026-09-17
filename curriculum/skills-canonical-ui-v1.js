@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — canonical Skills UI bridge v2.4.
+/* Electrical Career Readiness Hub — canonical Skills UI bridge v2.5.
  * Keeps the learner-facing Skills page bound to the same canonical store that
  * powers Course, Home, Journal and Portfolio.
  *
@@ -11,6 +11,8 @@
  * allowing Skills to resume the same Course stage used by the learning engine.
  * v2.4 adds a compact proof-status summary derived from canonical Portfolio
  * entries so demonstrated evidence contributes visibly to the skill profile.
+ * v2.5 surfaces an existing canonical session draft on the recommended focus,
+ * so Skills can resume unfinished work instead of making the learner restart it.
  */
 (function () {
   'use strict';
@@ -118,11 +120,20 @@
     host.innerHTML = skills.map(item => {
       const coverage = item.coverage || {};
       const hasRecommendation = item.recommendedWeekId && item.recommendedStageLabel;
+      const draft = hasRecommendation
+        ? state?.contextByWeek?.[String(item.recommendedWeekId)]?.sessionDraft?.[String(item.recommendedStage)]
+        : null;
+      const hasDraft = Boolean(draft && item.recommendedStage);
       const recommendation = hasRecommendation
-        ? `Next focus: Week ${esc(item.recommendedWeekId)} • ${esc(item.recommendedStageLabel)}`
+        ? (hasDraft
+          ? `Resume saved work: Week ${esc(item.recommendedWeekId)} • ${esc(item.recommendedStageLabel)}`
+          : `Next focus: Week ${esc(item.recommendedWeekId)} • ${esc(item.recommendedStageLabel)}`)
         : 'All currently unlocked stages are complete for this skill.';
       const nextAction = hasRecommendation
-        ? `<button class="btn" type="button" data-skill-next="${esc(item.recommendedWeekId)}">Open next focus</button>`
+        ? `<button class="btn${hasDraft ? ' primary' : ''}" type="button" data-skill-next="${esc(item.recommendedWeekId)}">${hasDraft ? `Resume ${esc(item.recommendedStageLabel)} draft` : 'Open next focus'}</button>`
+        : '';
+      const draftHint = hasDraft
+        ? `<small class="muted" style="display:block;margin-top:4px">Your unfinished ${esc(item.recommendedStageLabel)} work is already saved in the canonical learning state.</small>`
         : '';
       return `<div class="skillrow" data-skill-key="${esc(skillKey(item.skill))}">
         <div class="skillhead"><b>${esc(item.skill)}</b><strong>${Number(item.readiness || 0)}%</strong></div>
@@ -130,7 +141,7 @@
         <div class="muted">Learn ${Number(coverage.learn || 0)}% · Apply ${Number(coverage.apply || 0)}% · Check ${Number(coverage.check || 0)}% · Evidence ${Number(coverage.evidence || 0)}%</div>
         <div class="muted">Checks passed ${Number(item.knowledgeChecks || 0)} · Demonstrated weeks ${Number(item.evidenceCount || item.demonstratedWeeks || 0)}</div>
         <div class="muted">Evidence quality ${Number(item.evidenceQuality || 0)}% · Journal coverage ${Number(item.journalCoverage || 0)}%</div>
-        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap"><small>${esc(recommendation)}</small>${nextAction}</div>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><small>${esc(recommendation)}</small>${draftHint}</div>${nextAction}</div>
       </div>`;
     }).join('');
 
