@@ -1,5 +1,5 @@
 /*
- * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.4.
+ * Electrical Career Readiness Hub — canonical 24-week curriculum catalog v1.5.
  * Merges the maintained base curriculum and extension modules into one
  * runtime catalog without duplicating lesson definitions in the UI.
  * v1.1 validates the four-stage learning contract before a catalog is exposed.
@@ -7,6 +7,9 @@
  * v1.3 validates that each stage has substantive learner-facing content.
  * v1.4 supplies downstream Home/Journal/Portfolio integration for Weeks 11-20
  * through a dedicated mapping layer without duplicating lesson payloads.
+ * v1.5 supplies safe, content-derived downstream integration defaults for any
+ * week that does not have an explicit integration mapping, closing the
+ * Home/Journal/Portfolio contract across all 24 canonical weeks.
  */
 
 import './remediation-ui-v1.js';
@@ -60,8 +63,33 @@ async function fetchJson(url) {
   return response.json();
 }
 
+function nonEmptyText(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function derivedIntegration(content, fallback = {}) {
+  const c = content || {};
+  const week = String(c.week ?? fallback.week ?? '');
+  const title = String(c.title || fallback.title || `Week ${week}`).trim();
+  const objective = String(c.objective || c.learn?.objective || '').trim();
+  const scenario = String(c.apply?.scenario || '').trim();
+  const deliverable = String(c.apply?.deliverable || '').trim();
+  const evidencePrompt = String(c.evidence?.prompt || '').trim();
+  const skills = Array.isArray(c.skills || c.skillTargets) ? (c.skills || c.skillTargets).filter(Boolean).slice(0, 2) : [];
+  const skillText = skills.length ? ` Focus skill: ${skills.join(' and ')}.` : '';
+  const actionCore = scenario || objective || title;
+  return {
+    homeAction: `Complete Week ${week} — ${title}: ${actionCore}${deliverable ? ` Capture the required deliverable: ${deliverable}` : ''}.${skillText}`,
+    journalPrompt: `Reflect on Week ${week} — ${title}: what did you learn, what decision or assumption mattered most, what did you verify, and what would you improve next time?${skills.length ? ` Relate the reflection to ${skills.join(' and ')}.` : ''}`,
+    portfolioPrompt: evidencePrompt || (deliverable ? `Capture a sanitized ${deliverable.toLowerCase()} showing your decisions, assumptions, verification and contribution.` : `Capture a sanitized proof artifact from Week ${week} showing what you produced, why you made the key decisions, and how you verified the result.`)
+  };
+}
+
 function normalizeWeek(content, fallback = {}) {
-  const c = content || {}, integration = { ...integrationForWeek(c.week ?? fallback.week), ...(c.integration || {}) };
+  const c = content || {};
+  const explicit = integrationForWeek(c.week ?? fallback.week);
+  const derived = derivedIntegration(c, fallback);
+  const integration = { ...derived, ...explicit, ...(c.integration || {}) };
   return {
     id: c.id || fallback.id,
     week: c.week ?? fallback.week,
@@ -81,10 +109,6 @@ function normalizeWeek(content, fallback = {}) {
       portfolioPrompt: integration.portfolioPrompt || integration.portfolio || ''
     }
   };
-}
-
-function nonEmptyText(value) {
-  return typeof value === 'string' && value.trim().length > 0;
 }
 
 function validateWeekContract(week) {
