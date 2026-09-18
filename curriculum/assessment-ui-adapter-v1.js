@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — canonical UI entrypoint v20.3.
+/* Electrical Career Readiness Hub — canonical UI entrypoint v21.0.
  * Keep the stable production entrypoint and install the proof-backed capability
  * read model at the canonical store boundary before downstream surfaces render it.
  * v20.1 prevents duplicate remediation panels when the dedicated remediation UI
@@ -6,6 +6,8 @@
  * v20.2 preserves the Home resume-draft action when canonical downstream sync
  * refreshes the primary action button.
  * v20.3 loads the dedicated Check feedback UI through the stable production entrypoint.
+ * v21.0 binds the authored curriculum answers to the live Check choices so scoring
+ * evaluates the real question bank rather than a fixed placeholder response.
  */
 (async function () {
   'use strict';
@@ -21,6 +23,17 @@
     const store = api?.store;
     if (!api || !store) return;
     installVerifiedCapability(store, api.catalog || {});
+
+    let authoredModules = {};
+    try {
+      const response = await fetch('./learning-content-v1.json', { cache: 'no-store' });
+      if (response.ok) {
+        const payload = await response.json();
+        (payload.modules || []).forEach(module => { authoredModules[String(module.week)] = module; });
+      }
+    } catch (error) {
+      console.warn('[ECRH authored assessment bank]', error);
+    }
 
     const refreshIntegrity = () => {
       const current = store.getState?.() || {};
@@ -44,6 +57,42 @@
     const recoverySummary = action => action?.source === 'stale-evidence-recovery' ? action.recoveryRoute?.checklist || null : null;
     const stageLabel = stage => ({ learn: 'Learn', apply: 'Apply', check: 'Check', evidence: 'Evidence' }[String(stage)] || String(stage || 'activity'));
     const checklistHtml = checklist => checklist ? `<div class="goal" id="canonicalRecoveryChecklist"><b>Recovery checklist</b><small>Apply: ${checklist.apply?.ready ? 'ready' : 'required'} • Check: ${checklist.check?.ready ? 'ready' : 'required'} • Evidence: ${checklist.evidence?.status === 'recapture-required' ? 'recapture required' : 'ready'}</small>${checklist.priorEvidenceStale ? '<small>Previous Evidence is stale and will be superseded by the new proof.</small>' : ''}</div>` : '';
+
+    const bindAuthoredCheck = weekId => {
+      const module = authoredModules[String(weekId)];
+      const questions = module?.check?.questions;
+      if (!Array.isArray(questions) || !questions.length) return;
+      const card = document.getElementById('modalCard');
+      if (!card) return;
+      const blocks = Array.from(card.querySelectorAll('.question'));
+      if (!blocks.length) return;
+      blocks.slice(0, questions.length).forEach((block, questionIndex) => {
+        const authored = questions[questionIndex] || {};
+        const answer = authored.answer || authored.why || '';
+        if (!answer) return;
+        const distractors = [
+          'Issue the deliverable immediately and resolve any open question after issue.',
+          'Treat the item as a local drafting change without checking related inputs or interfaces.'
+        ];
+        const correctSlot = (Number(weekId) + questionIndex) % 3;
+        const options = [null, null, null];
+        options[correctSlot] = answer;
+        let distractorIndex = 0;
+        for (let slot = 0; slot < options.length; slot++) {
+          if (options[slot] == null) options[slot] = distractors[distractorIndex++];
+        }
+        const labels = Array.from(block.querySelectorAll('label'));
+        options.forEach((text, slot) => {
+          const label = labels[slot];
+          if (!label) return;
+          const input = label.querySelector('input[type="radio"]');
+          if (input) input.value = slot === correctSlot ? '1' : String(slot === 2 ? 2 : 0);
+          label.lastChild.textContent = ` ${String.fromCharCode(65 + slot)} — ${text}`;
+        });
+        block.dataset.authoredAssessment = 'true';
+      });
+    };
+
     const syncDownstreamSurfaces = (state = {}) => {
       refreshIntegrity();
       const action = state?.nextBestAction || state?.hubSignals?.nextBestAction || null;
@@ -129,6 +178,7 @@
       originalOpenStage(weekId, stage);
       if (stage !== 'check') return;
       setTimeout(() => {
+        bindAuthoredCheck(weekId);
         const currentStore = window.ECRHCanonical?.store;
         const context = currentStore?.getState?.()?.contextByWeek?.[String(weekId)] || {};
         const remediation = context.remediation;
