@@ -1,10 +1,11 @@
-/* Electrical Career Readiness Hub — canonical UI entrypoint v20.2.
+/* Electrical Career Readiness Hub — canonical UI entrypoint v20.3.
  * Keep the stable production entrypoint and install the proof-backed capability
  * read model at the canonical store boundary before downstream surfaces render it.
  * v20.1 prevents duplicate remediation panels when the dedicated remediation UI
  * and this compatibility adapter observe the same failed Check modal.
  * v20.2 preserves the Home resume-draft action when canonical downstream sync
  * refreshes the primary action button.
+ * v20.3 loads the dedicated Check feedback UI through the stable production entrypoint.
  */
 (async function () {
   'use strict';
@@ -13,6 +14,7 @@
     await import('./canonical-shell-bridge-v1.js');
     const { installVerifiedCapability } = await import('./capability-integrity-v1.js');
     const { validateLearningState } = await import('./learning-state-contract-v1.js');
+    await import('./assessment-feedback-ui-v1.js');
     const started = Date.now();
     while (!window.ECRHCanonical?.openStage && Date.now() - started < 5000) await new Promise(r => setTimeout(r, 50));
     const api = window.ECRHCanonical;
