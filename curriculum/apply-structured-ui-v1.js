@@ -1,8 +1,8 @@
-/* Electrical Career Readiness Hub — structured Apply UI v1.4.
+/* Electrical Career Readiness Hub — structured Apply UI v1.5.
  * Converts the canonical Apply modal into an auditable learner-authored record.
  * Uses the existing canonical learning-state store; no parallel progress model.
- * v1.4 autosaves partial Apply work on field blur/change so learners can close,
- * navigate away, or resume later without losing an in-progress proof record.
+ * v1.5 makes Check the single canonical next action once Apply is ready,
+ * while retaining Journal and Portfolio as secondary downstream destinations.
  */
 (function () {
   'use strict';
@@ -55,7 +55,7 @@
     const ready = result.ready || savedReady;
     status.dataset.ready = ready ? 'true' : 'false';
     status.innerHTML = ready
-      ? '<strong>Apply gate ready</strong><span>All required practical proof fields are complete. You can now move to Check.</span><small data-apply-autosave-status aria-live="polite">Draft saved in this browser.</small>'
+      ? '<strong>Apply gate ready</strong><span>All required practical proof fields are complete. Continue to the Week Check.</span><small data-apply-autosave-status aria-live="polite">Draft saved in this browser.</small>'
       : `<strong>Apply gate in progress</strong><span>${result.complete}/${result.total} required proof areas complete. Finish the remaining fields before moving to Check.</span><small data-apply-autosave-status aria-live="polite">Your in-progress work is saved automatically when you leave a field.</small>`;
   }
 
@@ -73,18 +73,17 @@
       return;
     }
     handoff.hidden = false;
-    handoff.innerHTML = '<strong>Ready for the next proof steps</strong>' +
-      `<span>Check: validate your reasoning against the week’s requirements.</span>` +
+    handoff.innerHTML = '<strong>Next: validate your reasoning</strong>' +
+      '<span>Apply is ready. Continue directly to this week’s Check to validate the decisions, assumptions and verification you recorded.</span>' +
       `<span>Journal: ${escapeHtml(integration.journalPrompt || 'Record what you learned, what you would improve, and your next action.')}</span>` +
       `<span>Portfolio: ${escapeHtml(integration.portfolioPrompt || 'Capture a sanitized, reviewable proof artifact from this work.')}</span>` +
-      renderActionButtons(savedReady);
+      renderActionButtons();
     wireDownstreamActions(handoff);
   }
 
-  function renderActionButtons(savedReady) {
-    if (!savedReady) return '';
+  function renderActionButtons() {
     return '<div data-apply-downstream-actions style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">' +
-      '<button type="button" class="btn primary" data-apply-next="course">Return to Course</button>' +
+      '<button type="button" class="btn primary" data-apply-next="check">Continue to Check</button>' +
       '<button type="button" class="btn" data-apply-next="journal">Open Journal</button>' +
       '<button type="button" class="btn" data-apply-next="portfolio">Open Portfolio</button>' +
       '</div>';
@@ -95,10 +94,16 @@
       if (button.dataset.wired === 'true') return;
       button.dataset.wired = 'true';
       button.addEventListener('click', () => {
-        const page = button.dataset.applyNext;
-        const target = [...document.querySelectorAll('[data-page]')].find(candidate => candidate.dataset.page === page);
-        if (target) target.click();
+        const action = button.dataset.applyNext;
         const modal = document.getElementById('modal');
+        if (action === 'check') {
+          const weekId = currentWeekId();
+          modal?.classList.remove('show');
+          if (weekId && window.ECRHCanonical?.openStage) window.ECRHCanonical.openStage(Number(weekId), 'check');
+          return;
+        }
+        const target = [...document.querySelectorAll('[data-page]')].find(candidate => candidate.dataset.page === action);
+        if (target) target.click();
         if (modal) modal.classList.remove('show');
       });
     });
