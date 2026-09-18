@@ -1,6 +1,10 @@
 /* Canonical Check-stage feedback UI. Additive: observes the existing production modal. */
 (function () {
   'use strict';
+  Promise.all([
+    import('./assessment-failure-journal-bridge-v1.js'),
+    import('./assessment-recovery-trail-bridge-v1.js')
+  ]).catch(() => {});
   const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
   const $ = id => document.getElementById(id);
   let lastKey = '';
