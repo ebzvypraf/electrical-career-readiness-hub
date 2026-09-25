@@ -10,6 +10,7 @@
  * v22.0 binds the live Check UI to the deterministic authored assessment banks
  * v22.1 gives Home the canonical next-action label instead of a generic Open activity button.
  * v22.2 keeps the prominent Hero CTA aligned to the same canonical next-action label.
+ * v22.3 loads the shared stage Definition-of-Done projection into every canonical session.
  * (prompt, options and correctIndex) already defined for all 24 canonical weeks.
  */
 (async function () {
@@ -20,6 +21,7 @@
     const { installVerifiedCapability } = await import('./capability-integrity-v1.js');
     const { validateLearningState } = await import('./learning-state-contract-v1.js');
     await import('./assessment-feedback-ui-v1.js');
+    await import('./stage-definition-of-done-ui-v1.js');
     const started = Date.now();
     while (!window.ECRHCanonical?.openStage && Date.now() - started < 5000) await new Promise(r => setTimeout(r, 50));
     const api = window.ECRHCanonical;
