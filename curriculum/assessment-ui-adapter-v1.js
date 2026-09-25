@@ -9,6 +9,7 @@
  * v21.0 bound generic choices to authored answer text.
  * v22.0 binds the live Check UI to the deterministic authored assessment banks
  * v22.1 gives Home the canonical next-action label instead of a generic Open activity button.
+ * v22.2 keeps the prominent Hero CTA aligned to the same canonical next-action label.
  * (prompt, options and correctIndex) already defined for all 24 canonical weeks.
  */
 (async function () {
@@ -72,6 +73,24 @@
     const stageLabel = stage => ({ learn: 'Learn', apply: 'Apply', check: 'Check', evidence: 'Evidence' }[String(stage)] || String(stage || 'activity'));
     const checklistHtml = checklist => checklist ? `<div class="goal" id="canonicalRecoveryChecklist"><b>Recovery checklist</b><small>Apply: ${checklist.apply?.ready ? 'ready' : 'required'} • Check: ${checklist.check?.ready ? 'ready' : 'required'} • Evidence: ${checklist.evidence?.status === 'recapture-required' ? 'recapture required' : 'ready'}</small>${checklist.priorEvidenceStale ? '<small>Previous Evidence is stale and will be superseded by the new proof.</small>' : ''}</div>` : '';
 
+    const canonicalActionButtonLabel = (action, state = {}) => {
+      const weekId = action?.recoveryRoute?.weekId || action?.weekId;
+      const stage = action?.recoveryRoute?.resumeStage || action?.nextProofStage || action?.stage;
+      const context = weekId != null ? state?.contextByWeek?.[String(weekId)] || {} : {};
+      const draft = stage ? context?.sessionDraft?.[String(stage)] : null;
+      const progress = weekId != null ? state?.progressByWeek?.[String(weekId)] || {} : {};
+      const hasDraft = Boolean(draft && !progress[String(stage)]);
+      return action?.source === 'stale-evidence-recovery'
+        ? `Resume: ${action.recoveryRoute?.resumeLabel || action.nextProofLabel || 'Recovery'}`
+        : hasDraft
+          ? `Resume ${stageLabel(stage)} draft`
+          : action?.nextProofLabel
+            ? action.nextProofLabel
+            : stage
+              ? `Start ${stageLabel(stage)}`
+              : 'Continue learning';
+    };
+
     const bindAuthoredCheck = weekId => {
       const authoredModule = authoredAssessments[String(weekId)];
       const questions = authoredModule?.questions;
@@ -128,15 +147,7 @@
         if (coachText) coachText.textContent = action.prompt || action.reason || 'Continue the canonical learning sequence.';
         if (open) {
           const resumable = weekId != null && stage;
-          open.textContent = action.source === 'stale-evidence-recovery'
-            ? `Resume: ${action.recoveryRoute?.resumeLabel || action.nextProofLabel || 'Recovery'}`
-            : hasDraft
-              ? `Resume ${stageLabel(stage)} draft`
-              : action.nextProofLabel
-                ? action.nextProofLabel
-                : stage
-                  ? `Start ${stageLabel(stage)}`
-                  : 'Continue learning';
+          open.textContent = canonicalActionButtonLabel(action, state);
           open.dataset.canonicalAction = resumable ? JSON.stringify({ weekId: String(weekId), stage: String(stage) }) : '';
         }
       }
@@ -188,7 +199,13 @@
       homeOpen.setAttribute('aria-label', 'Open the canonical next best learning action');
     }
     const resume = document.getElementById('resume');
-    if (resume) resume.onclick = openCanonicalAction;
+    if (resume) {
+      resume.onclick = openCanonicalAction;
+      const current = store.getState?.() || {};
+      const action = current?.nextBestAction || current?.hubSignals?.nextBestAction || null;
+      if (action) resume.textContent = canonicalActionButtonLabel(action, current);
+      resume.setAttribute('aria-label', 'Open the canonical next best learning action');
+    }
 
     api.openStage = function (weekId, stage) {
       originalOpenStage(weekId, stage);
