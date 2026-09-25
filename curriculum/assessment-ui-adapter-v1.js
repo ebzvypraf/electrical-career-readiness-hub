@@ -8,6 +8,7 @@
  * v20.3 loads the dedicated Check feedback UI through the stable production entrypoint.
  * v21.0 bound generic choices to authored answer text.
  * v22.0 binds the live Check UI to the deterministic authored assessment banks
+ * v22.1 gives Home the canonical next-action label instead of a generic Open activity button.
  * (prompt, options and correctIndex) already defined for all 24 canonical weeks.
  */
 (async function () {
@@ -131,7 +132,11 @@
             ? `Resume: ${action.recoveryRoute?.resumeLabel || action.nextProofLabel || 'Recovery'}`
             : hasDraft
               ? `Resume ${stageLabel(stage)} draft`
-              : 'Open activity';
+              : action.nextProofLabel
+                ? action.nextProofLabel
+                : stage
+                  ? `Start ${stageLabel(stage)}`
+                  : 'Continue learning';
           open.dataset.canonicalAction = resumable ? JSON.stringify({ weekId: String(weekId), stage: String(stage) }) : '';
         }
       }
