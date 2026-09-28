@@ -141,8 +141,9 @@
         const stage = action?.recoveryRoute?.resumeStage || action?.nextProofStage || action?.stage;
         const context = weekId != null ? state?.contextByWeek?.[String(weekId)] || {} : {};
         const draft = stage ? context?.sessionDraft?.[String(stage)] : null;
+        const checkDraft = stage === 'check' && Boolean(context?.assessmentResult?.draft && Object.keys(context?.assessmentResult?.responses || {}).length);
         const progress = weekId != null ? state?.progressByWeek?.[String(weekId)] || {} : {};
-        const hasDraft = Boolean(draft && !progress[String(stage)]);
+        const hasDraft = Boolean((draft || checkDraft) && !progress[String(stage)]);
         if (title) title.textContent = action.week || `Week ${action.weekId || ''}`;
         if (type) type.textContent = action.label || action.nextProofLabel || action.stage || 'Learn';
         if (coach) coach.textContent = action.proofStatus === 'demonstrated' ? 'Capability demonstrated.' : `Next proof step: ${action.nextProofLabel || action.stage || 'Learn'}.`;
