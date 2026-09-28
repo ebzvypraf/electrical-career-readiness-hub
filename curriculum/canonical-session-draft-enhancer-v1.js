@@ -1,6 +1,6 @@
 /*
- * Electrical Career Readiness Hub — canonical session draft enhancer v1.2.
- * Keeps interrupted Apply / Check / Evidence work resumable through the shared
+ * Electrical Career Readiness Hub — canonical session draft enhancer v1.3.
+ * Keeps interrupted Learn / Apply / Check / Evidence work resumable through the shared
  * canonical learning-state store instead of a second draft persistence model.
  * Existing local session drafts are migrated once for continuity, then the
  * canonical store becomes the only active source for resumable work.
@@ -8,7 +8,7 @@
 (function () {
   'use strict';
   const LEGACY_KEY = 'ecrh-canonical-session-drafts-v1';
-  const STAGES = ['apply', 'check', 'evidence'];
+  const STAGES = ['learn', 'apply', 'check', 'evidence'];
   let saveTimer = null;
   let lastDraftSignature = '';
 
@@ -36,6 +36,10 @@
 
   const collect = (weekId, stage) => {
     const draft = { weekId: String(weekId), stage: String(stage), savedAt: new Date().toISOString() };
+    if (stage === 'learn') {
+      const el = document.getElementById('canonical-learn-takeaway');
+      if (el) draft.learnTakeaway = el.value;
+    }
     if (stage === 'apply') {
       draft.tasks = [...document.querySelectorAll('.apply-task')].map(x => Boolean(x.checked));
       ['applyDeliverable', 'applyDecisions', 'applyAssumptions', 'applyVerification', 'applyNotes'].forEach(id => {
@@ -72,6 +76,7 @@
 
   const hasMeaningful = draft => {
     if (!draft) return false;
+    if (draft.stage === 'learn') return Boolean(String(draft.learnTakeaway || '').trim());
     if (draft.stage === 'apply') return Boolean((draft.tasks || []).some(Boolean) || draft.applyDeliverable || draft.applyDecisions || draft.applyAssumptions || draft.applyVerification || draft.applyNotes);
     if (draft.stage === 'check') return Object.keys(draft.responses || {}).length > 0;
     if (draft.stage === 'evidence') return Boolean((draft.criteria || []).some(Boolean) || draft.evidenceTitle || draft.evidenceDescription || draft.evidenceReflection || draft.evidenceNext || draft['canon-eal'] || draft['canon-ecl']);
@@ -85,6 +90,7 @@
     if (!store || !STAGES.includes(String(stage)) || weekId == null || typeof store.updateStageContext !== 'function') return false;
     const draft = collect(weekId, stage);
     const signature = signatureFor({
+      learnTakeaway: draft.learnTakeaway,
       tasks: draft.tasks,
       applyDeliverable: draft.applyDeliverable,
       applyDecisions: draft.applyDecisions,
@@ -132,6 +138,10 @@
   const restore = (weekId, stage) => {
     const draft = draftFor(weekId, stage);
     if (!draft) return false;
+    if (stage === 'learn') {
+      const el = document.getElementById('canonical-learn-takeaway');
+      if (el && draft.learnTakeaway != null && !el.value) el.value = draft.learnTakeaway;
+    }
     if (stage === 'apply') {
       (draft.tasks || []).forEach((checked, i) => {
         const el = document.querySelector(`.apply-task[data-index="${i}"]`);
