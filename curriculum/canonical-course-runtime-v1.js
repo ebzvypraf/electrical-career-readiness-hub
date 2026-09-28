@@ -115,7 +115,10 @@ function renderCourse() {
       ${STAGES.map((stage, index) => {
         const unlocked = isStageUnlocked(state().progressByWeek, id, stage);
         const complete = Boolean(p[stage]);
-        const draft = !complete && Boolean(context?.sessionDraft?.[stage]);
+        const draft = !complete && Boolean(
+          context?.sessionDraft?.[stage] ||
+          (stage === 'check' && context?.assessmentResult?.draft && Object.keys(context?.assessmentResult?.responses || {}).length)
+        );
         const label = complete ? 'Review' : (draft ? 'Resume draft' : (unlocked ? 'Open' : 'Locked'));
         const classes = complete ? '' : (unlocked ? 'primary' : '');
         const hint = draft ? '<small class=\"muted\" style=\"display:block;margin-top:3px\">Saved work ready to resume</small>' : '';
