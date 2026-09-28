@@ -1,4 +1,4 @@
-/* Electrical Career Readiness Hub — stage definition-of-done UI v1.1.
+/* Electrical Career Readiness Hub — stage definition-of-done UI v1.2.
  * Makes the canonical completion contract visible inside each learning modal.
  * Uses the canonical Learning Engine gate as the readiness source of truth.
  * Read-only projection: the canonical learning state/store remains authoritative.
@@ -75,6 +75,15 @@ import { canCompleteStage } from './learning-engine-v2.js';
       panel.style.margin = '10px 0';
       const anchor = card.querySelector('.learning-hero') || card.children[1];
       card.insertBefore(panel, anchor || null);
+    }
+
+    if (current.stage === 'learn' && !document.getElementById('canonical-learn-takeaway')) {
+      const inputWrap = document.createElement('div');
+      inputWrap.className = 'evidence-form';
+      inputWrap.id = 'canonical-learn-recall';
+      inputWrap.innerHTML = '<label>Active-recall takeaway<textarea id="canonical-learn-takeaway" placeholder="In your own words, explain what you learned, why it matters, and how you would apply it in real electrical design work."></textarea></label><small class="muted">Minimum 40 characters. This is required to complete Learn.</small>';
+      const action = document.getElementById(ACTIONS.learn);
+      if (action) card.insertBefore(inputWrap, action);
     }
 
     const context = contextForUi(current.week, current.stage);
