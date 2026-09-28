@@ -11,7 +11,7 @@
  */
 import { loadCanonicalCatalog } from './canonical-catalog-v1.js';
 import { createLearningStateStore } from './learning-state-store-v1.js';
-import { commitStageCompletion, isStageUnlocked, STAGES, STAGE_LABELS } from './learning-engine-v2.js';
+import { commitStageCompletion, isStageUnlocked, canCompleteStage, STAGES, STAGE_LABELS } from './learning-engine-v2.js';
 
 const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[c]));
 const stageCopy = {
@@ -206,7 +206,12 @@ function openStage(weekId, stage) {
   if (stage === 'learn') document.getElementById('canonicalLearn').onclick = () => {
     if (p.learn) return close();
     const now = new Date().toISOString();
-    const ok = commit('learn', id, { learnViewedAt: now });
+    const takeaway = document.getElementById('canonical-learn-takeaway')?.value.trim() || c.learnTakeaway || '';
+    const learnContext = { learnViewedAt: now, learnTakeaway: takeaway };
+    if (!canCompleteStage('learn', learnContext)) return alert('Complete the active-recall takeaway with at least 40 characters before finishing Learn.');
+    const savedContext = store.updateStageContext(id, learnContext);
+    if (!savedContext?.ok) return alert('The learning takeaway could not be saved. Try again.');
+    const ok = commit('learn', id, learnContext);
     if (ok) { close(); refresh(); openNextStage(id, 'learn'); }
   };
   if (stage === 'apply') document.getElementById('canonicalApply').onclick = () => {
