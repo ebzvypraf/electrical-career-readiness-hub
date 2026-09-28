@@ -52,6 +52,29 @@ export function createLearningStateStore({ catalog = {}, storage = typeof window
     replaceProgress(incoming) { progressByWeek = mergeLearningProgress(progressByWeek, incoming, weekIds); return publish(); },
     syncLegacyState(legacyState = {}) { const incomingWeeks = Array.isArray(legacyState.weeks) ? legacyState.weeks : []; const legacyProgress = Object.fromEntries(incomingWeeks.map((week, index) => [String(index + 1), week])); progressByWeek = hasSavedCanonicalProgress ? mergeLearningProgress(legacyProgress, progressByWeek, weekIds) : mergeLearningProgress(progressByWeek, legacyProgress, weekIds); contextByWeek = mergeLegacyContext(contextByWeek, contextFromLegacyState(legacyState)); if (Array.isArray(legacyState.journal)) journals = mergeLegacyJournal(journals, legacyState.journal); portfolio = mergeLegacyPortfolio(portfolio, legacyState.evidence); return publish(); },
     updateStageContext(weekId, patch = {}) { return { ok: true, state: setWeekContext(weekId, patch) }; },
+    saveStageDraft({ weekId, stage, draft = {} } = {}) {
+      const id = String(weekId);
+      if (!['learn', 'apply', 'check', 'evidence'].includes(String(stage))) return { ok: false, reason: 'Unknown draft stage' };
+      const current = contextByWeek?.[id] || {};
+      const sessionDraft = current.sessionDraft && typeof current.sessionDraft === 'object' ? current.sessionDraft : {};
+      const normalized = { ...(draft && typeof draft === 'object' ? draft : {}), savedAt: new Date().toISOString() };
+      contextByWeek = {
+        ...contextByWeek,
+        [id]: { ...current, sessionDraft: { ...sessionDraft, [String(stage)]: normalized } }
+      };
+      return { ok: true, state: publish() };
+    },
+    clearStageDraft({ weekId, stage } = {}) {
+      const id = String(weekId);
+      const current = contextByWeek?.[id] || {};
+      const sessionDraft = { ...(current.sessionDraft || {}) };
+      delete sessionDraft[String(stage)];
+      contextByWeek = {
+        ...contextByWeek,
+        [id]: { ...current, sessionDraft }
+      };
+      return { ok: true, state: publish() };
+    },
     addJournalEntry(entry = {}) { const normalized = normalizeJournalEntry(entry); if (!normalized.study && !normalized.learn && !normalized.hard && !normalized.next && !normalized.reflection && !normalized.nextAction && normalized.hours <= 0) return { ok: false, reason: 'Journal entry is empty' }; journals = [...journals, normalized]; return { ok: true, entry: normalized, state: publish() }; },
     replaceJournalEntries(entries) { journals = Array.isArray(entries) ? entries.map(normalizeJournalEntry) : []; return publish(); },
     recordAssessmentResult({ weekId, result = {} } = {}) {
