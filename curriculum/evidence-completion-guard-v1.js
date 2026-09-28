@@ -16,6 +16,34 @@
   const value = (...ids) => ids.map(id => get(id)?.value?.trim() || '').find(Boolean) || '';
   const field = (...ids) => ids.map(id => get(id)).find(Boolean) || null;
 
+  const weekFromModal = () => {
+    const marker = document.querySelector('#modalCard .k');
+    const match = marker?.textContent?.match(/Week\s+(\d+)\s+•\s+Evidence/i);
+    return match ? String(Number(match[1])) : null;
+  };
+
+  let draftTimer = null;
+  const persistDraft = () => {
+    const store = window.ECRHCanonical?.store;
+    const weekId = weekFromModal();
+    if (!store?.saveStageDraft || !weekId) return;
+    const criteria = controls().map(input => Boolean(input.checked));
+    const draft = {
+      title: value('canonical-et', 'evidenceTitle'),
+      description: value('canonical-ed', 'evidenceDescription'),
+      reflection: value('canon-er', 'evidenceReflection'),
+      nextAction: value('canon-ena', 'evidenceNext'),
+      criteria
+    };
+    if (!draft.title && !draft.description && !draft.reflection && !draft.nextAction && !criteria.some(Boolean)) return;
+    store.saveStageDraft({ weekId, stage: 'evidence', draft });
+  };
+
+  const queueDraft = () => {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(persistDraft, 500);
+  };
+
   const ensureStatus = () => {
     const button = getSaveButton();
     if (!button || get('evidenceCompletionStatus')) return;
@@ -83,7 +111,15 @@
   const observer = new MutationObserver(render);
   observer.observe(document.body, { childList: true, subtree: true });
   ['input', 'change'].forEach(type => document.addEventListener(type, event => {
-    if (event.target?.matches?.('#canonical-et, #canonical-ed, #canon-er, #canon-ena, #evidenceTitle, #evidenceDescription, #evidenceReflection, #evidenceNext, [data-evidence-criterion], .criterion')) render();
+    if (!event.target?.matches?.('#canonical-et, #canonical-ed, #canon-er, #canon-ena, #evidenceTitle, #evidenceDescription, #evidenceReflection, #evidenceNext, [data-evidence-criterion], .criterion')) return;
+    render();
+    queueDraft();
   }, true));
+  document.addEventListener('focusout', event => {
+    if (event.target?.matches?.('#canonical-et, #canonical-ed, #canon-er, #canon-ena, #evidenceTitle, #evidenceDescription, #evidenceReflection, #evidenceNext, [data-evidence-criterion], .criterion')) {
+      clearTimeout(draftTimer);
+      persistDraft();
+    }
+  }, true);
   render();
 })();
