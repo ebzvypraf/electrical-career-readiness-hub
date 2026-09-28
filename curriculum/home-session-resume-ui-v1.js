@@ -83,9 +83,14 @@
     if (!home || !store) return;
 
     const draft = canonicalDrafts(store)[0] || null;
+    const canonicalAction = store.getState?.()?.hubSignals?.nextBestAction || null;
+    const canonicalIsSame = draft && canonicalAction &&
+      String(canonicalAction.weekId) === String(draft.weekId) &&
+      String(canonicalAction.stage) === String(draft.stage);
+
     let panel = document.getElementById('home-session-resume');
 
-    if (!draft) {
+    if (!draft || canonicalIsSame) {
       if (panel) panel.remove();
       return;
     }
