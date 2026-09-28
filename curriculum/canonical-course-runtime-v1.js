@@ -5,6 +5,7 @@
  * v1.2 makes every successful stage transition hand off directly to the next
  * stage, reducing dead-end modal closes and unnecessary return-to-Course clicks.
  * v1.3 makes existing canonical session drafts visible and directly resumable
+ * v1.4 keeps stage completion actions aligned with the canonical gate state.
  * from Course, so learners do not have to return to Home or Skills to recover
  * interrupted work.
  */
