@@ -55,8 +55,8 @@
     const ready = result.ready || savedReady;
     status.dataset.ready = ready ? 'true' : 'false';
     status.innerHTML = ready
-      ? '<strong>Apply gate ready</strong><span>All required practical proof fields are complete. Continue to the Week Check.</span><small data-apply-autosave-status aria-live="polite">Draft saved in this browser.</small>'
-      : `<strong>Apply gate in progress</strong><span>${result.complete}/${result.total} required proof areas complete. Finish the remaining fields before moving to Check.</span><small data-apply-autosave-status aria-live="polite">Your in-progress work is saved automatically when you leave a field.</small>`;
+      ? '<strong>Apply gate ready</strong><span>All required practical proof fields are complete. Continue to the Week Check.</span><small data-apply-autosave-status aria-live="polite">Draft saved to the canonical learning state.</small>'
+      : `<strong>Apply gate in progress</strong><span>${result.complete}/${result.total} required proof areas complete. Finish the remaining fields before moving to Check.</span><small data-apply-autosave-status aria-live="polite">Your in-progress work is saved automatically to the canonical learning state.</small>`;
   }
 
   function renderDownstreamHandoff(modal) {
@@ -116,17 +116,20 @@
     const form = readForm(modal);
     if (!hasDraft(form)) return false;
     const note = document.getElementById('canonical-note');
-    const result = store.saveApplicationEvidence({
+    const result = store.saveStageDraft({
       weekId,
-      tasks: form.tasks,
-      deliverable: form.deliverable,
-      decisions: form.decisions,
-      assumptions: form.assumptions,
-      verification: form.verification,
-      notes: note?.value || ''
+      stage: 'apply',
+      draft: {
+        tasks: form.tasks,
+        deliverable: form.deliverable,
+        decisions: form.decisions,
+        assumptions: form.assumptions,
+        verification: form.verification,
+        notes: note?.value || ''
+      }
     });
     const status = modal.querySelector('[data-apply-autosave-status]');
-    if (status) status.textContent = result?.ok ? 'Saved automatically.' : 'Could not autosave this draft.';
+    if (status) status.textContent = result?.ok ? 'Draft saved automatically.' : 'Could not autosave this draft.';
     return Boolean(result?.ok);
   }
 
@@ -137,7 +140,11 @@
     if (!modal || !weekId || !store || (modal.dataset.applyStructuredV11 === weekId && modal.querySelector('#apply-task-checks'))) return;
 
     const state = store.getState?.() || {};
-    const existing = state.contextByWeek?.[weekId]?.applicationEvidence || {};
+    const context = state.contextByWeek?.[weekId] || {};
+    const existing = {
+      ...(context.sessionDraft?.apply || {}),
+      ...(context.applicationEvidence || {})
+    };
     const tasks = Array.isArray(existing.tasks) ? existing.tasks : [];
     const catalogTasks = Array.isArray(window.ECRHCanonical?.catalog?.[weekId]?.apply?.tasks)
       ? window.ECRHCanonical.catalog[weekId].apply.tasks
