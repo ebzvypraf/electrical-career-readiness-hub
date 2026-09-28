@@ -170,7 +170,7 @@ function openStage(weekId, stage) {
       <button class=\"btn primary\" id=\"canonicalLearn\">${p.learn ? 'Learn completed — review' : 'Mark Learn complete & continue to Apply'}</button>`;
   }
   if (stage === 'apply') {
-    const app = c.applicationEvidence || {};
+    const app = { ...(c.sessionDraft?.apply || {}), ...(c.applicationEvidence || {}) };
     body = `<div class=\"learning-hero\"><b>Scenario</b><p>${esc(module.apply?.scenario)}</p></div>
       <div class=\"learning-card\"><h3>Tasks</h3>${(module.apply?.tasks || []).map((task, i) => `<label style=\"display:block;padding:7px 0\"><input type=\"checkbox\" class=\"apply-task\" data-index=\"${i}\" ${app.tasks?.[i] ? 'checked' : ''}> ${esc(task)}</label>`).join('')}</div>
       <div class=\"evidence-form\"><label>Deliverable<input id=\"applyDeliverable\" value=\"${esc(app.deliverable || module.apply?.deliverable || '')}\"></label>
@@ -189,13 +189,13 @@ function openStage(weekId, stage) {
       <button class=\"btn primary\" id=\"canonicalCheck\">${p.check ? 'Check completed — review' : 'Submit knowledge check'}</button>`;
   }
   if (stage === 'evidence') {
-    const e = c.evidence || {};
+    const e = { ...(c.sessionDraft?.evidence || {}), ...(c.evidence || {}) };
     const proof = evidenceProofSummary(id, c);
     const recoveryLabel = proof.recovered ? ` • recovered after reinforcement (attempt ${proof.attempt})` : ` • Check attempt ${proof.attempt}`;
     const staleLabel = proof.stale ? '<small style=\"display:block;margin-top:6px\">Previous Evidence is stale and will be superseded by this capture.</small>' : '';
     body = `<div class=\"learning-hero\"><b>Evidence requirement</b><p>${esc(module.evidence?.prompt)}</p>
       <div class=\"goal\" style=\"margin-top:10px\"><b>Canonical proof chain</b><small>Apply: ${proof.applyReady ? 'ready' : 'required'} • Check: ${proof.checkPassed ? 'passed' : 'required'}${recoveryLabel}</small>${staleLabel}</div>
-      <div class=\"rubric\">${(module.evidence?.criteria || []).map((x, i) => `<label class=\"rubric-row\"><span>${i+1}. ${esc(x)}</span><input type=\"checkbox\" class=\"criterion\" data-index=\"${i}\" ${e.criteria?.[i]?.satisfied ? 'checked' : ''}></label>`).join('')}</div></div>
+      <div class=\"rubric\">${(module.evidence?.criteria || []).map((x, i) => `<label class=\"rubric-row\"><span>${i+1}. ${esc(x)}</span><input type=\"checkbox\" class=\"criterion\" data-index=\"${i}\" ${Boolean(Array.isArray(e.criteria) ? (e.criteria[i]?.satisfied ?? e.criteria[i]) : (e.criteria?.[`criterion_${i+1}`]?.satisfied ?? e.criteria?.[`criterion_${i+1}`])) ? 'checked' : ''}></label>`).join('')}</div></div>
       <div class=\"evidence-form\"><label>Evidence title<input id=\"evidenceTitle\" value=\"${esc(e.title || '')}\" placeholder=\"Sanitized work sample title\"></label>
       <label>What does it prove?<textarea id=\"evidenceDescription\">${esc(e.description || '')}</textarea></label>
       <label>Reflection<textarea id=\"evidenceReflection\">${esc(e.reflection || '')}</textarea></label>
