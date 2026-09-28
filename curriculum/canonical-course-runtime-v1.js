@@ -174,7 +174,11 @@ function openStage(weekId, stage) {
   }
   if (stage === 'apply') {
     const app = { ...(c.sessionDraft?.apply || {}), ...(c.applicationEvidence || {}) };
-    body = `<div class=\"learning-hero\"><b>Scenario</b><p>${esc(module.apply?.scenario)}</p></div>
+    const learnTakeaway = String(c.learnTakeaway || '').trim();
+    const learnContext = learnTakeaway
+      ? `<div class=\"goal\"><b>Carry your Learn insight into Apply</b><small>Your saved active-recall takeaway is shown here as working context. Use it to guide your decisions; you do not need to re-enter it.</small><div class=\"evidence\"><span>${esc(learnTakeaway)}</span></div></div>`
+      : '';
+    body = `<div class=\"learning-hero\"><b>Scenario</b><p>${esc(module.apply?.scenario)}</p></div>${learnContext}
       <div class=\"learning-card\"><h3>Tasks</h3>${(module.apply?.tasks || []).map((task, i) => `<label style=\"display:block;padding:7px 0\"><input type=\"checkbox\" class=\"apply-task\" data-index=\"${i}\" ${app.tasks?.[i] ? 'checked' : ''}> ${esc(task)}</label>`).join('')}</div>
       <div class=\"evidence-form\"><label>Deliverable<input id=\"applyDeliverable\" value=\"${esc(app.deliverable || module.apply?.deliverable || '')}\"></label>
       <label>Decisions / reasoning<textarea id=\"applyDecisions\">${esc(app.decisions || '')}</textarea></label>
