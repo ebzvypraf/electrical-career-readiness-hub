@@ -166,11 +166,12 @@ function openStage(weekId, stage) {
   if (!isStageUnlocked(state().progressByWeek, id, stage)) { alert('Complete the previous stage first.'); return; }
   const p = progressFor(id);
   const c = contextFor(id);
+  const learnDraft = c.sessionDraft?.learn || {};
   let body = '';
   if (stage === 'learn') {
     body = `<div class="learning-hero"><b>Objective</b><p>${esc(module.learn?.objective || module.objective)}</p></div>
       <div class="learning-grid"><div class="learning-card"><h3>Core concepts</h3><ul>${(module.learn?.concepts || []).map(x => \`<li>${esc(x)}</li>\`).join('')}</ul></div><div class="learning-card"><h3>Senior reasoning</h3><p>${esc(module.learn?.seniorReasoning || '')}</p></div></div>
-      <div class="evidence-form"><label>Active-recall takeaway<small class="muted" style="display:block;margin:4px 0 6px">In your own words, record the key insight you would carry into the Apply scenario. Minimum 40 characters.</small><textarea id="canonical-learn-takeaway" minlength="40" placeholder="What is the key engineering insight, and why does it matter?">${esc(c.learnTakeaway || '')}</textarea></label></div>
+      <div class="evidence-form"><label>Active-recall takeaway<small class="muted" style="display:block;margin:4px 0 6px">In your own words, record the key insight you would carry into the Apply scenario. Minimum 40 characters.</small><textarea id="canonical-learn-takeaway" minlength="40" placeholder="What is the key engineering insight, and why does it matter?">${esc(learnDraft.learnTakeaway || c.learnTakeaway || '')}</textarea></label></div>
       <button class="btn primary" id="canonicalLearn">${p.learn ? 'Learn completed — review' : 'Save takeaway & continue to Apply'}</button>`;
   }
   if (stage === 'apply') {
@@ -211,6 +212,14 @@ function openStage(weekId, stage) {
       <button class=\"btn primary\" id=\"canonicalEvidence\">${p.evidence ? 'Evidence completed — review' : 'Capture linked evidence & continue'}</button></div>`;
   }
   modal(`<div><div class=\"k\">Week ${id} • ${STAGE_LABELS[stage]}</div><h2>${esc(module.title)}</h2><span class=\"pill\">${esc(module.phase)}</span></div>`, body);
+  if (stage === 'learn') {
+    const takeawayField = document.getElementById('canonical-learn-takeaway');
+    if (takeawayField) {
+      takeawayField.addEventListener('input', () => {
+        store.saveStageDraft({ weekId:id, stage:'learn', draft:{ learnTakeaway:takeawayField.value } });
+      });
+    }
+  }
   if (stage === 'learn') document.getElementById('canonicalLearn').onclick = () => {
     if (p.learn) return close();
     const now = new Date().toISOString();
