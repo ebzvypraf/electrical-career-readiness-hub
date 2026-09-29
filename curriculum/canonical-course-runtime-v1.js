@@ -168,9 +168,10 @@ function openStage(weekId, stage) {
   const c = contextFor(id);
   let body = '';
   if (stage === 'learn') {
-    body = `<div class=\"learning-hero\"><b>Objective</b><p>${esc(module.learn?.objective || module.objective)}</p></div>
-      <div class=\"learning-grid\"><div class=\"learning-card\"><h3>Core concepts</h3><ul>${(module.learn?.concepts || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div><div class=\"learning-card\"><h3>Senior reasoning</h3><p>${esc(module.learn?.seniorReasoning || '')}</p></div></div>
-      <button class=\"btn primary\" id=\"canonicalLearn\">${p.learn ? 'Learn completed — review' : 'Mark Learn complete & continue to Apply'}</button>`;
+    body = `<div class="learning-hero"><b>Objective</b><p>${esc(module.learn?.objective || module.objective)}</p></div>
+      <div class="learning-grid"><div class="learning-card"><h3>Core concepts</h3><ul>${(module.learn?.concepts || []).map(x => \`<li>${esc(x)}</li>\`).join('')}</ul></div><div class="learning-card"><h3>Senior reasoning</h3><p>${esc(module.learn?.seniorReasoning || '')}</p></div></div>
+      <div class="evidence-form"><label>Active-recall takeaway<small class="muted" style="display:block;margin:4px 0 6px">In your own words, record the key insight you would carry into the Apply scenario. Minimum 40 characters.</small><textarea id="canonical-learn-takeaway" minlength="40" placeholder="What is the key engineering insight, and why does it matter?">${esc(c.learnTakeaway || '')}</textarea></label></div>
+      <button class="btn primary" id="canonicalLearn">${p.learn ? 'Learn completed — review' : 'Save takeaway & continue to Apply'}</button>`;
   }
   if (stage === 'apply') {
     const app = { ...(c.sessionDraft?.apply || {}), ...(c.applicationEvidence || {}) };
